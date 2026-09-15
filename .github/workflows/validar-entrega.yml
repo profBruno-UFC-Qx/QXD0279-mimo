@@ -3,6 +3,8 @@ name: Validar Entrega
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'ENTREGA.md'
 
 jobs:
   validar-entrega:
