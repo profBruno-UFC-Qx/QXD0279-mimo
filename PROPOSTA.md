@@ -32,26 +32,30 @@ Administrador: gerencia itens, entregas, prédios, categorias, administradores e
 
 ## :triangular_flag_on_post:	 Principais funcionalidades da aplicação
 
-**Acesso público (visitante)**
+*Acesso público (visitante)*
 - Consultar itens encontrados, com fotos, categoria e prédio
 - Filtrar/buscar por prédio, categoria, situação e palavra-chave
 - Ver detalhes do item (ponto de retirada e horário de atendimento)
 - Consultar prédios
 - Criar conta e autenticar
 
-**Usuário registrado**
+*Usuário registrado*
 - Registrar objeto perdido (categoria, prédio provável, descrição, data)
+- Ver sugestões de itens achados compatíveis com a perda, com grau de compatibilidade e justificativa, e confirmar interesse ("É este!") ou descartar
 - Editar ou cancelar as próprias perdas
 - Editar perfil
-- Consultar histórico de itens recuperados
+- Consultar histórico de itens recuperados.
+- Receber notificações no app quando um item compatível for cadastrado.
 
-**Administrador**
-- Cadastrar item achado com fotos; editar/excluir.
+*Administrador*
+- Cadastrar item achado com fotos; editar/excluir. 
+- Ao cadastrar um item, notifcações são enviadas para possíveis donos que cadastraram items perdidos.
 - Ver todos os itens, de todos os prédios, com filtros
-- Registrar entrega presencial (nome e documento do retirante → item sai da lista pública)
+- Registrar entrega presencial (nome e CPF do retirante → item sai da lista pública)
 - Encerrar registro de perda ao devolver o objeto
 - Gerenciar prédios, categorias e administradores
 - Consultar logs de auditoria (somente leitura)
+- Receber notificações no app quando um usuário confirmar a sugestão de um item
 
 ## :spiral_calendar: Entidades ou tabelas do sistema
 - users — usuários e administradores (papel via role)
@@ -60,4 +64,7 @@ Administrador: gerencia itens, entregas, prédios, categorias, administradores e
 - items — itens encontrados; visíveis ao público enquanto AVAILABLE
 - item_photos — fotos de cada item
 - lost_reports — registros de objetos perdidos feitos pelos usuários
-- handovers — comprovante da entrega presencial (1:1 com o item)
+- item_matches — sugestões de correspondência perda↔️item, com pontuação, justificativa e status (sugerida, confirmada, descartada)
+- handovers — comprovante da entrega presencial (1:1 com o item), com nome e CPF do retirante
+- notifications — notificações in-app por usuário (novo match, interesse confirmado, perda encerra
+
