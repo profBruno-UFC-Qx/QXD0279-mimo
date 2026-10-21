@@ -32,7 +32,8 @@ __decorate([
     __metadata("design:type", Number)
 ], ItemPhoto.prototype, "itemId", void 0);
 __decorate([
-    ManyToOne(() => Item, (item) => item.photos, { onDelete: 'CASCADE' }),
+    ManyToOne(() => Item, (item) => item.photos, { onDelete: 'CASCADE' }) // quando o item for deletado, as fotos também serão
+    ,
     JoinColumn({ name: 'item_id' }),
     __metadata("design:type", Item)
 ], ItemPhoto.prototype, "item", void 0);

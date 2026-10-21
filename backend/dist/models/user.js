@@ -7,8 +7,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn, } from 'typeorm';
-import { IsEmail, IsEnum, IsInt, IsOptional, IsPositive, IsString, Length, Matches, } from 'class-validator';
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { IsEmail, IsEnum, IsInt, IsOptional, IsPositive, IsString, Length, Matches } from 'class-validator';
 import { UserRole } from './enums.js';
 import { Notification } from './notification.js';
 import { Item } from './item.js';
@@ -55,7 +55,7 @@ __decorate([
 __decorate([
     Column({ type: 'varchar', length: 120, select: false, name: 'password_hash' }),
     IsString(),
-    Length(60, 120, { message: 'passwordHash deve conter um hash bcrypt (60) ou argon2 (até 120 caracteres).' }),
+    Length(60, 120, { message: 'passwordHash deve conter um hash de 60 a 120 caracteres.' }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
 __decorate([

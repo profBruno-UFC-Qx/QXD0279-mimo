@@ -1,14 +1,5 @@
 import { DispositionType } from './enums.js';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsPositive, Min } from 'class-validator';
 import { User } from './user.js';
 
