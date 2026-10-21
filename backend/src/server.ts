@@ -1,8 +1,7 @@
 import express from 'express';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import swaggerUi from 'swagger-ui-express';
+import { AppDataSource } from './data-source.js';
 
 const app = express();
 const port = 3000;
@@ -17,24 +16,17 @@ app.use((req, res, next) => {
 });
 
 
-const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-const swaggerPath = path.join(currentDirectory, '../swagger-output.json');
-const swaggerDocument = fs.existsSync(swaggerPath)
-  ? JSON.parse(fs.readFileSync(swaggerPath, 'utf-8'))
-  : {
-      openapi: '3.0.0',
-      info: {
-        title: 'API do Projeto',
-        version: '1.0.0',
-        description: 'Documentação da API',
-      },
-    };
+const swaggerDocument = JSON.parse(fs.readFileSync(new URL('../swagger-output.json', import.meta.url), 'utf-8'));
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-app.listen(port, () => {
-  console.log(`Servidor rodando em http://localhost:${port}`);
-  console.log(`Documentação Swagger em http://localhost:${port}/api-docs`);
-});
+AppDataSource.initialize()
+  .then(() => app.listen(port, () => {
+    console.log(`Servidor rodando em http://localhost:${port}`);
+    console.log(`Documentação Swagger em http://localhost:${port}/docs`);
+  }))
+  .catch((error: unknown) => {
+    console.error('Não foi possível conectar ao SQLite:', error);
+    process.exitCode = 1;
+  });
 
 export default app;
