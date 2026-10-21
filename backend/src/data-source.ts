@@ -12,6 +12,7 @@ import { Handover } from './models/handover.js';
 import { DispositionRule } from './models/disposition-rule.js';
 import { Disposition } from './models/disposition.js';
 
+// Configuração do DataSource do TypeORM para o banco de dados SQLite
 export const AppDataSource = new DataSource({
   type: 'sqlite',
   database: process.env.SQLITE_DB_PATH ?? 'data/achadex.sqlite',

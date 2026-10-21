@@ -1,9 +1,6 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import swaggerAutogen from 'swagger-autogen';
-const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-const outputFile = path.join(currentDirectory, '../swagger-output.json');
-const endpointsFiles = [path.join(currentDirectory, './server.ts')];
+const outputFile = './swagger-output.json';
+const endpointsFiles = ['./src/server.ts'];
 const doc = {
     info: {
         title: 'API do Projeto',

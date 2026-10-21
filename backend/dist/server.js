@@ -7,16 +7,20 @@ import { buildingRouter } from './controllers/building.controller.js';
 const app = express();
 const port = 3000;
 app.use(express.json());
+// Rotas 
 app.use('/api/buildings', buildingRouter);
+// Configuração CORS 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     next();
 });
+// Configuração Swagger
 const swaggerDocument = JSON.parse(fs.readFileSync(new URL('../swagger-output.json', import.meta.url), 'utf-8'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(errorHandler);
+// Inicialização do servidor e conexão com o banco de dados
 AppDataSource.initialize()
     .then(() => app.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);

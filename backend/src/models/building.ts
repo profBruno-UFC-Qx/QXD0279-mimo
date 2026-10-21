@@ -6,15 +6,15 @@ import { LostReport } from './lost-report.js';
 @Entity('buildings')
 export class Building {
   @PrimaryGeneratedColumn('increment')
-  @IsOptional()
+  @IsOptional() // O id é gerado pelo db, por isso está como optional
   @IsInt()
   @IsPositive()
   id: number;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 150 })
+  @Index({ unique: true }) // Garante que o nome do prédio seja único no db
+  @Column({ type: 'varchar', length: 150 }) // descreve no schema do db
   @IsString()
-  @Length(3, 150)
+  @Length(3, 150) // Valida no backe que o nome do prédio tenha entre 3 e 150 caracteres
   name: string;
 
   @Column({ type: 'varchar', length: 255 })

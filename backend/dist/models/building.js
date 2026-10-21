@@ -23,16 +23,20 @@ let Building = class Building {
 };
 __decorate([
     PrimaryGeneratedColumn('increment'),
-    IsOptional(),
+    IsOptional() // O id é gerado pelo db, por isso está como optional
+    ,
     IsInt(),
     IsPositive(),
     __metadata("design:type", Number)
 ], Building.prototype, "id", void 0);
 __decorate([
-    Index({ unique: true }),
-    Column({ type: 'varchar', length: 150 }),
+    Index({ unique: true }) // Garante que o nome do prédio seja único no db
+    ,
+    Column({ type: 'varchar', length: 150 }) // descreve no schema do db
+    ,
     IsString(),
-    Length(3, 150),
+    Length(3, 150) // Valida no backe que o nome do prédio tenha entre 3 e 150 caracteres
+    ,
     __metadata("design:type", String)
 ], Building.prototype, "name", void 0);
 __decorate([

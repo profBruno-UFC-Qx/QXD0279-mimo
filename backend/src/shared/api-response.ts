@@ -3,19 +3,10 @@ export interface ApiError {
   details: string;
 }
 
-export interface ApiSuccess<T> {
-  success: true;
+export interface ApiResponse<T> {
+  success: boolean;
   message?: string;
-  data: T;
-  error?: null;
+  data: T | null;
+  error?: ApiError | null;
 }
 
-export interface ApiFailure {
-  success: false;
-  message?: string;
-  data: null;
-  error: ApiError;
-}
-
-// Permite que a resposta da API seja do tipo ApiSuccess ou ApiFailure, dependendo do resultado da operação.
-export type ApiResponse<T> = ApiSuccess<T> | ApiFailure; 

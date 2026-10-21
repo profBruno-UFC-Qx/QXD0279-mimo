@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { HttpError } from '../shared/http-error.js';
+import { HttpError } from '../middlewares/http-error.js';
 import { BuildingService } from '../services/building.service.js';
 const buildingService = new BuildingService();
 export const buildingRouter = Router();
