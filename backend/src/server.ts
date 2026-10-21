@@ -2,11 +2,13 @@ import express from 'express';
 import fs from 'node:fs';
 import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './data-source.js';
+import { buildingRouter } from './controllers/building.controller.js';
 
 const app = express();
 const port = 3000;
 
 app.use(express.json());
+app.use('/api/buildings', buildingRouter);
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
