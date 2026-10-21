@@ -1,8 +1,10 @@
-import path from 'path';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swaggerAutogen from 'swagger-autogen';
 
-const outputFile = path.join(__dirname, '../swagger-output.json');
-const endpointsFiles = [path.join(__dirname, './routes/*.ts')];
+const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const outputFile = path.join(currentDirectory, '../swagger-output.json');
+const endpointsFiles = [path.join(currentDirectory, './routes/*.ts')];
 
 const doc = {
   info: {
@@ -26,5 +28,5 @@ const doc = {
 };
 
 swaggerAutogen({ openapi: '3.0.0' })(outputFile, endpointsFiles, doc).then(() => {
-  import('./server');
+  import('./server.js');
 });
