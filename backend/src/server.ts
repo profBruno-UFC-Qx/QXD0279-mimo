@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'node:fs';
 import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './data-source.js';
+import { errorHandler } from './middlewares/error-handler.js';
 import { buildingRouter } from './controllers/building.controller.js';
 
 const app = express();
@@ -20,6 +21,7 @@ app.use((req, res, next) => {
 
 const swaggerDocument = JSON.parse(fs.readFileSync(new URL('../swagger-output.json', import.meta.url), 'utf-8'));
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use(errorHandler);
 
 AppDataSource.initialize()
   .then(() => app.listen(port, () => {

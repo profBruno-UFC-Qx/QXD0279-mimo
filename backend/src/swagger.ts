@@ -4,7 +4,7 @@ import swaggerAutogen from 'swagger-autogen';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const outputFile = path.join(currentDirectory, '../swagger-output.json');
-const endpointsFiles = [path.join(currentDirectory, './routes/*.ts')];
+const endpointsFiles = [path.join(currentDirectory, './server.ts')];
 
 const doc = {
   info: {
@@ -27,6 +27,6 @@ const doc = {
   },
 };
 
-swaggerAutogen({ openapi: '3.0.0' })(outputFile, endpointsFiles, doc).then(() => {
+swaggerAutogen()(outputFile, endpointsFiles, doc).then(() => {
   import('./server.js');
 });
