@@ -1,11 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { IsDate, IsInt, IsOptional, IsPositive, IsString, Length, Matches } from 'class-validator';
 import { Item } from './item.js';
 import { User } from './user.js';

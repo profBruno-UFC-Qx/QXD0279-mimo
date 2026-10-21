@@ -24,7 +24,7 @@ export class ItemPhoto {
   @IsPositive()
   itemId: number;
 
-  @ManyToOne(() => Item, (item) => item.photos, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Item, (item) => item.photos, { onDelete: 'CASCADE' }) // quando o item for deletado, as fotos também serão
   @JoinColumn({ name: 'item_id' })
   item: Item;
 
