@@ -13,10 +13,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "express": "^5.3.0",
+    "reflect-metadata": "^0.2.2",
+    "sqlite3": "^6.0.1",
     "swagger-autogen": "^2.23.7",
     "swagger-jsdoc": "^6.3.0",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.31"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
