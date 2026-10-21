@@ -1,78 +1,133 @@
 {
-  "openapi": "3.0.0",
+  "swagger": "2.0",
   "info": {
     "title": "API do Projeto",
     "version": "1.0.0",
     "description": "Documentação da API com swagger-autogen"
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000/"
-    }
+  "host": "localhost:3000",
+  "basePath": "/",
+  "schemes": [
+    "http"
   ],
-  "paths": {},
-  "components": {
-    "schemas": {
-      "Aluno": {
-        "type": "object",
+  "paths": {
+    "/api/buildings/": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Campus Central"
+                },
+                "address": {
+                  "type": "string",
+                  "example": "Rua Exemplo, 123"
+                },
+                "pickupPoint": {
+                  "type": "string",
+                  "example": "Recepção principal"
+                },
+                "serviceHours": {
+                  "type": "string",
+                  "example": "Segunda a sexta, das 9h às 17h"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/api/buildings/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Aluno": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "example": "object"
+        },
         "properties": {
-          "type": {
-            "type": "string",
-            "example": "object"
-          },
+          "type": "object",
           "properties": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "number"
-                  },
-                  "example": {
-                    "type": "number",
-                    "example": 1
-                  }
+            "id": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 1
                 }
-              },
-              "nome": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "example": {
-                    "type": "string",
-                    "example": "Ana"
-                  }
+              }
+            },
+            "nome": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "Ana"
                 }
-              },
-              "idade": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "number"
-                  },
-                  "example": {
-                    "type": "number",
-                    "example": 20
-                  }
+              }
+            },
+            "idade": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "number"
+                },
+                "example": {
+                  "type": "number",
+                  "example": 20
                 }
-              },
-              "curso": {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "example": "string"
-                  },
-                  "example": {
-                    "type": "string",
-                    "example": "Sistemas para Internet"
-                  }
+              }
+            },
+            "curso": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "string"
+                },
+                "example": {
+                  "type": "string",
+                  "example": "Sistemas para Internet"
                 }
               }
             }
