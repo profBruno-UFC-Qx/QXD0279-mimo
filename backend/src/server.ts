@@ -1,6 +1,7 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import swaggerUi from 'swagger-ui-express';
 
 const app = express();
@@ -16,7 +17,8 @@ app.use((req, res, next) => {
 });
 
 
-const swaggerPath = path.join(__dirname, '../swagger-output.json');
+const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const swaggerPath = path.join(currentDirectory, '../swagger-output.json');
 const swaggerDocument = fs.existsSync(swaggerPath)
   ? JSON.parse(fs.readFileSync(swaggerPath, 'utf-8'))
   : {
