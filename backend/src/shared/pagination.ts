@@ -25,9 +25,7 @@ export function paginate<T>(
   query: PaginationQuery = {},
 ): Paginated<T> {
   const requestedPage = Number.isFinite(query.page) ? Math.floor(query.page!) : DEFAULT_PAGE;
-  const requestedPerPage = Number.isFinite(query.per_page)
-    ? Math.floor(query.per_page!)
-    : DEFAULT_PER_PAGE;
+  const requestedPerPage = Number.isFinite(query.per_page) ? Math.floor(query.per_page!) : DEFAULT_PER_PAGE;
   const page = Math.max(1, requestedPage);
   const perPage = Math.min(MAX_PER_PAGE, Math.max(1, requestedPerPage));
   const safeTotal = Number.isFinite(total) ? Math.max(0, Math.floor(total)) : 0;
