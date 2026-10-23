@@ -4,3 +4,6 @@ data/*.sqlite-*
 .env.*
 node_modules/
 !.env.example
+dist/
+swagger-output.json
+swagger-check.json

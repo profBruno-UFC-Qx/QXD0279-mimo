@@ -3,23 +3,28 @@ import fs from 'node:fs';
 import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './data-source.js';
 import { errorHandler } from './middlewares/error-handler.js';
-import { buildingRouter } from './controllers/building.controller.js';
+import { apiRouter } from './routes/index.js';
 
 const app = express();
 const port = 3000;
+const preflightStatus = 204;
 
 app.use(express.json());
 
-// Rotas 
-app.use('/api/buildings', buildingRouter);
-
-// Configuração CORS 
+// Configuração CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(preflightStatus);
+    return;
+  }
   next();
 });
+
+// Rotas da API
+app.use('/api', apiRouter);
 
 // Configuração Swagger
 const swaggerDocument = JSON.parse(fs.readFileSync(new URL('../swagger-output.json', import.meta.url), 'utf-8'));

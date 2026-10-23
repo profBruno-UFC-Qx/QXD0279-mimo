@@ -30,4 +30,5 @@ export enum DispositionType {
 export enum NotificationType {
   MATCH_FOUND = 'MATCH_FOUND',
   ITEM_CLAIMED = 'ITEM_CLAIMED',
+  REPORT_RESOLVED = 'REPORT_RESOLVED',
 }
