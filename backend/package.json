@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/swagger.js",
+  "scripts": {
+    "start": "tsx src/swagger.ts",
+    "dev": "tsx src/swagger.ts",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "reflect-metadata": "^0.2.2",
+    "sqlite3": "^6.0.1",
+    "swagger-autogen": "^2.23.7",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.31"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "nodemon": "^3.1.14",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,32 @@
+import { Router } from 'express';
+import { adminRouter } from '../controllers/admin.controller.js';
+import { adminItemRouter } from '../controllers/admin-item.controller.js';
+import { adminLostReportRouter } from '../controllers/admin-lost-report.controller.js';
+import { authRouter } from '../controllers/auth.controller.js';
+import { buildingRouter } from '../controllers/building.controller.js';
+import { categoryRouter } from '../controllers/category.controller.js';
+import { dispositionRuleRouter } from '../controllers/disposition-rule.controller.js';
+import { dispositionRouter } from '../controllers/disposition.controller.js';
+import { handoverRouter } from '../controllers/handover.controller.js';
+import { jobRouter } from '../controllers/job.controller.js';
+import { catalogItemRouter } from '../controllers/item.controller.js';
+import { lostReportRouter } from '../controllers/lost-report.controller.js';
+import { notificationRouter } from '../controllers/notification.controller.js';
+import { userRouter } from '../controllers/user.controller.js';
+
+export const apiRouter = Router();
+
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/users', userRouter);
+apiRouter.use('/items', catalogItemRouter);
+apiRouter.use('/admin/items', adminItemRouter);
+apiRouter.use('/buildings', buildingRouter);
+apiRouter.use('/categories', categoryRouter);
+apiRouter.use('/lost-reports', lostReportRouter);
+apiRouter.use('/admin/lost-reports', adminLostReportRouter);
+apiRouter.use('/notifications', notificationRouter);
+apiRouter.use('/handovers', handoverRouter);
+apiRouter.use('/disposition-rules', dispositionRuleRouter);
+apiRouter.use('/dispositions', dispositionRouter);
+apiRouter.use('/jobs', jobRouter);
+apiRouter.use('/admins', adminRouter);
