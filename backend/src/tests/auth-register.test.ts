@@ -10,6 +10,7 @@ import express from 'express';
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'achadex-test-'));
 const dbPath = path.join(tmpDir, 'test.sqlite');
 process.env.SQLITE_DB_PATH = dbPath;
+process.env.JWT_SECRET = 'segredo-de-teste-com-mais-de-32-bytes-para-hs256!';
 
 const { registerUser, validateRegistrationInput } = await import('../services/auth.service.js');
 const { verifyPassword } = await import('../shared/password.js');
@@ -230,13 +231,15 @@ test('senha com caracteres Unicode dentro do limite de 1024 bytes é aceita', as
   assert.equal(await verifyPassword(unicodePwd, row.password_hash as string), true);
 });
 
-test('POST /api/auth/login continua 501', async () => {
+test('POST /api/auth/login responde 200 após cadastro com credenciais válidas', async () => {
+  await registerUser(validUser);
+
   const res = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: validUser.email, password: validUser.password }),
   });
-  assert.equal(res.status, 501);
+  assert.equal(res.status, 200);
 });
 
 const { password: _omit, ...withoutPassword } = validUser;

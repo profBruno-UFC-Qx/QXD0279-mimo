@@ -24,3 +24,12 @@ export async function insertUser(user: User): Promise<User> {
   await AppDataSource.getRepository(User).insert(user);
   return user;
 }
+
+// Busca segura de usuário com passwordHash explicitamente selecionado
+export async function findUserWithPasswordByEmail(email: string): Promise<User | null> {
+  return AppDataSource.getRepository(User)
+    .createQueryBuilder('user')
+    .addSelect('user.passwordHash')
+    .where('user.email = :email', { email })
+    .getOne();
+}

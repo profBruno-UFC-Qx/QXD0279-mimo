@@ -1,7 +1,6 @@
 import { Router, type Request, type Response } from 'express';
-import { registerUser, type PublicUser } from '../services/auth.service.js';
+import { loginUser, registerUser, type LoginResult, type PublicUser } from '../services/auth.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
-import { notImplemented } from '../shared/not-implemented.js';
 
 export const authRouter = Router();
 
@@ -25,6 +24,12 @@ authRouter.post(
   /* #swagger.tags = ['Auth'] */
   /* #swagger.summary = 'Autenticar usuário' */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { email: 'ana@example.com', password: 'senha' } } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Login'),
+  /* #swagger.responses[200] = { description: 'Usuário autenticado com sucesso', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Dados inválidos', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Credenciais inválidas', schema: { $ref: '#/definitions/ApiResponse' } } */
+  async (req: Request, res: Response) => {
+    const result = await loginUser(req.body);
+    const response: ApiResponse<LoginResult> = { success: true, data: result };
+    res.status(200).json(response);
+  },
 );
