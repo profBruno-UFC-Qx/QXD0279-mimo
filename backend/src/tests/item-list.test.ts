@@ -599,3 +599,231 @@ test('RED13 — paginação com múltiplas fotos: não duplica itens por JOIN e 
   assert.equal(returnedC.photos.length, 0, 'Item C deve ter 0 fotos');
   assert.equal(returnedD.photos.length, 1, 'Item D deve ter 1 foto');
 });
+
+test('H01 — item cuja visibilidade deixa de ser pública antes da 2ª fase não é exposto no catálogo', async () => {
+  const { admin, catEletronicos, bldCentral } = await createFixtures();
+  const itemRepo = AppDataSource.getRepository(Item);
+
+  const itemConc = await itemRepo.save(
+    itemRepo.create({
+      title: 'Item Concorrente Visibilidade',
+      description: 'Item para teste de visibilidade sob corrida',
+      categoryId: catEletronicos.id,
+      buildingId: bldCentral.id,
+      foundLocation: 'Bloco C',
+      foundDate: new Date('2026-11-03'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.id,
+    }),
+  );
+
+  const origCreateQueryBuilder = itemRepo.createQueryBuilder.bind(itemRepo);
+  let qbCalls = 0;
+  itemRepo.createQueryBuilder = (...args: any[]) => {
+    qbCalls++;
+    const qb = (origCreateQueryBuilder as any)(...args);
+    if (qbCalls === 2) {
+      const origGetMany = qb.getMany.bind(qb);
+      qb.getMany = async () => {
+        await AppDataSource.query("UPDATE items SET status = 'HANDED_OVER' WHERE id = ?", [itemConc.id]);
+        return origGetMany();
+      };
+    }
+    return qb;
+  };
+
+  try {
+    const res = await getItems(`search=${encodeURIComponent('Concorrente Visibilidade')}`);
+    assert.equal(res.status, 200);
+    const leaked = res.body.data.data.find((it: any) => it.id === itemConc.id);
+    assert.equal(leaked, undefined, 'Item alterado para HANDED_OVER na leitura final não deve ser exposto no catálogo');
+  } finally {
+    itemRepo.createQueryBuilder = origCreateQueryBuilder;
+  }
+});
+
+test('H02 — projeção pública estrita: whitelist de campos autorizados sem vazamento de dados internos ou administrativos', async () => {
+  const { item1 } = await createFixtures();
+
+  const res = await getItems();
+  assert.equal(res.status, 200);
+  assert.ok(res.body.data.data.length > 0);
+
+  const item = res.body.data.data.find((x: any) => x.id === item1.id);
+  assert.ok(item, 'Item 1 deve estar presente');
+
+  // Whitelist exata de chaves no nível do item
+  const itemKeys = Object.keys(item).sort();
+  assert.deepEqual(itemKeys, [
+    'building',
+    'buildingId',
+    'category',
+    'categoryId',
+    'description',
+    'foundDate',
+    'foundLocation',
+    'id',
+    'photos',
+    'status',
+    'title',
+  ]);
+
+  // Whitelist exata da categoria
+  assert.deepEqual(Object.keys(item.category).sort(), ['id', 'name']);
+
+  // Whitelist exata do prédio: RF01 autoriza apenas o nome e identificador; pickupPoint e serviceHours são exclusivos de GET /api/items/:id (RF03)
+  assert.deepEqual(Object.keys(item.building).sort(), ['id', 'name']);
+
+  // Whitelist exata das fotos
+  assert.ok(Array.isArray(item.photos));
+  assert.ok(item.photos.length > 0);
+  assert.deepEqual(Object.keys(item.photos[0]).sort(), ['id', 'url']);
+
+  // Verificação contra vazamento de campos administrativos e de auditoria
+  const forbiddenFields = [
+    'createdBy',
+    'createdByUser',
+    'passwordHash',
+    'password_hash',
+    'handovers',
+    'dispositions',
+    'createdAt',
+    'updatedAt',
+    'plannedDestination',
+  ];
+  for (const field of forbiddenFields) {
+    assert.equal((item as any)[field], undefined, `Campo proibido ${field} não deve existir no item`);
+    assert.equal((item.building as any)[field], undefined, `Campo proibido ${field} não deve existir no prédio`);
+    assert.equal((item.category as any)[field], undefined, `Campo proibido ${field} não deve existir na categoria`);
+    assert.equal((item.photos[0] as any)[field], undefined, `Campo proibido ${field} não deve existir na foto`);
+  }
+});
+
+test('H03 — segurança numérica da paginação: normalizações contratuais e rejeição com 400 para inteiros inseguros/overflow', async () => {
+  await createFixtures();
+
+  // Normalizações contratuais preservadas (retornam 200)
+  const norm0 = await getItems('page=0');
+  assert.equal(norm0.status, 200);
+  assert.equal(norm0.body.data.pagination.page, 1);
+
+  const normNeg = await getItems('page=-1');
+  assert.equal(normNeg.status, 200);
+  assert.equal(normNeg.body.data.pagination.page, 1);
+
+  const normAbc = await getItems('page=abc');
+  assert.equal(normAbc.status, 200);
+  assert.equal(normAbc.body.data.pagination.page, 1);
+
+  const normDec = await getItems('page=1.5');
+  assert.equal(normDec.status, 200);
+  assert.equal(normDec.body.data.pagination.page, 1);
+
+  const normPerZero = await getItems('per_page=0');
+  assert.equal(normPerZero.status, 200);
+  assert.equal(normPerZero.body.data.pagination.per_page, 1);
+
+  const normPerMax = await getItems('per_page=150');
+  assert.equal(normPerMax.status, 200);
+  assert.equal(normPerMax.body.data.pagination.per_page, 100);
+
+  // Valores extremos de page que causam overflow de offset ou não são inteiros seguros devem retornar 400
+  const unsafePages = [
+    '9007199254740991',
+    '9007199254740992',
+    '999999999999999999999999999999',
+    '1e309',
+  ];
+
+  for (const pageVal of unsafePages) {
+    const res = await getItems(`page=${pageVal}`);
+    assert.equal(res.status, 400, `page=${pageVal} deve ser rejeitado com HTTP 400`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.data, null);
+    assert.equal(res.body.error?.code, 400);
+  }
+
+  // Combinações de overflow com per_page=1, 20, 100
+  const overflowRes = await getItems('page=9007199254740991&per_page=100');
+  assert.equal(overflowRes.status, 400);
+});
+
+test('H04 — metacaracteres de LIKE (%, _ e \\) são tratados como texto literal na busca textual', async () => {
+  const { admin, catEletronicos, bldCentral } = await createFixtures();
+  const itemRepo = AppDataSource.getRepository(Item);
+
+  const itemPct = await itemRepo.save(
+    itemRepo.create({
+      title: 'Caderno 100% completo',
+      description: 'Anotações completas de cálculo',
+      categoryId: catEletronicos.id,
+      buildingId: bldCentral.id,
+      foundLocation: 'Sala 101',
+      foundDate: new Date('2026-11-02'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.id,
+    }),
+  );
+
+  const itemUnd = await itemRepo.save(
+    itemRepo.create({
+      title: 'Arquivo_aula gravado',
+      description: 'Pendrive com Arquivo_aula',
+      categoryId: catEletronicos.id,
+      buildingId: bldCentral.id,
+      foundLocation: 'Laboratório 2',
+      foundDate: new Date('2026-11-02'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.id,
+    }),
+  );
+
+  const itemBsl = await itemRepo.save(
+    itemRepo.create({
+      title: 'Pasta\\Documentos confidenciais',
+      description: 'Pasta com barra invertida no título',
+      categoryId: catEletronicos.id,
+      buildingId: bldCentral.id,
+      foundLocation: 'Secretaria',
+      foundDate: new Date('2026-11-02'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.id,
+    }),
+  );
+
+  // 1. Busca por '100%' deve encontrar exatamente 'Caderno 100% completo'
+  const res100 = await getItems(`search=${encodeURIComponent('100%')}`);
+  assert.equal(res100.status, 200);
+  assert.equal(res100.body.data.data.length, 1);
+  assert.equal(res100.body.data.data[0].id, itemPct.id);
+
+  // 2. Busca pelo caractere literal '%' NÃO deve retornar todos os itens indiscriminadamente
+  const resPct = await getItems(`search=${encodeURIComponent('%')}`);
+  assert.equal(resPct.status, 200);
+  assert.equal(resPct.body.data.data.length, 1, 'Busca por % deve casar apenas itens com % literal');
+  assert.equal(resPct.body.data.data[0].id, itemPct.id);
+
+  // 3. Busca por 'Arquivo_' deve encontrar apenas 'Arquivo_aula gravado'
+  const resUnd = await getItems(`search=${encodeURIComponent('Arquivo_')}`);
+  assert.equal(resUnd.status, 200);
+  assert.equal(resUnd.body.data.data.length, 1);
+  assert.equal(resUnd.body.data.data[0].id, itemUnd.id);
+
+  // 4. Busca por '_' NÃO deve funcionar como curinga de caractere único
+  const resSingleUnd = await getItems(`search=${encodeURIComponent('_')}`);
+  assert.equal(resSingleUnd.status, 200);
+  assert.equal(resSingleUnd.body.data.data.length, 1, 'Busca por _ deve casar apenas itens com _ literal');
+  assert.equal(resSingleUnd.body.data.data[0].id, itemUnd.id);
+
+  // 5. Busca por 'Pasta\\Documentos' deve encontrar o item com barra invertida
+  const resBsl = await getItems(`search=${encodeURIComponent('Pasta\\Documentos')}`);
+  assert.equal(resBsl.status, 200);
+  assert.equal(resBsl.body.data.data.length, 1);
+  assert.equal(resBsl.body.data.data[0].id, itemBsl.id);
+
+  // 6. Busca por '\\' isolado não quebra SQL e retorna item com contrabarra
+  const resSingleBsl = await getItems(`search=${encodeURIComponent('\\')}`);
+  assert.equal(resSingleBsl.status, 200);
+  assert.equal(resSingleBsl.body.data.data.length, 1);
+  assert.equal(resSingleBsl.body.data.data[0].id, itemBsl.id);
+});
