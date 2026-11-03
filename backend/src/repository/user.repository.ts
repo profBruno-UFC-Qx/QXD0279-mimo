@@ -33,3 +33,8 @@ export async function findUserWithPasswordByEmail(email: string): Promise<User |
     .where('user.email = :email', { email })
     .getOne();
 }
+
+// Busca de usuário por ID sem carregar credenciais
+export async function findUserById(id: number): Promise<User | null> {
+  return AppDataSource.getRepository(User).findOneBy({ id });
+}
