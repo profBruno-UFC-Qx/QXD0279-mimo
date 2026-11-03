@@ -10,6 +10,7 @@ import {
   findMatchingPublicItems,
   findLostReportsByUserId,
   findLostReportByIdAndUserId,
+  updateOwnLostReportIfOpen,
 } from '../repository/lost-report.repository.js';
 
 export interface ValidatedLostReportInput {
@@ -261,4 +262,130 @@ export async function getOwnLostReportDetails(
     throw new HttpError(404, 'Relato de perda não encontrado.');
   }
   return formatPublicLostReport(report);
+}
+
+export interface ValidatedLostReportUpdateInput {
+  categoryId?: number;
+  buildingId?: number | null;
+  description?: string;
+  lossDate?: string;
+}
+
+function validateLostReportUpdateInput(input: unknown): ValidatedLostReportUpdateInput {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new HttpError(400, 'Payload inválido.');
+  }
+
+  const obj = input as Record<string, unknown>;
+  const result: ValidatedLostReportUpdateInput = {};
+  let hasField = false;
+
+  // 1. categoryId
+  if ('categoryId' in obj && obj.categoryId !== undefined) {
+    const catId = obj.categoryId;
+    if (typeof catId !== 'number' || !Number.isSafeInteger(catId) || catId <= 0) {
+      throw new HttpError(400, 'categoryId deve ser um inteiro positivo.');
+    }
+    result.categoryId = catId;
+    hasField = true;
+  }
+
+  // 2. buildingId
+  if ('buildingId' in obj && obj.buildingId !== undefined) {
+    const bldId = obj.buildingId;
+    if (bldId === null) {
+      result.buildingId = null;
+      hasField = true;
+    } else if (typeof bldId !== 'number' || !Number.isSafeInteger(bldId) || bldId <= 0) {
+      throw new HttpError(400, 'buildingId deve ser um inteiro positivo ou null.');
+    } else {
+      result.buildingId = bldId;
+      hasField = true;
+    }
+  }
+
+  // 3. description
+  if ('description' in obj && obj.description !== undefined) {
+    const desc = obj.description;
+    if (typeof desc !== 'string') {
+      throw new HttpError(400, 'description deve ser uma string.');
+    }
+    const trimmed = desc.trim();
+    if (trimmed.length < 10 || trimmed.length > 2000) {
+      throw new HttpError(400, 'description deve ter entre 10 e 2000 caracteres.');
+    }
+    result.description = trimmed;
+    hasField = true;
+  }
+
+  // 4. lossDate
+  if ('lossDate' in obj && obj.lossDate !== undefined) {
+    const lDate = obj.lossDate;
+    if (typeof lDate !== 'string') {
+      throw new HttpError(400, 'lossDate deve ser uma string no formato ISO YYYY-MM-DD.');
+    }
+    const match = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(lDate);
+    if (!match) {
+      throw new HttpError(400, 'lossDate deve estar no formato ISO YYYY-MM-DD.');
+    }
+    const [yStr, mStr, dStr] = lDate.split('-');
+    const y = Number(yStr);
+    const m = Number(mStr);
+    const d = Number(dStr);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (y >= 0 && y <= 99) {
+      dt.setUTCFullYear(y);
+    }
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) {
+      throw new HttpError(400, 'lossDate representa uma data inexistente no calendário.');
+    }
+    result.lossDate = lDate;
+    hasField = true;
+  }
+
+  if (!hasField) {
+    throw new HttpError(400, 'Nenhum campo válido para atualização foi informado.');
+  }
+
+  return result;
+}
+
+export async function updateOwnLostReport(
+  userId: number,
+  rawId: unknown,
+  input: unknown,
+): Promise<PublicLostReportDto> {
+  const reportId = parseReportId(rawId);
+  const validated = validateLostReportUpdateInput(input);
+
+  if (validated.categoryId !== undefined) {
+    const cat = await findCategoryById(validated.categoryId);
+    if (!cat) {
+      throw new HttpError(400, `Categoria com ID ${validated.categoryId} não encontrada.`);
+    }
+  }
+
+  if (validated.buildingId !== undefined && validated.buildingId !== null) {
+    const bld = await findBuildingById(validated.buildingId);
+    if (!bld) {
+      throw new HttpError(400, `Prédio com ID ${validated.buildingId} não encontrado.`);
+    }
+  }
+
+  const affected = await updateOwnLostReportIfOpen(reportId, userId, validated);
+  if (affected === 0) {
+    const existing = await findLostReportByIdAndUserId(reportId, userId);
+    if (!existing) {
+      throw new HttpError(404, 'Relato de perda não encontrado.');
+    }
+    if (existing.status !== LostReportStatus.OPEN) {
+      throw new HttpError(409, 'Somente relatos com status OPEN podem ser editados.');
+    }
+  }
+
+  const updated = await findLostReportByIdAndUserId(reportId, userId);
+  if (!updated) {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+  return formatPublicLostReport(updated);
 }

@@ -97,3 +97,40 @@ export async function findLostReportByIdAndUserId(
     },
   });
 }
+
+export interface UpdateLostReportData {
+  categoryId?: number;
+  buildingId?: number | null;
+  description?: string;
+  lossDate?: string;
+}
+
+export async function updateOwnLostReportIfOpen(
+  reportId: number,
+  userId: number,
+  data: UpdateLostReportData,
+): Promise<number> {
+  const repo = AppDataSource.getRepository(LostReport);
+  const updateFields: Record<string, unknown> = {};
+  if (data.categoryId !== undefined) updateFields.categoryId = data.categoryId;
+  if (data.buildingId !== undefined) updateFields.buildingId = data.buildingId;
+  if (data.description !== undefined) updateFields.description = data.description;
+  if (data.lossDate !== undefined) updateFields.lossDate = data.lossDate;
+
+  if (Object.keys(updateFields).length === 0) {
+    return 0;
+  }
+
+  const result = await repo
+    .createQueryBuilder()
+    .update(LostReport)
+    .set(updateFields)
+    .where('id = :reportId AND userId = :userId AND status = :openStatus', {
+      reportId,
+      userId,
+      openStatus: LostReportStatus.OPEN,
+    })
+    .execute();
+
+  return result.affected ?? 0;
+}
