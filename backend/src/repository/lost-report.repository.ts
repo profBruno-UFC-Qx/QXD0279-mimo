@@ -134,3 +134,22 @@ export async function updateOwnLostReportIfOpen(
 
   return result.affected ?? 0;
 }
+
+export async function cancelOwnLostReportIfOpen(
+  reportId: number,
+  userId: number,
+): Promise<number> {
+  const repo = AppDataSource.getRepository(LostReport);
+  const result = await repo
+    .createQueryBuilder()
+    .update(LostReport)
+    .set({ status: LostReportStatus.CANCELLED })
+    .where('id = :reportId AND userId = :userId AND status = :openStatus', {
+      reportId,
+      userId,
+      openStatus: LostReportStatus.OPEN,
+    })
+    .execute();
+
+  return result.affected ?? 0;
+}

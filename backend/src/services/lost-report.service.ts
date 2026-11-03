@@ -11,6 +11,7 @@ import {
   findLostReportsByUserId,
   findLostReportByIdAndUserId,
   updateOwnLostReportIfOpen,
+  cancelOwnLostReportIfOpen,
 } from '../repository/lost-report.repository.js';
 
 export interface ValidatedLostReportInput {
@@ -380,6 +381,30 @@ export async function updateOwnLostReport(
     }
     if (existing.status !== LostReportStatus.OPEN) {
       throw new HttpError(409, 'Somente relatos com status OPEN podem ser editados.');
+    }
+  }
+
+  const updated = await findLostReportByIdAndUserId(reportId, userId);
+  if (!updated) {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+  return formatPublicLostReport(updated);
+}
+
+export async function cancelOwnLostReport(
+  userId: number,
+  rawId: unknown,
+): Promise<PublicLostReportDto> {
+  const reportId = parseReportId(rawId);
+
+  const affected = await cancelOwnLostReportIfOpen(reportId, userId);
+  if (affected === 0) {
+    const existing = await findLostReportByIdAndUserId(reportId, userId);
+    if (!existing) {
+      throw new HttpError(404, 'Relato de perda não encontrado.');
+    }
+    if (existing.status !== LostReportStatus.OPEN) {
+      throw new HttpError(409, 'Somente relatos com status OPEN podem ser cancelados.');
     }
   }
 
