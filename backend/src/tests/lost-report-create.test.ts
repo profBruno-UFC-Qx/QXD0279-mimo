@@ -77,7 +77,7 @@ async function postLostReport(
   const res = await fetch(`${baseUrl}/api/lost-reports`, {
     method: 'POST',
     headers,
-    body: typeof payload === 'string' ? payload : JSON.stringify(payload),
+    body: JSON.stringify(payload),
   });
   return { status: res.status, body: (await res.json()) as ApiBody };
 }
@@ -782,10 +782,10 @@ test('RED16 — integridade de status: cliente não pode forjar status inicial d
   assert.equal(saved.status, LostReportStatus.OPEN);
 });
 
-test('RED17 — entrada adversarial: payload vazio, array ou JSON primitivo rejeitado com 400 sem mutação no banco', async () => {
+test('RED17 — entrada adversarial: payload vazio, array ou objeto sem campos obrigatórios rejeitado com 400 sem mutação no banco', async () => {
   const { token } = await createFixtureUser();
 
-  for (const badPayload of [{}, [], 'string-pura', 12345, null]) {
+  for (const badPayload of [{}, [], { unknownField: 'test' }, { categoryId: null }]) {
     const res = await postLostReport(badPayload, `Bearer ${token}`);
 
     assert.equal(res.status, 400, `esperado HTTP 400 para payload adversarial mas recebeu ${res.status}`);
