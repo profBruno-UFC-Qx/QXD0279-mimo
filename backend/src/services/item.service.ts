@@ -1,6 +1,6 @@
 import { HttpError } from '../middlewares/http-error.js';
 import { ItemStatus } from '../models/enums.js';
-import { findPublicItems, type ItemListFilters } from '../repository/item.repository.js';
+import { findPublicItems, findPublicItemById, type ItemListFilters } from '../repository/item.repository.js';
 import { paginate, type Paginated } from '../shared/pagination.js';
 
 export interface PublicPhotoDto {
@@ -16,6 +16,28 @@ export interface PublicCategoryDto {
 export interface PublicBuildingDto {
   id: number;
   name: string;
+}
+
+
+export interface PublicBuildingDetailsDto {
+  id: number;
+  name: string;
+  pickupPoint: string;
+  serviceHours: string;
+}
+
+export interface PublicItemDetailsDto {
+  id: number;
+  title: string;
+  description: string | null;
+  categoryId: number;
+  buildingId: number;
+  foundLocation: string | null;
+  foundDate: string | Date;
+  status: ItemStatus;
+  category: PublicCategoryDto;
+  building: PublicBuildingDetailsDto;
+  photos: PublicPhotoDto[];
 }
 
 export interface PublicItemDto {
@@ -151,4 +173,49 @@ export async function listCatalogItems(
   }));
 
   return paginate(publicData, total, { page, per_page: perPage });
+}
+
+function parseRequiredId(val: unknown): number {
+  if (val === undefined || val === null || val === '') {
+    throw new HttpError(400, 'Identificador de item inválido.');
+  }
+  const id = parsePositiveInteger(val, 'id');
+  if (id === undefined) {
+    throw new HttpError(400, 'Identificador de item inválido.');
+  }
+  return id;
+}
+
+export async function getPublicItemDetails(rawId: unknown): Promise<PublicItemDetailsDto> {
+  const id = parseRequiredId(rawId);
+  const item = await findPublicItemById(id);
+
+  if (!item) {
+    throw new HttpError(404, 'Item não encontrado.');
+  }
+
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    categoryId: item.categoryId,
+    buildingId: item.buildingId,
+    foundLocation: item.foundLocation,
+    foundDate: item.foundDate,
+    status: item.status,
+    category: {
+      id: item.category.id,
+      name: item.category.name,
+    },
+    building: {
+      id: item.building.id,
+      name: item.building.name,
+      pickupPoint: item.building.pickupPoint,
+      serviceHours: item.building.serviceHours,
+    },
+    photos: (item.photos ?? []).map((p) => ({
+      id: p.id,
+      url: p.url,
+    })),
+  };
 }

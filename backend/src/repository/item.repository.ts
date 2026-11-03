@@ -77,3 +77,18 @@ export async function findPublicItems(filters: ItemListFilters): Promise<ItemLis
 
   return { items: orderedItems, total };
 }
+
+export async function findPublicItemById(id: number): Promise<Item | null> {
+  const itemRepo = AppDataSource.getRepository(Item);
+
+  return itemRepo
+    .createQueryBuilder('item')
+    .leftJoinAndSelect('item.category', 'category')
+    .leftJoinAndSelect('item.building', 'building')
+    .leftJoinAndSelect('item.photos', 'photos')
+    .where('item.id = :id', { id })
+    .andWhere('item.status IN (:...publicStatuses)', {
+      publicStatuses: [ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE],
+    })
+    .getOne();
+}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { notImplemented } from '../shared/not-implemented.js';
-import { listCatalogItems } from '../services/item.service.js';
+import { listCatalogItems, getPublicItemDetails } from '../services/item.service.js';
 
 export const catalogItemRouter = Router();
 
@@ -29,6 +29,15 @@ catalogItemRouter.get(
   /* #swagger.tags = ['Catalog'] */
   /* #swagger.summary = 'Consultar detalhes de um item disponível ao público' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Detalhes públicos do item'),
+  /* #swagger.responses[200] = { description: 'Detalhes do item retornados com sucesso', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  async (req, res, next) => {
+    try {
+      const result = await getPublicItemDetails(req.params.id);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  },
 );
