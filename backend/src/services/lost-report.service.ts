@@ -112,6 +112,9 @@ export function validateLostReportInput(input: unknown): ValidatedLostReportInpu
   const m = Number(monthStr);
   const d = Number(dayStr);
   const dt = new Date(Date.UTC(y, m - 1, d));
+  if (y >= 0 && y <= 99) {
+    dt.setUTCFullYear(y);
+  }
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) {
     throw new HttpError(400, 'O campo lossDate representa uma data inexistente no calendário.');
   }
