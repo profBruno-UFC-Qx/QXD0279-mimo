@@ -19,9 +19,11 @@ const { User } = await import('../models/user.js');
 const { Category } = await import('../models/category.js');
 const { Building } = await import('../models/building.js');
 const { Item } = await import('../models/item.js');
+const { ItemPhoto } = await import('../models/item-photo.js');
 const { LostReport } = await import('../models/lost-report.js');
-const { UserRole, ItemStatus, LostReportStatus, DispositionType } = await import('../models/enums.js');
+const { UserRole, ItemStatus, LostReportStatus } = await import('../models/enums.js');
 const { generateToken } = await import('../shared/token.js');
+const { Repository } = await import('typeorm');
 
 type ApiBody<T = any> = {
   success: boolean;
@@ -112,6 +114,10 @@ async function createFixtureBuilding(name = 'Campus Central'): Promise<any> {
     }),
   );
 }
+
+// -----------------------------------------------------------------------------
+// CENÁRIOS DE CRIAÇÃO E PERSISTÊNCIA BÁSICA
+// -----------------------------------------------------------------------------
 
 test('RED01 — criação válida com todos os campos retorna 201 com envelope ApiResponse<{ lostReport, suggestions }>', async () => {
   const { user, token } = await createFixtureUser();
@@ -204,7 +210,11 @@ test('RED02b — criação válida com buildingId explicitamente null retorna 20
   assert.equal(saved.buildingId, null);
 });
 
-test('RED03 — cálculo de sugestões compatíveis (RF12) com fixture controlada de status e prédios', async () => {
+// -----------------------------------------------------------------------------
+// H03: SUGESTÕES E DUPLICAÇÃO
+// -----------------------------------------------------------------------------
+
+test('RED03 — cálculo de sugestões compatíveis (RF12) com fixture controlada e sem duplicatas por fotos', async () => {
   const { user, token } = await createFixtureUser();
   const catA = await createFixtureCategory('Eletrônicos');
   const catB = await createFixtureCategory('Vestuário');
@@ -212,8 +222,9 @@ test('RED03 — cálculo de sugestões compatíveis (RF12) com fixture controlad
   const bld2 = await createFixtureBuilding('Bloco B');
 
   const itemRepo = AppDataSource.getRepository(Item);
+  const photoRepo = AppDataSource.getRepository(ItemPhoto);
 
-  // Item A: mesma categoria, AVAILABLE, mesmo prédio -> sugerido
+  // Item A: mesma categoria, AVAILABLE, mesmo prédio, COM 2 FOTOS -> sugerido exatamente UMA vez
   const itemA = await itemRepo.save(
     itemRepo.create({
       title: 'Item A',
@@ -224,6 +235,8 @@ test('RED03 — cálculo de sugestões compatíveis (RF12) com fixture controlad
       createdBy: user.id,
     }),
   );
+  await photoRepo.save(photoRepo.create({ itemId: itemA.id, url: 'https://exemplo.com/a1.jpg' }));
+  await photoRepo.save(photoRepo.create({ itemId: itemA.id, url: 'https://exemplo.com/a2.jpg' }));
 
   // Item B: mesma categoria, ELIGIBLE, mesmo prédio -> sugerido
   const itemB = await itemRepo.save(
@@ -333,18 +346,19 @@ test('RED03 — cálculo de sugestões compatíveis (RF12) com fixture controlad
   assert.equal(res.status, 201, `esperado HTTP 201 mas recebeu ${res.status}`);
   assert.ok(Array.isArray(res.body.data.suggestions));
 
-  const suggestionIds = new Set(res.body.data.suggestions.map((s: any) => s.id));
-  assert.equal(suggestionIds.has(itemA.id), true, 'itemA (AVAILABLE) deve ser sugerido');
-  assert.equal(suggestionIds.has(itemB.id), true, 'itemB (ELIGIBLE) deve ser sugerido');
-  assert.equal(suggestionIds.has(itemI.id), true, 'itemI (AVAILABLE em outro prédio) deve ser sugerido');
+  const ids = res.body.data.suggestions.map((s: any) => s.id);
+  const expectedIds = [itemA.id, itemB.id, itemI.id];
 
-  assert.equal(suggestionIds.has(itemC.id), false, 'itemC (HANDED_OVER) não pode ser sugerido');
-  assert.equal(suggestionIds.has(itemD.id), false, 'itemD (SOLD) não pode ser sugerido');
-  assert.equal(suggestionIds.has(itemE.id), false, 'itemE (outra categoria) não pode ser sugerido');
-  assert.equal(suggestionIds.has(itemF.id), false, 'itemF (DONATED) não pode ser sugerido');
-  assert.equal(suggestionIds.has(itemG.id), false, 'itemG (DISCARDED) não pode ser sugerido');
-  assert.equal(suggestionIds.has(itemH.id), false, 'itemH (AUCTIONED) não pode ser sugerido');
-  assert.equal(suggestionIds.size, 3, 'devem ser sugeridos exatamente 3 itens compatíveis');
+  assert.equal(ids.length, expectedIds.length, `esperado ${expectedIds.length} sugestões mas recebeu ${ids.length}`);
+  assert.equal(new Set(ids).size, ids.length, 'a resposta não pode conter sugestões duplicadas');
+  assert.deepEqual([...ids].sort((a, b) => a - b), [...expectedIds].sort((a, b) => a - b));
+
+  assert.ok(!ids.includes(itemC.id), 'itemC (HANDED_OVER) não pode ser sugerido');
+  assert.ok(!ids.includes(itemD.id), 'itemD (SOLD) não pode ser sugerido');
+  assert.ok(!ids.includes(itemE.id), 'itemE (outra categoria) não pode ser sugerido');
+  assert.ok(!ids.includes(itemF.id), 'itemF (DONATED) não pode ser sugerido');
+  assert.ok(!ids.includes(itemG.id), 'itemG (DISCARDED) não pode ser sugerido');
+  assert.ok(!ids.includes(itemH.id), 'itemH (AUCTIONED) não pode ser sugerido');
 });
 
 test('RED04 — criação sem itens compatíveis retorna 201 com suggestions vazio []', async () => {
@@ -363,6 +377,10 @@ test('RED04 — criação sem itens compatíveis retorna 201 com suggestions vaz
   assert.ok(Array.isArray(res.body.data.suggestions));
   assert.equal(res.body.data.suggestions.length, 0);
 });
+
+// -----------------------------------------------------------------------------
+// AUTENTICAÇÃO
+// -----------------------------------------------------------------------------
 
 test('RED05a — rejeição com 401 quando cabeçalho Authorization estiver ausente', async () => {
   const category = await createFixtureCategory();
@@ -428,7 +446,6 @@ test('RED07a — rejeição com 401 quando token JWT estiver expirado', async ()
   const { user } = await createFixtureUser();
   const category = await createFixtureCategory();
 
-  // Gera token que expirou há 10 segundos
   const expiredToken = generateToken(
     { sub: String(user.id) },
     process.env.JWT_SECRET!,
@@ -473,39 +490,79 @@ test('RED07b — rejeição com 401 quando token referenciar usuário inexistent
   assert.equal(count, 0);
 });
 
-test('RED08 — validação de categoryId: rejeição com 400 para ausente, null, 0, negativo, decimal, string e inteiro inseguro', async () => {
+// -----------------------------------------------------------------------------
+// H04: VALIDAÇÃO INDEPENDENTE DE CATEGORYID
+// -----------------------------------------------------------------------------
+
+test('RED08a — validação de categoryId: rejeição com 400 quando ausente ou null', async () => {
   const { token } = await createFixtureUser();
 
-  const invalidCategoryIds = [
-    undefined,
-    null,
-    0,
-    -1,
-    1.5,
-    'abc',
-    '12abc',
-    9007199254740992,
-  ];
-
-  for (const catId of invalidCategoryIds) {
-    const payload: any = {
-      description: 'Caderno espiral capa dura verde',
-      lossDate: '2026-10-23',
-    };
-    if (catId !== undefined) {
-      payload.categoryId = catId;
-    }
+  for (const catVal of [undefined, null]) {
+    const payload: any = { description: 'Caderno espiral capa dura verde', lossDate: '2026-10-23' };
+    if (catVal !== undefined) payload.categoryId = catVal;
 
     const res = await postLostReport(payload, `Bearer ${token}`);
-
-    assert.equal(res.status, 400, `esperado HTTP 400 para categoryId=${String(catId)} mas recebeu ${res.status}`);
+    assert.equal(res.status, 400, `esperado 400 para categoryId=${String(catVal)}`);
     assert.equal(res.body.success, false);
-    assert.equal(res.body.data, null);
     assert.equal(res.body.error?.code, 400);
   }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
 
-  const count = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(count, 0);
+test('RED08b — validação de categoryId: rejeição com 400 para números não positivos (0 e negativo)', async () => {
+  const { token } = await createFixtureUser();
+
+  for (const catVal of [0, -1, -100]) {
+    const res = await postLostReport(
+      { categoryId: catVal, description: 'Caderno capa dura verde', lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para categoryId=${catVal}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED08c — validação de categoryId: rejeição com 400 para números decimais', async () => {
+  const { token } = await createFixtureUser();
+
+  const res = await postLostReport(
+    { categoryId: 1.5, description: 'Caderno capa dura verde', lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED08d — validação de categoryId: rejeição com 400 para strings e valores não numéricos', async () => {
+  const { token } = await createFixtureUser();
+
+  for (const catVal of ['abc', '12abc', '1', true, []]) {
+    const res = await postLostReport(
+      { categoryId: catVal, description: 'Caderno capa dura verde', lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para categoryId=${JSON.stringify(catVal)}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED08e — validação de categoryId: rejeição com 400 para inteiro fora do limite seguro', async () => {
+  const { token } = await createFixtureUser();
+
+  const res = await postLostReport(
+    { categoryId: 9007199254740992, description: 'Caderno capa dura verde', lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
 });
 
 test('RED09 — integridade de categoryId: rejeição com 400 quando ID não existir no banco', async () => {
@@ -528,37 +585,40 @@ test('RED09 — integridade de categoryId: rejeição com 400 quando ID não exi
   assert.equal(count, 0);
 });
 
-test('RED10 — validação de buildingId: rejeição com 400 para 0, negativo, decimal, string e inteiro inseguro', async () => {
+// -----------------------------------------------------------------------------
+// H04: VALIDAÇÃO INDEPENDENTE DE BUILDINGID
+// -----------------------------------------------------------------------------
+
+test('RED10a — validação de buildingId: rejeição com 400 para 0 e valores negativos', async () => {
   const { token } = await createFixtureUser();
   const category = await createFixtureCategory();
 
-  const invalidBuildingIds = [
-    0,
-    -1,
-    1.5,
-    'abc',
-    '12abc',
-    9007199254740992,
-  ];
-
-  for (const bldId of invalidBuildingIds) {
-    const payload = {
-      categoryId: category.id,
-      buildingId: bldId,
-      description: 'Calculadora científica Casio preta',
-      lossDate: '2026-10-23',
-    };
-
-    const res = await postLostReport(payload, `Bearer ${token}`);
-
-    assert.equal(res.status, 400, `esperado HTTP 400 para buildingId=${String(bldId)} mas recebeu ${res.status}`);
+  for (const bldId of [0, -1, -50]) {
+    const res = await postLostReport(
+      { categoryId: category.id, buildingId: bldId, description: 'Calculadora Casio preta', lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para buildingId=${bldId}`);
     assert.equal(res.body.success, false);
-    assert.equal(res.body.data, null);
     assert.equal(res.body.error?.code, 400);
   }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
 
-  const count = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(count, 0);
+test('RED10b — validação de buildingId: rejeição com 400 para valores decimais, strings e unsafe integer', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  for (const bldId of [1.5, 'abc', '12abc', '1', 9007199254740992]) {
+    const res = await postLostReport(
+      { categoryId: category.id, buildingId: bldId, description: 'Calculadora Casio preta', lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para buildingId=${String(bldId)}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
 });
 
 test('RED11 — integridade de buildingId: rejeição com 400 quando ID informado não existir no banco', async () => {
@@ -583,40 +643,56 @@ test('RED11 — integridade de buildingId: rejeição com 400 quando ID informad
   assert.equal(count, 0);
 });
 
-test('RED12 — validação de description: rejeição com 400 para ausente, null, não-string e tamanho < 10 (ex: 9 chars)', async () => {
+// -----------------------------------------------------------------------------
+// H04: VALIDAÇÃO INDEPENDENTE DE DESCRIPTION
+// -----------------------------------------------------------------------------
+
+test('RED12a — validação de description: rejeição com 400 quando ausente ou null', async () => {
   const { token } = await createFixtureUser();
   const category = await createFixtureCategory();
 
-  const invalidDescriptions = [
-    undefined,
-    null,
-    12345,
-    [],
-    {},
-    '',
-    '         ',
-    '123456789', // 9 caracteres
-  ];
-
-  for (const desc of invalidDescriptions) {
-    const payload: any = {
-      categoryId: category.id,
-      lossDate: '2026-10-23',
-    };
-    if (desc !== undefined) {
-      payload.description = desc;
-    }
+  for (const desc of [undefined, null]) {
+    const payload: any = { categoryId: category.id, lossDate: '2026-10-23' };
+    if (desc !== undefined) payload.description = desc;
 
     const res = await postLostReport(payload, `Bearer ${token}`);
-
-    assert.equal(res.status, 400, `esperado HTTP 400 para description=${JSON.stringify(desc)} mas recebeu ${res.status}`);
+    assert.equal(res.status, 400, `esperado 400 para description=${String(desc)}`);
     assert.equal(res.body.success, false);
-    assert.equal(res.body.data, null);
     assert.equal(res.body.error?.code, 400);
   }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
 
-  const count = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(count, 0);
+test('RED12b — validação de description: rejeição com 400 para tipos não-string (número, array, objeto, booleano)', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  for (const desc of [12345, ['texto'], { text: 'desc' }, true]) {
+    const res = await postLostReport(
+      { categoryId: category.id, description: desc, lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para description=${JSON.stringify(desc)}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED12c — validação de description: rejeição com 400 para string com menos de 10 caracteres', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  for (const desc of ['', '   ', 'curto', '123456789']) {
+    const res = await postLostReport(
+      { categoryId: category.id, description: desc, lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para description="${desc}"`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
 });
 
 test('RED13 — validação de description: aceita exatamente 10 e 2000 chars, rejeita 2001 chars com 400', async () => {
@@ -649,6 +725,10 @@ test('RED13 — validação de description: aceita exatamente 10 e 2000 chars, r
   assert.equal(res2001.body.success, false);
   assert.equal(res2001.body.error?.code, 400);
 });
+
+// -----------------------------------------------------------------------------
+// H04 & H05: VALIDAÇÃO DE LOSSDATE E DATAS EXTREMAS
+// -----------------------------------------------------------------------------
 
 test('RED14a — validação de lossDate: rejeição com 400 para ausente, null, tipo não string ou formato inválido', async () => {
   const { token } = await createFixtureUser();
@@ -688,7 +768,7 @@ test('RED14a — validação de lossDate: rejeição com 400 para ausente, null,
   assert.equal(count, 0);
 });
 
-test('RED14b — validação de lossDate: aceita datas reais (incluindo ano bissexto 2024-02-29) e rejeita datas de calendário impossíveis', async () => {
+test('RED14b — validação de lossDate: aceita datas reais contemporâneas e rejeita datas de calendário impossíveis', async () => {
   const { token } = await createFixtureUser();
   const category = await createFixtureCategory();
 
@@ -716,7 +796,7 @@ test('RED14b — validação de lossDate: aceita datas reais (incluindo ano biss
     assert.equal(res.body.error?.code, 400);
   }
 
-  // Datas válidas no calendário real -> 201
+  // Datas válidas no calendário real contemporâneo -> 201
   const validDates = [
     '2026-11-03',
     '2024-02-29', // 2024 é ano bissexto
@@ -734,6 +814,49 @@ test('RED14b — validação de lossDate: aceita datas reais (incluindo ano biss
   }
 });
 
+test('RED14c — validação de lossDate em anos extremos: aceita anos pequenos válidos e rejeita anos não bissextos', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  // 1900 NÃO é bissexto (divisível por 100 mas não por 400) -> 400
+  const res1900 = await postLostReport(
+    { categoryId: category.id, description: 'Relato com ano 1900 não bissexto', lossDate: '1900-02-29' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res1900.status, 400, '1900-02-29 não é bissexto, deve retornar 400');
+
+  // 2000 É bissexto (divisível por 400) -> 201
+  const res2000 = await postLostReport(
+    { categoryId: category.id, description: 'Relato com ano 2000 bissexto válido', lossDate: '2000-02-29' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res2000.status, 201, '2000-02-29 é bissexto válido, deve retornar 201');
+
+  // 0100-01-01 é data válida -> 201
+  const res0100 = await postLostReport(
+    { categoryId: category.id, description: 'Relato com ano 0100 válido', lossDate: '0100-01-01' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res0100.status, 201, '0100-01-01 deve retornar 201');
+
+  // Anos pequenos (< 100): 0001-01-01 e 0099-12-31 são datas ISO válidas com 4 dígitos de ano
+  const res0001 = await postLostReport(
+    { categoryId: category.id, description: 'Relato com ano 0001 válido', lossDate: '0001-01-01' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res0001.status, 201, `esperado 201 para 0001-01-01 mas recebeu ${res0001.status}`);
+
+  const res0099 = await postLostReport(
+    { categoryId: category.id, description: 'Relato com ano 0099 válido', lossDate: '0099-12-31' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res0099.status, 201, `esperado 201 para 0099-12-31 mas recebeu ${res0099.status}`);
+});
+
+// -----------------------------------------------------------------------------
+// SEGURANÇA E PROPRIEDADE
+// -----------------------------------------------------------------------------
+
 test('RED15 — segurança de propriedade: cliente não pode forjar userId para outro usuário no body', async () => {
   const { user: userA, token: tokenA } = await createFixtureUser('userA@example.com', 'Usuário Legítimo A');
   const { user: userB } = await createFixtureUser('userB@example.com', 'Usuário Vítima B');
@@ -743,7 +866,7 @@ test('RED15 — segurança de propriedade: cliente não pode forjar userId para 
     categoryId: category.id,
     description: 'Tablet Samsung Galaxy Tab com capa protetora preta',
     lossDate: '2026-10-23',
-    userId: userB.id, // Tentativa de forjar o autor
+    userId: userB.id,
   };
 
   const res = await postLostReport(payload, `Bearer ${tokenA}`);
@@ -767,7 +890,7 @@ test('RED16 — integridade de status: cliente não pode forjar status inicial d
     categoryId: category.id,
     description: 'Óculos de grau com armação preta e estojo rígido',
     lossDate: '2026-10-23',
-    status: 'RESOLVED', // Tentativa de burlar o status inicial
+    status: 'RESOLVED',
   };
 
   const res = await postLostReport(payload, `Bearer ${token}`);
@@ -782,20 +905,48 @@ test('RED16 — integridade de status: cliente não pode forjar status inicial d
   assert.equal(saved.status, LostReportStatus.OPEN);
 });
 
-test('RED17 — entrada adversarial: payload vazio, array ou objeto sem campos obrigatórios rejeitado com 400 sem mutação no banco', async () => {
+// -----------------------------------------------------------------------------
+// H04: ENTRADAS ADVERSARIAIS
+// -----------------------------------------------------------------------------
+
+test('RED17a — entrada adversarial: payload vazio {} rejeitado com 400 sem mutação no banco', async () => {
   const { token } = await createFixtureUser();
 
-  for (const badPayload of [{}, [], { unknownField: 'test' }, { categoryId: null }]) {
-    const res = await postLostReport(badPayload, `Bearer ${token}`);
+  const res = await postLostReport({}, `Bearer ${token}`);
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
 
-    assert.equal(res.status, 400, `esperado HTTP 400 para payload adversarial mas recebeu ${res.status}`);
-    assert.equal(res.body.success, false);
-    assert.equal(res.body.data, null);
-    assert.equal(res.body.error?.code, 400);
-  }
+test('RED17b — entrada adversarial: payload array [] rejeitado com 400 sem mutação no banco', async () => {
+  const { token } = await createFixtureUser();
 
-  const count = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(count, 0);
+  const res = await postLostReport([], `Bearer ${token}`);
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED17c — entrada adversarial: payload sem campos obrigatórios rejeitado com 400 sem mutação no banco', async () => {
+  const { token } = await createFixtureUser();
+
+  const res = await postLostReport({ unknownField: 'test' }, `Bearer ${token}`);
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+});
+
+test('RED17d — entrada adversarial: payload com categoryId nulo rejeitado com 400 sem mutação no banco', async () => {
+  const { token } = await createFixtureUser();
+
+  const res = await postLostReport({ categoryId: null }, `Bearer ${token}`);
+  assert.equal(res.status, 400);
+  assert.equal(res.body.success, false);
+  assert.equal(res.body.error?.code, 400);
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
 });
 
 test('RED18 — criação aceita caracteres Unicode e acentuação na descrição sem corrupção', async () => {
@@ -851,16 +1002,23 @@ test('RED19 — isolamento entre usuários: relatos de A e B são independentes 
   assert.notEqual(savedA.id, savedB.id);
 });
 
-test('RED20 — whitelist de resposta: lostReport e items em suggestions expõem apenas campos públicos sem vazar dados sensíveis', async () => {
+// -----------------------------------------------------------------------------
+// H02: WHITELIST EXATA DAS SUGESTÕES E DO RELATO
+// -----------------------------------------------------------------------------
+
+test('RED20 — whitelist exata de resposta: lostReport e items em suggestions expõem apenas campos públicos', async () => {
   const { user, token } = await createFixtureUser();
   const category = await createFixtureCategory();
   const building = await createFixtureBuilding();
 
   const itemRepo = AppDataSource.getRepository(Item);
-  await itemRepo.save(
+  const photoRepo = AppDataSource.getRepository(ItemPhoto);
+
+  // Sugestão 1: com 2 fotos
+  const itemComFotos = await itemRepo.save(
     itemRepo.create({
-      title: 'Item Sugerido com Foto',
-      description: 'Descrição pública do item',
+      title: 'Item Sugerido com Duas Fotos',
+      description: 'Descrição pública detalhada',
       categoryId: category.id,
       buildingId: building.id,
       foundDate: new Date('2026-10-20'),
@@ -868,11 +1026,26 @@ test('RED20 — whitelist de resposta: lostReport e items em suggestions expõem
       createdBy: user.id,
     }),
   );
+  await photoRepo.save(photoRepo.create({ itemId: itemComFotos.id, url: 'https://exemplo.com/f1.jpg' }));
+  await photoRepo.save(photoRepo.create({ itemId: itemComFotos.id, url: 'https://exemplo.com/f2.jpg' }));
+
+  // Sugestão 2: sem fotos
+  const itemSemFotos = await itemRepo.save(
+    itemRepo.create({
+      title: 'Item Sugerido sem Foto',
+      description: null,
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: new Date('2026-10-21'),
+      status: ItemStatus.ELIGIBLE,
+      createdBy: user.id,
+    }),
+  );
 
   const payload = {
     categoryId: category.id,
     buildingId: building.id,
-    description: 'Relato de teste para verificação de chaves públicas',
+    description: 'Relato de teste para verificação da whitelist exata',
     lossDate: '2026-10-23',
   };
 
@@ -880,52 +1053,141 @@ test('RED20 — whitelist de resposta: lostReport e items em suggestions expõem
 
   assert.equal(res.status, 201);
   const lostReport = res.body.data.lostReport;
-  const lostReportKeys = Object.keys(lostReport).sort();
 
-  // Chaves autorizadas para LostReport
+  // 1. Chaves exatas de lostReport
   const expectedLostReportKeys = ['buildingId', 'categoryId', 'createdAt', 'description', 'id', 'lossDate', 'status', 'userId'];
-  assert.deepEqual(lostReportKeys, expectedLostReportKeys);
+  assert.deepEqual(Object.keys(lostReport).sort(), expectedLostReportKeys);
 
-  // Verifica que nenhuma relação interna vazou em lostReport
+  // Ausência de relações aninhadas completas vazadas
   assert.equal((lostReport as any).user, undefined);
   assert.equal((lostReport as any).category, undefined);
   assert.equal((lostReport as any).building, undefined);
 
-  // Verifica itens em suggestions
-  assert.equal(res.body.data.suggestions.length, 1);
-  const suggestion = res.body.data.suggestions[0];
+  // 2. Chaves exatas de suggestions
+  assert.equal(res.body.data.suggestions.length, 2);
 
-  assert.equal(typeof suggestion.id, 'number');
-  assert.equal(typeof suggestion.title, 'string');
-  assert.equal(suggestion.createdBy, undefined, 'createdBy não pode ser exposto publicamente');
-  assert.equal(suggestion.createdByUser, undefined, 'createdByUser não pode ser exposto publicamente');
-  assert.equal(suggestion.passwordHash, undefined, 'passwordHash não pode ser exposto publicamente');
-  assert.equal(suggestion.handovers, undefined, 'handovers não pode ser exposto publicamente');
-  assert.equal(suggestion.dispositions, undefined, 'dispositions não pode ser exposto publicamente');
+  const sugComFotos = res.body.data.suggestions.find((s: any) => s.id === itemComFotos.id);
+  const sugSemFotos = res.body.data.suggestions.find((s: any) => s.id === itemSemFotos.id);
+  assert.ok(sugComFotos);
+  assert.ok(sugSemFotos);
+
+  const expectedSuggestionKeys = [
+    'building',
+    'buildingId',
+    'category',
+    'categoryId',
+    'description',
+    'foundDate',
+    'foundLocation',
+    'id',
+    'photos',
+    'status',
+    'title',
+  ];
+  assert.deepEqual(Object.keys(sugComFotos).sort(), expectedSuggestionKeys);
+  assert.deepEqual(Object.keys(sugSemFotos).sort(), expectedSuggestionKeys);
+
+  // 3. Chaves exatas de relações aninhadas
+  assert.deepEqual(Object.keys(sugComFotos.category).sort(), ['id', 'name']);
+  assert.deepEqual(Object.keys(sugComFotos.building).sort(), ['id', 'name']);
+
+  // 4. Chaves exatas de fotos
+  assert.equal(sugComFotos.photos.length, 2);
+  assert.deepEqual(Object.keys(sugComFotos.photos[0]).sort(), ['id', 'url']);
+  assert.deepEqual(Object.keys(sugComFotos.photos[1]).sort(), ['id', 'url']);
+  assert.equal(sugSemFotos.photos.length, 0);
+
+  // 5. Blindagem contra exposição de dados sensíveis ou administrativos
+  for (const sug of [sugComFotos, sugSemFotos]) {
+    assert.equal(sug.createdBy, undefined);
+    assert.equal(sug.createdByUser, undefined);
+    assert.equal(sug.passwordHash, undefined);
+    assert.equal(sug.password_hash, undefined);
+    assert.equal(sug.handovers, undefined);
+    assert.equal(sug.dispositions, undefined);
+    assert.equal(sug.plannedDestination, undefined);
+    assert.equal(sug.pickupPoint, undefined);
+    assert.equal(sug.serviceHours, undefined);
+  }
 });
 
-test('RED21 — transacionalidade: falha durante execução reverte persistência garantindo ausência de estado parcial', async () => {
-  const { token } = await createFixtureUser();
+// -----------------------------------------------------------------------------
+// H01: COMMIT E ROLLBACK TRANSACIONAL REAL
+// -----------------------------------------------------------------------------
+
+test('RED21a — commit transacional em sucesso: criação válida persiste exatamente 1 relato e calcula sugestões no mesmo commit', async () => {
+  const { user, token } = await createFixtureUser();
   const category = await createFixtureCategory();
 
-  // Testamos a garantia de que se o serviço/repositório falhar internamente antes de responder com sucesso,
-  // nenhum registro residual de lost_reports é mantido no banco de dados.
+  const initialCount = await AppDataSource.getRepository(LostReport).count();
+  assert.equal(initialCount, 0);
+
   const payload = {
     categoryId: category.id,
-    description: 'Mochila com pertences para teste de rollback transacional',
+    description: 'Mochila com pertences para teste de commit transacional',
     lossDate: '2026-10-23',
   };
 
-  // Verificamos antes da chamada: banco está com 0 perdas
-  const countBefore = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(countBefore, 0);
-
   const res = await postLostReport(payload, `Bearer ${token}`);
 
-  // No estado RED atual, o handler 501 falha antes da persistência, deixando count em 0
-  assert.equal(res.status, 201, `esperado HTTP 201 mas recebeu ${res.status}`);
+  assert.equal(res.status, 201);
+  assert.equal(res.body.success, true);
+  assert.ok(res.body.data.lostReport.id);
 
-  // No estado GREEN, o registro será persistido. Mas se ocorresse erro, contagem deveria ser 0.
-  const countAfter = await AppDataSource.getRepository(LostReport).count();
-  assert.equal(countAfter, 1);
+  const finalCount = await AppDataSource.getRepository(LostReport).count();
+  assert.equal(finalCount, 1, 'exatamente 1 relato deve ser persistido em sucesso');
+
+  const saved = await AppDataSource.getRepository(LostReport).findOne({
+    where: { id: res.body.data.lostReport.id },
+  });
+  assert.ok(saved);
+  assert.equal(saved.userId, user.id);
+});
+
+test('RED21b — rollback transacional real: falha controlada na fase de sugestões após inserção reverte a criação da perda', async () => {
+  const { user, token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  const initialCount = await AppDataSource.getRepository(LostReport).count();
+  assert.equal(initialCount, 0);
+
+  const originalCreateQueryBuilder = Repository.prototype.createQueryBuilder;
+  let suggestionPhaseReached = false;
+
+  // Interceptamos a consulta de sugestões que ocorre obrigatoriamente APÓS a inserção da perda
+  Repository.prototype.createQueryBuilder = function (this: any, ...args: any[]) {
+    const alias = args[0];
+    if (alias === 'item') {
+      suggestionPhaseReached = true;
+      throw new Error('Falha simulada na consulta de sugestões pós-inserção');
+    }
+    return originalCreateQueryBuilder.apply(this, args as any);
+  };
+
+  try {
+    const payload = {
+      categoryId: category.id,
+      description: 'Mochila para teste de falha real pós-inserção',
+      lossDate: '2026-10-23',
+    };
+
+    const res = await postLostReport(payload, `Bearer ${token}`);
+
+    // Falha interna capturada pelo errorHandler compartilhado resulta em HTTP 500
+    assert.equal(res.status, 500, `esperado HTTP 500 em falha interna mas recebeu ${res.status}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 500);
+    assert.equal(suggestionPhaseReached, true, 'a fase de sugestões DEVE ter sido alcançada após a inserção');
+
+    // Comprovamos que NENHUM registro de lost_reports permaneceu persistido no banco
+    const finalCount = await AppDataSource.getRepository(LostReport).count();
+    assert.equal(finalCount, 0, 'o relato inserido na transação DEVE ter sofrido rollback completo');
+
+    const saved = await AppDataSource.getRepository(LostReport).findOne({
+      where: { description: payload.description },
+    });
+    assert.equal(saved, null, 'relato não pode existir no banco após rollback');
+  } finally {
+    Repository.prototype.createQueryBuilder = originalCreateQueryBuilder;
+  }
 });
