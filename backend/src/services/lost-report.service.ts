@@ -8,6 +8,7 @@ import {
   findBuildingById,
   insertLostReport,
   findMatchingPublicItems,
+  findLostReportsByUserId,
 } from '../repository/lost-report.repository.js';
 
 export interface ValidatedLostReportInput {
@@ -127,13 +128,13 @@ export function validateLostReportInput(input: unknown): ValidatedLostReportInpu
   };
 }
 
-function formatPublicLostReport(lr: LostReport, rawLossDate: string): PublicLostReportDto {
+export function formatPublicLostReport(lr: LostReport, rawLossDate?: string): PublicLostReportDto {
   const formattedLossDate =
     lr.lossDate instanceof Date
       ? lr.lossDate.toISOString().split('T')[0]
       : typeof lr.lossDate === 'string'
         ? lr.lossDate
-        : rawLossDate;
+        : (rawLossDate ?? String(lr.lossDate));
 
   return {
     id: lr.id,
@@ -209,4 +210,27 @@ export async function createLostReport(
       suggestions: matchingItems.map(formatPublicSuggestedItem),
     };
   });
+}
+
+function validateStatusFilter(rawStatus: unknown): LostReportStatus | undefined {
+  if (rawStatus === undefined) {
+    return undefined;
+  }
+  if (typeof rawStatus !== 'string' || rawStatus.trim().length === 0) {
+    throw new HttpError(400, 'O parâmetro status não pode ser vazio ou repetido.');
+  }
+  const trimmed = rawStatus.trim();
+  if (!Object.values(LostReportStatus).includes(trimmed as LostReportStatus)) {
+    throw new HttpError(400, `Status inválido: ${trimmed}. Valores permitidos: OPEN, RESOLVED, CANCELLED.`);
+  }
+  return trimmed as LostReportStatus;
+}
+
+export async function listOwnLostReports(
+  userId: number,
+  query: Record<string, unknown>,
+): Promise<PublicLostReportDto[]> {
+  const status = validateStatusFilter(query.status);
+  const reports = await findLostReportsByUserId(userId, status);
+  return reports.map((r) => formatPublicLostReport(r));
 }

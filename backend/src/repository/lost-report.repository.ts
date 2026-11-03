@@ -65,3 +65,22 @@ export async function findMatchingPublicItems(
     .addOrderBy('item.id', 'DESC')
     .getMany();
 }
+
+export async function findLostReportsByUserId(
+  userId: number,
+  status?: LostReportStatus,
+): Promise<LostReport[]> {
+  const repo = AppDataSource.getRepository(LostReport);
+  const qb = repo
+    .createQueryBuilder('lostReport')
+    .where('lostReport.userId = :userId', { userId });
+
+  if (status !== undefined) {
+    qb.andWhere('lostReport.status = :status', { status });
+  }
+
+  return await qb
+    .orderBy('lostReport.createdAt', 'DESC')
+    .addOrderBy('lostReport.id', 'DESC')
+    .getMany();
+}

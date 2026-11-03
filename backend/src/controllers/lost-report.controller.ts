@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { notImplemented } from '../shared/not-implemented.js';
 import { authenticate } from '../middlewares/auth.js';
-import { createLostReport } from '../services/lost-report.service.js';
+import { createLostReport, listOwnLostReports } from '../services/lost-report.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 export const lostReportRouter = Router();
@@ -31,9 +31,21 @@ lostReportRouter.get(
   '/mine',
   /* #swagger.tags = ['Lost Reports'] */
   /* #swagger.summary = 'Listar as próprias perdas' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['status'] = { in: 'query', type: 'string', enum: ['OPEN', 'RESOLVED', 'CANCELLED'] } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Listagem das próprias perdas'),
+  /* #swagger.responses[200] = { description: 'Lista de perdas do usuário', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Parâmetro inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const reports = await listOwnLostReports(userId, req.query);
+    const response: ApiResponse<typeof reports> = {
+      success: true,
+      data: reports,
+    };
+    res.status(200).json(response);
+  },
 );
 
 lostReportRouter.post(
