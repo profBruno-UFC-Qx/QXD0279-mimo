@@ -21,3 +21,14 @@ export async function findNotificationsByUserId(
     .addOrderBy('notification.id', 'DESC')
     .getMany();
 }
+
+export async function countUnreadNotificationsByUserId(
+  userId: number,
+): Promise<number> {
+  const repo = AppDataSource.getRepository(Notification);
+  return repo
+    .createQueryBuilder('notification')
+    .where('notification.userId = :userId', { userId })
+    .andWhere('notification.readAt IS NULL')
+    .getCount();
+}

@@ -1,7 +1,10 @@
 import { HttpError } from '../middlewares/http-error.js';
 import type { NotificationType } from '../models/enums.js';
 import type { Notification } from '../models/notification.js';
-import { findNotificationsByUserId } from '../repository/notification.repository.js';
+import {
+  findNotificationsByUserId,
+  countUnreadNotificationsByUserId,
+} from '../repository/notification.repository.js';
 
 export interface PublicNotificationDto {
   id: number;
@@ -46,4 +49,11 @@ export async function listOwnNotifications(
 
   const notifications = await findNotificationsByUserId(userId, readFilter);
   return notifications.map(formatPublicNotification);
+}
+
+export async function countOwnUnreadNotifications(
+  userId: number,
+): Promise<{ count: number }> {
+  const count = await countUnreadNotificationsByUserId(userId);
+  return { count };
 }

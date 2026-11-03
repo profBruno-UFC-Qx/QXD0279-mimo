@@ -1,7 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import { notImplemented } from '../shared/not-implemented.js';
 import { authenticate } from '../middlewares/auth.js';
-import { listOwnNotifications } from '../services/notification.service.js';
+import {
+  listOwnNotifications,
+  countOwnUnreadNotifications,
+} from '../services/notification.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 export const notificationRouter = Router();
@@ -10,8 +13,19 @@ notificationRouter.get(
   '/unread-count',
   /* #swagger.tags = ['Notifications'] */
   /* #swagger.summary = 'Contar notificações não lidas' */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Contagem de notificações não lidas'),
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.responses[200] = { description: 'Contagem de notificações não lidas', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (_req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const result = await countOwnUnreadNotifications(userId);
+    const response: ApiResponse<typeof result> = {
+      success: true,
+      data: result,
+    };
+    res.status(200).json(response);
+  },
 );
 
 notificationRouter.get(
