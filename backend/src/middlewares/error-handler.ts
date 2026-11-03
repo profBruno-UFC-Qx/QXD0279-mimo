@@ -15,6 +15,16 @@ function getDatabaseError(error: QueryFailedError): ErrorResponse | null {
   const sqliteError = error.driverError as { code?: string; message?: string };
   const message = sqliteError.message ?? '';
 
+  if (
+    sqliteError.code?.startsWith('SQLITE_BUSY') ||
+    sqliteError.code?.startsWith('SQLITE_LOCKED')
+  ) {
+    return {
+      statusCode: 409,
+      details: 'A operação conflita com uma alteração simultânea; tente novamente.',
+    };
+  }
+
   if (message.includes('UNIQUE constraint failed')) {
     return {
       statusCode: 409,
@@ -57,6 +67,14 @@ function getKnownError(error: unknown): ErrorResponse | null {
   // Erros HTTP lançados intencionalmente pela aplicação.
   if (error instanceof HttpError) {
     return { statusCode: error.statusCode, details: error.message };
+  }
+
+  // JSON sintaticamente inválido é rejeitado pelo express.json antes do controller.
+  if (error instanceof SyntaxError) {
+    const parseError = error as SyntaxError & { status?: number; type?: string };
+    if (parseError.status === 400 && parseError.type === 'entity.parse.failed') {
+      return { statusCode: 400, details: 'O corpo da requisição contém JSON inválido.' };
+    }
   }
 
   // Erros de persistência
