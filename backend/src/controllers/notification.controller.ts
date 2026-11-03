@@ -1,5 +1,8 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { notImplemented } from '../shared/not-implemented.js';
+import { authenticate } from '../middlewares/auth.js';
+import { listOwnNotifications } from '../services/notification.service.js';
+import type { ApiResponse } from '../shared/api-response.js';
 
 export const notificationRouter = Router();
 
@@ -15,9 +18,21 @@ notificationRouter.get(
   '/',
   /* #swagger.tags = ['Notifications'] */
   /* #swagger.summary = 'Listar notificações do usuário autenticado' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['read'] = { in: 'query', type: 'boolean' } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Listagem de notificações'),
+  /* #swagger.responses[200] = { description: 'Lista de notificações do usuário', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Parâmetro inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const notifications = await listOwnNotifications(userId, req.query);
+    const response: ApiResponse<typeof notifications> = {
+      success: true,
+      data: notifications,
+    };
+    res.status(200).json(response);
+  },
 );
 
 notificationRouter.patch(
