@@ -66,6 +66,9 @@ export async function findPublicItems(filters: ItemListFilters): Promise<ItemLis
     .leftJoinAndSelect('item.building', 'building')
     .leftJoinAndSelect('item.photos', 'photos')
     .where('item.id IN (:...pagedIds)', { pagedIds })
+    .andWhere('item.status IN (:...publicStatuses)', {
+      publicStatuses: [ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE],
+    })
     .getMany();
 
   // Reordena na ordem exata definida pela paginação de IDs

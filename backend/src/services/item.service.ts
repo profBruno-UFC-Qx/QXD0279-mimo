@@ -16,8 +16,6 @@ export interface PublicCategoryDto {
 export interface PublicBuildingDto {
   id: number;
   name: string;
-  pickupPoint?: string;
-  serviceHours?: string;
 }
 
 export interface PublicItemDto {
@@ -52,9 +50,46 @@ function parsePositiveInteger(val: unknown, paramName: string): number | undefin
   return num;
 }
 
-function parsePage(val: unknown): number {
-  const num = Number(val);
-  return Number.isFinite(num) ? Math.max(1, Math.floor(num)) : 1;
+function parsePage(val: unknown, perPage: number): number {
+  if (val === undefined || val === null || val === '') {
+    return 1;
+  }
+  const str = String(val).trim();
+  const num = Number(str);
+
+  // Rejeita notação exponencial que resulta em overflow ou valores infinitos
+  if (num === Infinity || (/^[+-]?[0-9]+(\.[0-9]+)?e[+-]?[0-9]+$/i.test(str) && !Number.isFinite(num))) {
+    throw new HttpError(400, 'O parâmetro page está fora do limite permitido.');
+  }
+
+  // Rejeita inteiros decimais que excedem MAX_SAFE_INTEGER
+  if (/^[0-9]+$/.test(str) && str.length >= 16) {
+    try {
+      if (BigInt(str) > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new HttpError(400, 'O parâmetro page está fora do limite permitido.');
+      }
+    } catch {
+      throw new HttpError(400, 'O parâmetro page está fora do limite permitido.');
+    }
+  }
+
+  if (Number.isFinite(num) && num > Number.MAX_SAFE_INTEGER) {
+    throw new HttpError(400, 'O parâmetro page está fora do limite permitido.');
+  }
+
+  // Normalizações contratuais estabelecidas:
+  // page=0 -> 1, page=-1 -> 1, page=abc -> 1
+  if (!Number.isFinite(num) || isNaN(num) || num <= 0) {
+    return 1;
+  }
+
+  const page = Math.floor(num);
+  // Rejeita offset que ultrapasse o limite de inteiros seguros
+  if ((page - 1) * perPage > Number.MAX_SAFE_INTEGER) {
+    throw new HttpError(400, 'O parâmetro page está fora do limite permitido.');
+  }
+
+  return page;
 }
 
 function parsePerPage(val: unknown): number {
@@ -79,8 +114,8 @@ export async function listCatalogItems(
   const categoryId = parsePositiveInteger(query.categoryId, 'categoryId');
   const buildingId = parsePositiveInteger(query.buildingId, 'buildingId');
   const search = parseSearch(query.search);
-  const page = parsePage(query.page);
   const perPage = parsePerPage(query.per_page);
+  const page = parsePage(query.page, perPage);
 
   const filters: ItemListFilters = {
     categoryId,
@@ -108,8 +143,6 @@ export async function listCatalogItems(
     building: {
       id: item.building.id,
       name: item.building.name,
-      pickupPoint: item.building.pickupPoint,
-      serviceHours: item.building.serviceHours,
     },
     photos: (item.photos ?? []).map((p) => ({
       id: p.id,
