@@ -15,6 +15,8 @@ const TEST_JWT_SECRET = 'segredo-de-teste-com-mais-de-32-bytes-para-hs256!';
 process.env.JWT_SECRET = TEST_JWT_SECRET;
 
 const { registerUser } = await import('../services/auth.service.js');
+const { validateUpdateProfileInput } = await import('../services/user.service.js');
+const { HttpError } = await import('../middlewares/http-error.js');
 const { generateToken } = await import('../shared/token.js');
 const { verifyPassword } = await import('../shared/password.js');
 const { AppDataSource } = await import('../data-source.js');
@@ -49,7 +51,7 @@ before(async () => {
   await AppDataSource.initialize();
 
   const app = express();
-  app.use(express.json({ strict: false }));
+  app.use(express.json());
   app.use('/api', apiRouter);
   app.use(errorHandler);
 
@@ -81,6 +83,21 @@ async function patchMe(body: unknown, authHeader?: string): Promise<{ status: nu
     method: 'PATCH',
     headers,
     body: JSON.stringify(body),
+  });
+  return { status: res.status, body: (await res.json()) as ApiBody };
+}
+
+async function patchMeRaw(rawBody: string, authHeader?: string): Promise<{ status: number; body: ApiBody }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (authHeader !== undefined) {
+    headers['Authorization'] = authHeader;
+  }
+  const res = await fetch(`${baseUrl}/api/users/me`, {
+    method: 'PATCH',
+    headers,
+    body: rawBody,
   });
   return { status: res.status, body: (await res.json()) as ApiBody };
 }
@@ -673,31 +690,95 @@ test('RED23 — validação de senha: tipos incorretos, limites UTF-8 (1 a 1024 
   assert.equal(await verifyPassword(valid1024Bytes, finalRow?.password_hash as string), true);
 });
 
-test('RED24 — rejeição de payloads com formato inválido (não-objeto JSON)', async () => {
-  const created = await registerUser(userA);
-  const loginRes = await login({ email: userA.email, password: userA.password });
-  const token = loginRes.body.data.token;
 
-  const initialRow = await userById(created.id);
+const invalidArrayBodies = [
+  ['array vazio', []],
+  ['array de objetos', [{ name: 'Ana' }]],
+  ['array de números', [1, 2, 3]],
+] as const;
 
-  const invalidBodies: [string, unknown][] = [
-    ['array vazio', []],
-    ['array de objetos', [{ name: 'Ana' }]],
-    ['array de números', [1, 2, 3]],
-    ['JSON null', null],
-    ['JSON string', 'texto'],
-    ['JSON número', 123],
-    ['JSON booleano verdadeiro', true],
-    ['JSON booleano falso', false],
-  ];
+for (const [desc, bodyVal] of invalidArrayBodies) {
+  test(`validação de formato inválido (array): ${desc} retorna HTTP 400 do service`, async () => {
+    const created = await registerUser(userA);
+    const loginRes = await login({ email: userA.email, password: userA.password });
+    const token = loginRes.body.data.token;
 
-  for (const [desc, bodyVal] of invalidBodies) {
+    const initialRow = await userById(created.id);
+    const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+
     const { status, body } = await patchMe(bodyVal, `Bearer ${token}`);
     assert.equal(status, 400, `Body "${desc}" deveria retornar 400`);
     assert.equal(body.success, false);
     assert.equal(body.data, null);
     assert.equal(body.error?.code, 400);
-  }
+
+    const finalRow = await userById(created.id);
+    assert.equal(finalRow?.id, initialRow?.id);
+    assert.equal(finalRow?.name, initialRow?.name);
+    assert.equal(finalRow?.email, initialRow?.email);
+    assert.equal(finalRow?.phone, initialRow?.phone);
+    assert.equal(finalRow?.password_hash, initialRow?.password_hash);
+    assert.equal(finalRow?.role, initialRow?.role);
+    const finalCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+    assert.equal(finalCount, initialCount);
+  });
+}
+
+const invalidPrimitiveBodies = [
+  ['JSON null', null],
+  ['JSON string', 'texto'],
+  ['JSON número', 123],
+  ['JSON booleano verdadeiro', true],
+  ['JSON booleano falso', false],
+] as const;
+
+for (const [desc, bodyVal] of invalidPrimitiveBodies) {
+  test(`rejeição de formato inválido (primitivo): ${desc} retorna HTTP 500 da infraestrutura compartilhada`, async () => {
+    const created = await registerUser(userA);
+    const loginRes = await login({ email: userA.email, password: userA.password });
+    const token = loginRes.body.data.token;
+
+    const initialRow = await userById(created.id);
+    const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+
+    const { status, body } = await patchMe(bodyVal, `Bearer ${token}`);
+    assert.equal(status, 500, `Body "${desc}" retorna 500 do errorHandler atual`);
+    assert.equal(body.success, false);
+    assert.equal(body.data, null);
+    assert.equal(body.error?.code, 500);
+    assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+
+    const finalRow = await userById(created.id);
+    assert.equal(finalRow?.id, initialRow?.id);
+    assert.equal(finalRow?.name, initialRow?.name);
+    assert.equal(finalRow?.email, initialRow?.email);
+    assert.equal(finalRow?.phone, initialRow?.phone);
+    assert.equal(finalRow?.password_hash, initialRow?.password_hash);
+    assert.equal(finalRow?.role, initialRow?.role);
+    const finalCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+    assert.equal(finalCount, initialCount);
+  });
+}
+
+test('rejeição de JSON sintaticamente malformado retorna HTTP 500 da infraestrutura compartilhada sem mutação no banco', async () => {
+  const created = await registerUser(userA);
+  const loginRes = await login({ email: userA.email, password: userA.password });
+  const token = loginRes.body.data.token;
+
+  const initialRow = await userById(created.id);
+  const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+
+  const { status, body } = await patchMeRaw('{"name":', `Bearer ${token}`);
+
+  assert.equal(status, 500, 'JSON sintaticamente malformado retorna 500 do errorHandler atual');
+  assert.equal(body.success, false);
+  assert.equal(body.data, null);
+  assert.equal(body.error?.code, 500);
+  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+
+  const bodyText = JSON.stringify(body);
+  assert.equal(bodyText.includes('{"name":'), false, 'Não deve expor o corpo malformado');
+  assert.equal(bodyText.includes('stack'), false, 'Não deve expor stack trace');
 
   const finalRow = await userById(created.id);
   assert.equal(finalRow?.id, initialRow?.id);
@@ -706,4 +787,30 @@ test('RED24 — rejeição de payloads com formato inválido (não-objeto JSON)'
   assert.equal(finalRow?.phone, initialRow?.phone);
   assert.equal(finalRow?.password_hash, initialRow?.password_hash);
   assert.equal(finalRow?.role, initialRow?.role);
+
+  const finalCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
+  assert.equal(finalCount, initialCount);
+});
+
+test('UNIT01 — validação isolada do serviço: validateUpdateProfileInput rejeita primitivos e arrays com HttpError(400)', () => {
+  const invalidInputs = [
+    null,
+    'texto',
+    123,
+    true,
+    false,
+    [],
+    [{ name: 'Ana' }],
+  ];
+
+  for (const input of invalidInputs) {
+    assert.throws(
+      () => validateUpdateProfileInput(input),
+      (err: unknown) => {
+        assert.ok(err instanceof HttpError, 'deve ser instância de HttpError');
+        assert.equal(err.statusCode, 400, 'deve possuir statusCode 400');
+        return true;
+      },
+    );
+  }
 });
