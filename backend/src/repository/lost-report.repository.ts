@@ -41,7 +41,7 @@ export async function insertLostReport(
     categoryId: data.categoryId,
     buildingId: data.buildingId,
     description: data.description,
-    lossDate: typeof data.lossDate === 'string' ? new Date(data.lossDate) : data.lossDate,
+    lossDate: data.lossDate,
     status: data.status,
   });
   return await repo.save(created);
@@ -83,4 +83,17 @@ export async function findLostReportsByUserId(
     .orderBy('lostReport.createdAt', 'DESC')
     .addOrderBy('lostReport.id', 'DESC')
     .getMany();
+}
+
+export async function findLostReportByIdAndUserId(
+  reportId: number,
+  userId: number,
+): Promise<LostReport | null> {
+  const repo = AppDataSource.getRepository(LostReport);
+  return await repo.findOne({
+    where: {
+      id: reportId,
+      userId,
+    },
+  });
 }

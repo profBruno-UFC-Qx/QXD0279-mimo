@@ -9,6 +9,7 @@ import {
   insertLostReport,
   findMatchingPublicItems,
   findLostReportsByUserId,
+  findLostReportByIdAndUserId,
 } from '../repository/lost-report.repository.js';
 
 export interface ValidatedLostReportInput {
@@ -233,4 +234,31 @@ export async function listOwnLostReports(
   const status = validateStatusFilter(query.status);
   const reports = await findLostReportsByUserId(userId, status);
   return reports.map((r) => formatPublicLostReport(r));
+}
+
+function parseReportId(rawId: unknown): number {
+  if (typeof rawId !== 'string' && typeof rawId !== 'number') {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  const str = String(rawId).trim();
+  if (!/^[1-9]\d*$/.test(str)) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  const parsed = Number(str);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== str) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  return parsed;
+}
+
+export async function getOwnLostReportDetails(
+  userId: number,
+  rawId: unknown,
+): Promise<PublicLostReportDto> {
+  const reportId = parseReportId(rawId);
+  const report = await findLostReportByIdAndUserId(reportId, userId);
+  if (!report) {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+  return formatPublicLostReport(report);
 }
