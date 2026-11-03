@@ -1,8 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
-import { getUserProfile } from '../services/user.service.js';
+import { getUserProfile, updateUserProfile } from '../services/user.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
-import { notImplemented } from '../shared/not-implemented.js';
 import type { PublicUser } from '../services/auth.service.js';
 
 export const userRouter = Router();
@@ -31,7 +30,20 @@ userRouter.patch(
   '/me',
   /* #swagger.tags = ['Users'] */
   /* #swagger.summary = 'Atualizar o próprio perfil' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Ana Silva', phone: '+5511999999999', password: 'nova-senha' } } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Atualização de perfil'),
+  /* #swagger.responses[200] = { description: 'Perfil atualizado com sucesso', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const profile = await updateUserProfile(userId, req.body);
+    const response: ApiResponse<PublicUser> = {
+      success: true,
+      data: profile,
+    };
+    res.status(200).json(response);
+  },
 );
