@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
-import { listAdmins } from '../services/admin.service.js';
+import { createAdmin, listAdmins } from '../services/admin.service.js';
 import type { PublicUser } from '../services/auth.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
 import { notImplemented } from '../shared/not-implemented.js';
@@ -32,9 +32,24 @@ adminRouter.post(
   '/',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Cadastrar administrador' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Ana Silva', email: 'ana@example.com', initialPassword: 'senha-inicial' } } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Cadastro de administrador'),
+  /* #swagger.responses[201] = { description: 'Administrador criado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Dados invalidos', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[409] = { description: 'E-mail ja cadastrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const admin = await createAdmin(userId, req.body);
+    const response: ApiResponse<PublicUser> = {
+      success: true,
+      data: admin,
+    };
+    res.status(201).json(response);
+  },
 );
 
 adminRouter.get(
