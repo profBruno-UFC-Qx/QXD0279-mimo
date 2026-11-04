@@ -4,6 +4,8 @@ import type { Notification } from '../models/notification.js';
 import {
   findNotificationsByUserId,
   countUnreadNotificationsByUserId,
+  findNotificationByIdAndUserId,
+  markNotificationReadIfUnread,
 } from '../repository/notification.repository.js';
 
 export interface PublicNotificationDto {
@@ -56,4 +58,41 @@ export async function countOwnUnreadNotifications(
 ): Promise<{ count: number }> {
   const count = await countUnreadNotificationsByUserId(userId);
   return { count };
+}
+
+function parseNotificationId(rawId: unknown): number {
+  if (typeof rawId !== 'string' && typeof rawId !== 'number') {
+    throw new HttpError(400, 'ID inválido.');
+  }
+
+  const str = String(rawId).trim();
+  if (!/^[1-9]\d*$/.test(str)) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+
+  const parsed = Number(str);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== str) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+
+  return parsed;
+}
+
+export async function markOwnNotificationAsRead(
+  userId: number,
+  rawId: unknown,
+): Promise<PublicNotificationDto> {
+  const notificationId = parseNotificationId(rawId);
+  const readAt = new Date();
+
+  await markNotificationReadIfUnread(notificationId, userId, readAt);
+
+  // Consulta restrita ao proprietário autenticado: distingue "já lida" de
+  // "inexistente/de terceiro" sem expor dados de notificações alheias.
+  const notification = await findNotificationByIdAndUserId(notificationId, userId);
+  if (!notification) {
+    throw new HttpError(404, 'Notificação não encontrada.');
+  }
+
+  return formatPublicNotification(notification);
 }

@@ -32,3 +32,34 @@ export async function countUnreadNotificationsByUserId(
     .andWhere('notification.readAt IS NULL')
     .getCount();
 }
+
+export async function findNotificationByIdAndUserId(
+  notificationId: number,
+  userId: number,
+): Promise<Notification | null> {
+  const repo = AppDataSource.getRepository(Notification);
+  return await repo.findOne({
+    where: {
+      id: notificationId,
+      userId,
+    },
+  });
+}
+
+export async function markNotificationReadIfUnread(
+  notificationId: number,
+  userId: number,
+  readAt: Date,
+): Promise<number> {
+  const repo = AppDataSource.getRepository(Notification);
+  const result = await repo
+    .createQueryBuilder()
+    .update(Notification)
+    .set({ readAt })
+    .where('id = :notificationId', { notificationId })
+    .andWhere('userId = :userId', { userId })
+    .andWhere('readAt IS NULL')
+    .execute();
+
+  return result.affected ?? 0;
+}
