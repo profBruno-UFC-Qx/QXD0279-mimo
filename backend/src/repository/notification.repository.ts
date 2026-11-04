@@ -63,3 +63,19 @@ export async function markNotificationReadIfUnread(
 
   return result.affected ?? 0;
 }
+
+export async function markAllUnreadNotificationsAsRead(
+  userId: number,
+  readAt: Date,
+): Promise<number> {
+  const repo = AppDataSource.getRepository(Notification);
+  const result = await repo
+    .createQueryBuilder()
+    .update(Notification)
+    .set({ readAt })
+    .where('userId = :userId', { userId })
+    .andWhere('readAt IS NULL')
+    .execute();
+
+  return result.affected ?? 0;
+}

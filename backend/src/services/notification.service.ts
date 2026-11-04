@@ -6,6 +6,7 @@ import {
   countUnreadNotificationsByUserId,
   findNotificationByIdAndUserId,
   markNotificationReadIfUnread,
+  markAllUnreadNotificationsAsRead,
 } from '../repository/notification.repository.js';
 
 export interface PublicNotificationDto {
@@ -95,4 +96,10 @@ export async function markOwnNotificationAsRead(
   }
 
   return formatPublicNotification(notification);
+}
+
+export async function markAllOwnNotificationsAsRead(
+  userId: number,
+): Promise<void> {
+  await markAllUnreadNotificationsAsRead(userId, new Date());
 }

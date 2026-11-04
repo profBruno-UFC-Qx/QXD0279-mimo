@@ -1,10 +1,10 @@
 import { Router, type Request, type Response } from 'express';
-import { notImplemented } from '../shared/not-implemented.js';
 import { authenticate } from '../middlewares/auth.js';
 import {
   listOwnNotifications,
   countOwnUnreadNotifications,
   markOwnNotificationAsRead,
+  markAllOwnNotificationsAsRead,
 } from '../services/notification.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
@@ -54,8 +54,15 @@ notificationRouter.patch(
   '/read-all',
   /* #swagger.tags = ['Notifications'] */
   /* #swagger.summary = 'Marcar todas as notificações como lidas' */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Marcação de notificações como lidas'),
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.responses[204] = { description: 'Todas as notificações não lidas foram marcadas como lidas' } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (_req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    await markAllOwnNotificationsAsRead(userId);
+    res.status(204).end();
+  },
 );
 
 notificationRouter.patch(
