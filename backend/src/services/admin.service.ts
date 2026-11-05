@@ -1,7 +1,7 @@
 import { HttpError } from '../middlewares/http-error.js';
 import { UserRole } from '../models/enums.js';
 import type { User } from '../models/user.js';
-import { findAdminUsers, insertAdminUser } from '../repository/admin.repository.js';
+import { findAdminById, findAdminUsers, insertAdminUser } from '../repository/admin.repository.js';
 import { findUserById } from '../repository/user.repository.js';
 import { hashPassword } from '../shared/password.js';
 import { validateRegistrationInput, type PublicUser } from './auth.service.js';
@@ -32,6 +32,35 @@ export async function listAdmins(requesterId: number): Promise<PublicUser[]> {
   await requireSuperAdmin(requesterId);
   const admins = await findAdminUsers();
   return admins.map(toPublicUser);
+}
+
+function parseAdminId(rawId: unknown): number {
+  if (typeof rawId !== 'string' && typeof rawId !== 'number') {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  const str = String(rawId).trim();
+  if (!/^[1-9]\d*$/.test(str)) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  const parsed = Number(str);
+  if (!Number.isSafeInteger(parsed) || String(parsed) !== str) {
+    throw new HttpError(400, 'ID inválido.');
+  }
+  return parsed;
+}
+
+export async function getAdminDetail(
+  requesterId: number,
+  rawId: unknown,
+): Promise<PublicUser> {
+  const adminId = parseAdminId(rawId);
+  await requireSuperAdmin(requesterId);
+
+  const admin = await findAdminById(adminId);
+  if (!admin) {
+    throw new HttpError(404, 'Administrador não encontrado.');
+  }
+  return toPublicUser(admin);
 }
 
 export async function createAdmin(requesterId: number, input: unknown): Promise<PublicUser> {

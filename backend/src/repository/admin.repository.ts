@@ -15,6 +15,12 @@ export async function findAdminUsers(): Promise<User[]> {
   });
 }
 
+export async function findAdminById(id: number): Promise<User | null> {
+  return AppDataSource.getRepository(User).findOne({
+    where: { id, role: UserRole.ADMIN },
+  });
+}
+
 // Plain INSERT (no save() transaction): the UNIQUE index on email is the final guard against duplicates.
 export async function insertAdminUser(data: NewAdminData): Promise<User> {
   const repository = AppDataSource.getRepository(User);
