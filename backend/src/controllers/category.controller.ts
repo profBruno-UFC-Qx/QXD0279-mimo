@@ -1,8 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { Category } from '../models/category.js';
+import { authenticate } from '../middlewares/auth.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { CategoryService } from '../services/category.service.js';
+import { requireAdmin } from './admin-authorization.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 const categoryService = new CategoryService();
@@ -52,6 +54,7 @@ async function listCategories(_req: Request, res: Response): Promise<void> {
 }
 
 async function createCategory(req: Request, res: Response): Promise<void> {
+  await requireAdmin(res);
   const name = await validateCategoryBody(req.body);
   const category = await categoryService.create(name);
   const response: ApiResponse<Category> = { success: true, data: category };
@@ -59,6 +62,7 @@ async function createCategory(req: Request, res: Response): Promise<void> {
 }
 
 async function updateCategory(req: Request<{ id: string }>, res: Response): Promise<void> {
+  await requireAdmin(res);
   const id = parseCategoryId(req.params.id);
   const name = await validateCategoryBody(req.body);
   const category = await categoryService.update(id, name);
@@ -71,6 +75,7 @@ async function updateCategory(req: Request<{ id: string }>, res: Response): Prom
 }
 
 async function deleteCategory(req: Request<{ id: string }>, res: Response): Promise<void> {
+  await requireAdmin(res);
   const id = parseCategoryId(req.params.id);
   const result = await categoryService.delete(id);
   if (result === 'not_found') {
@@ -100,6 +105,7 @@ categoryRouter.post(
   /* #swagger.responses[201] = { description: 'Categoria criada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   createCategory,
 );
 
@@ -114,6 +120,7 @@ categoryRouter.patch(
   /* #swagger.responses[400] = { description: 'ID ou payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   updateCategory,
 );
 
@@ -127,5 +134,6 @@ categoryRouter.delete(
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Categoria possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   deleteCategory,
 );
