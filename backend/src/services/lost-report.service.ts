@@ -92,10 +92,11 @@ export function validateLostReportInput(input: unknown): ValidatedLostReportInpu
   if (typeof description !== 'string') {
     throw new HttpError(400, 'O campo description deve ser uma string.');
   }
-  if (description.length < 10) {
+  const normalizedDescription = description.trim();
+  if (normalizedDescription.length < 10) {
     throw new HttpError(400, 'O campo description deve conter pelo menos 10 caracteres.');
   }
-  if (description.length > 2000) {
+  if (normalizedDescription.length > 2000) {
     throw new HttpError(400, 'O campo description excede o limite máximo de 2000 caracteres.');
   }
 
@@ -126,7 +127,7 @@ export function validateLostReportInput(input: unknown): ValidatedLostReportInpu
   return {
     categoryId,
     buildingId: validatedBuildingId,
-    description,
+    description: normalizedDescription,
     lossDate,
   };
 }
