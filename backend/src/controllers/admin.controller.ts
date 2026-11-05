@@ -1,9 +1,8 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
-import { createAdmin, getAdminDetail, listAdmins } from '../services/admin.service.js';
+import { createAdmin, deleteAdmin, getAdminDetail, listAdmins } from '../services/admin.service.js';
 import type { PublicUser } from '../services/auth.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
-import { notImplemented } from '../shared/not-implemented.js';
 
 export const adminRouter = Router();
 
@@ -80,7 +79,19 @@ adminRouter.delete(
   '/:id',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Excluir administrador' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Exclusão de administrador'),
+  /* #swagger.responses[204] = { description: 'Administrador excluido' } */
+  /* #swagger.responses[400] = { description: 'ID invalido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[404] = { description: 'Administrador nao encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[409] = { description: 'Conflito com registros relacionados', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    await deleteAdmin(userId, req.params.id);
+    res.status(204).end();
+  },
 );

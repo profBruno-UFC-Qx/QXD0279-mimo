@@ -1,7 +1,7 @@
 import { HttpError } from '../middlewares/http-error.js';
 import { UserRole } from '../models/enums.js';
 import type { User } from '../models/user.js';
-import { findAdminById, findAdminUsers, insertAdminUser } from '../repository/admin.repository.js';
+import { deleteAdminById, findAdminById, findAdminUsers, insertAdminUser } from '../repository/admin.repository.js';
 import { findUserById } from '../repository/user.repository.js';
 import { hashPassword } from '../shared/password.js';
 import { validateRegistrationInput, type PublicUser } from './auth.service.js';
@@ -61,6 +61,16 @@ export async function getAdminDetail(
     throw new HttpError(404, 'Administrador não encontrado.');
   }
   return toPublicUser(admin);
+}
+
+export async function deleteAdmin(requesterId: number, rawId: unknown): Promise<void> {
+  const adminId = parseAdminId(rawId);
+  await requireSuperAdmin(requesterId);
+
+  const affected = await deleteAdminById(adminId);
+  if (affected === 0) {
+    throw new HttpError(404, 'Administrador não encontrado.');
+  }
 }
 
 export async function createAdmin(requesterId: number, input: unknown): Promise<PublicUser> {
