@@ -1,8 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { Building } from '../models/building.js';
+import { authenticate } from '../middlewares/auth.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { BuildingService } from '../services/building.service.js';
+import { requireAdmin } from './admin-authorization.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 const buildingService = new BuildingService();
@@ -88,6 +90,7 @@ export async function createBuilding(req: Request, res: Response): Promise<void>
   /* #swagger.responses[201] = { description: 'Prédio criado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
+  await requireAdmin(res);
   const data = await validateBuildingData(req.body, false);
   const building = await buildingService.create(data as BuildingData);
   const response: ApiResponse<Building> = { success: true, data: building };
@@ -118,7 +121,11 @@ buildingRouter.get(
   getBuildings,
 );
 
-buildingRouter.post('/', createBuilding);
+buildingRouter.post(
+  '/',
+  authenticate,
+  createBuilding,
+);
 buildingRouter.get(
   '/:id',
   /* #swagger.tags = ['Buildings'] */
@@ -141,7 +148,9 @@ buildingRouter.patch(
   /* #swagger.responses[400] = { description: 'ID ou payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    await requireAdmin(res);
     const id = parseBuildingId(req.params.id);
     const data = await validateBuildingData(req.body, true);
     const building = await buildingService.update(id, data);
@@ -164,7 +173,9 @@ buildingRouter.delete(
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Prédio possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    await requireAdmin(res);
     const id = parseBuildingId(req.params.id);
     const result = await buildingService.delete(id);
     if (result === 'not_found') {
