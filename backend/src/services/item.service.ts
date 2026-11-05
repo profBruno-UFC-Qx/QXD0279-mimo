@@ -26,18 +26,22 @@ export interface PublicBuildingDetailsDto {
   serviceHours: string;
 }
 
-export interface PublicItemDetailsDto {
+export interface PublicItemDetailDto {
   id: number;
   title: string;
   description: string | null;
   categoryId: number;
   buildingId: number;
   foundLocation: string | null;
-  foundDate: string | Date;
+  foundDate: string;
   status: ItemStatus;
   category: PublicCategoryDto;
-  building: PublicBuildingDetailsDto;
+}
+
+export interface PublicItemDetailsDto {
+  item: PublicItemDetailDto;
   photos: PublicPhotoDto[];
+  building: PublicBuildingDetailsDto;
 }
 
 export interface PublicItemDto {
@@ -195,27 +199,31 @@ export async function getPublicItemDetails(rawId: unknown): Promise<PublicItemDe
   }
 
   return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    categoryId: item.categoryId,
-    buildingId: item.buildingId,
-    foundLocation: item.foundLocation,
-    foundDate: item.foundDate,
-    status: item.status,
-    category: {
-      id: item.category.id,
-      name: item.category.name,
+    item: {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      categoryId: item.categoryId,
+      buildingId: item.buildingId,
+      foundLocation: item.foundLocation,
+      foundDate: item.foundDate instanceof Date
+        ? item.foundDate.toISOString().slice(0, 10)
+        : String(item.foundDate).slice(0, 10),
+      status: item.status,
+      category: {
+        id: item.category.id,
+        name: item.category.name,
+      },
     },
+    photos: (item.photos ?? []).map((p) => ({
+      id: p.id,
+      url: p.url,
+    })),
     building: {
       id: item.building.id,
       name: item.building.name,
       pickupPoint: item.building.pickupPoint,
       serviceHours: item.building.serviceHours,
     },
-    photos: (item.photos ?? []).map((p) => ({
-      id: p.id,
-      url: p.url,
-    })),
   };
 }
