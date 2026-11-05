@@ -1,9 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { DispositionRule } from '../models/disposition-rule.js';
-import { DispositionType, UserRole } from '../models/enums.js';
+import { DispositionType } from '../models/enums.js';
+import { authenticate } from '../middlewares/auth.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { DispositionRuleService } from '../services/disposition-rule.service.js';
+import { requireAdmin } from './admin-authorization.js';
 import type {
   CreateDispositionRuleData,
   UpdateDispositionRuleData,
@@ -12,28 +14,6 @@ import type { ApiResponse } from '../shared/api-response.js';
 
 const dispositionRuleService = new DispositionRuleService();
 export const dispositionRuleRouter = Router();
-
-type RequestWithIdentity = Request & { user?: unknown };
-type AdminIdentity = { id: number; role: UserRole.ADMIN | UserRole.SUPERADMIN };
-
-function requireAdminIdentity(req: Request): AdminIdentity {
-  // req.user só é confiável quando preenchido pelo middleware de autenticação real.
-  const user = (req as RequestWithIdentity).user;
-  if (user === undefined || user === null) {
-    throw new HttpError(503, 'A autenticação administrativa ainda não está integrada.');
-  }
-  if (typeof user !== 'object') throw new HttpError(401, 'Identidade autenticada inválida.');
-
-  const identity = user as { id?: unknown; role?: unknown };
-  if (!Number.isSafeInteger(identity.id) || typeof identity.id !== 'number' || identity.id <= 0) {
-    throw new HttpError(401, 'Identidade autenticada inválida.');
-  }
-  if (identity.role !== UserRole.ADMIN && identity.role !== UserRole.SUPERADMIN) {
-    throw new HttpError(403, 'Acesso restrito a administradores.');
-  }
-
-  return { id: identity.id, role: identity.role };
-}
 
 function parseRuleId(rawId: string): number {
   if (!/^\d+$/.test(rawId)) {
@@ -126,14 +106,14 @@ function parseActiveFilter(value: unknown): boolean | undefined {
 }
 
 async function listDispositionRules(req: Request, res: Response): Promise<void> {
-  requireAdminIdentity(req);
+  await requireAdmin(res);
   const rules = await dispositionRuleService.list(parseActiveFilter(req.query.active));
   const response: ApiResponse<DispositionRule[]> = { success: true, data: rules };
   res.json(response);
 }
 
 async function getDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  requireAdminIdentity(req);
+  await requireAdmin(res);
   const rule = await dispositionRuleService.getById(parseRuleId(req.params.id));
   if (!rule) throw new HttpError(404, 'A regra de destinação não foi encontrada.');
 
@@ -142,14 +122,14 @@ async function getDispositionRule(req: Request<{ id: string }>, res: Response): 
 }
 
 async function createDispositionRule(req: Request, res: Response): Promise<void> {
-  const identity = requireAdminIdentity(req);
+  const identity = await requireAdmin(res);
   const rule = await dispositionRuleService.create(await parseCreatePayload(req.body), identity.id);
   const response: ApiResponse<DispositionRule> = { success: true, data: rule };
   res.status(201).json(response);
 }
 
 async function updateDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const identity = requireAdminIdentity(req);
+  const identity = await requireAdmin(res);
   const rule = await dispositionRuleService.update(
     parseRuleId(req.params.id),
     await parseUpdatePayload(req.body),
@@ -160,7 +140,7 @@ async function updateDispositionRule(req: Request<{ id: string }>, res: Response
 }
 
 async function removeDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const identity = requireAdminIdentity(req);
+  const identity = await requireAdmin(res);
   await dispositionRuleService.remove(parseRuleId(req.params.id), identity.role);
   res.status(204).end();
 }
@@ -176,6 +156,7 @@ dispositionRuleRouter.get(
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   listDispositionRules,
 );
 
@@ -191,6 +172,7 @@ dispositionRuleRouter.get(
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   getDispositionRule,
 );
 
@@ -206,6 +188,7 @@ dispositionRuleRouter.post(
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   createDispositionRule,
 );
 
@@ -223,6 +206,7 @@ dispositionRuleRouter.patch(
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   updateDispositionRule,
 );
 
@@ -239,5 +223,6 @@ dispositionRuleRouter.delete(
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   removeDispositionRule,
 );
