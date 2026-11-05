@@ -3,9 +3,11 @@ import { validate } from 'class-validator';
 import { Item } from '../models/item.js';
 import { ItemPhoto } from '../models/item-photo.js';
 import { LostReport } from '../models/lost-report.js';
-import { ItemStatus, UserRole } from '../models/enums.js';
+import { ItemStatus } from '../models/enums.js';
+import { authenticate } from '../middlewares/auth.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { AdminItemService } from '../services/admin-item.service.js';
+import { requireAdmin } from './admin-authorization.js';
 import type {
   AdminItemFilters,
   CreateAdminItemData,
@@ -16,26 +18,6 @@ import type { Paginated } from '../shared/pagination.js';
 
 const adminItemService = new AdminItemService();
 export const adminItemRouter = Router();
-
-type RequestWithIdentity = Request & { user?: unknown };
-
-function requireAdminId(req: Request): number {
-  const user = (req as RequestWithIdentity).user;
-  if (user === undefined || user === null) {
-    throw new HttpError(503, 'A autorização administrativa ainda não está integrada.');
-  }
-  if (typeof user !== 'object') throw new HttpError(401, 'Identidade autenticada inválida.');
-
-  const identity = user as { id?: unknown; role?: unknown };
-  if (typeof identity.id !== 'number' || !Number.isSafeInteger(identity.id) || identity.id <= 0) {
-    throw new HttpError(401, 'Identidade autenticada inválida.');
-  }
-  if (identity.role !== UserRole.ADMIN && identity.role !== UserRole.SUPERADMIN) {
-    throw new HttpError(403, 'Acesso restrito a administradores.');
-  }
-
-  return identity.id;
-}
 
 function parsePathId(rawId: string): number {
   if (!/^\d+$/.test(rawId)) {
@@ -253,14 +235,14 @@ function parseListQuery(query: Record<string, unknown>): {
 }
 
 async function createItem(req: Request, res: Response): Promise<void> {
-  const createdBy = requireAdminId(req);
+  const createdBy = (await requireAdmin(res)).id;
   const item = await adminItemService.create(await parseCreatePayload(req.body), createdBy);
   const response: ApiResponse<Item> = { success: true, data: item };
   res.status(201).json(response);
 }
 
 async function listItems(req: Request, res: Response): Promise<void> {
-  requireAdminId(req);
+  await requireAdmin(res);
   const { filters, page, perPage } = parseListQuery(req.query as Record<string, unknown>);
   const data = await adminItemService.list(filters, page, perPage);
   const response: ApiResponse<Paginated<Item>> = { success: true, data };
@@ -268,7 +250,7 @@ async function listItems(req: Request, res: Response): Promise<void> {
 }
 
 async function getItemDetails(req: Request<{ id: string }>, res: Response): Promise<void> {
-  requireAdminId(req);
+  await requireAdmin(res);
   const details = await adminItemService.getDetails(parsePathId(req.params.id));
   if (!details) throw new HttpError(404, 'O item não foi encontrado.');
 
@@ -277,7 +259,7 @@ async function getItemDetails(req: Request<{ id: string }>, res: Response): Prom
 }
 
 async function getPossibleOwners(req: Request<{ id: string }>, res: Response): Promise<void> {
-  requireAdminId(req);
+  await requireAdmin(res);
   const reports = await adminItemService.getPossibleOwners(parsePathId(req.params.id));
   if (!reports) throw new HttpError(404, 'O item não foi encontrado.');
 
@@ -286,14 +268,14 @@ async function getPossibleOwners(req: Request<{ id: string }>, res: Response): P
 }
 
 async function updateItem(req: Request<{ id: string }>, res: Response): Promise<void> {
-  requireAdminId(req);
+  await requireAdmin(res);
   const item = await adminItemService.update(parsePathId(req.params.id), await parseUpdatePayload(req.body));
   const response: ApiResponse<Item> = { success: true, data: item };
   res.json(response);
 }
 
 async function deleteItem(req: Request<{ id: string }>, res: Response): Promise<void> {
-  requireAdminId(req);
+  await requireAdmin(res);
   await adminItemService.remove(parsePathId(req.params.id));
   res.status(204).end();
 }
@@ -311,6 +293,7 @@ adminItemRouter.post(
   /* #swagger.responses[404] = { description: 'Categoria ou prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   createItem,
 );
 
@@ -330,6 +313,7 @@ adminItemRouter.get(
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   listItems,
 );
 
@@ -345,6 +329,7 @@ adminItemRouter.get(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   getPossibleOwners,
 );
 
@@ -360,6 +345,7 @@ adminItemRouter.get(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   getItemDetails,
 );
 
@@ -377,6 +363,7 @@ adminItemRouter.patch(
   /* #swagger.responses[404] = { description: 'Item, referência ou foto não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item não pode ser atualizado neste estado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   updateItem,
 );
 
@@ -393,5 +380,6 @@ adminItemRouter.delete(
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item já entregue/destinado ou com histórico', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
   deleteItem,
 );
