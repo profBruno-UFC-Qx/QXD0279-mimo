@@ -1,5 +1,8 @@
-import { Router } from 'express';
-import { notImplemented } from '../shared/not-implemented.js';
+import { Router, type Request, type Response } from 'express';
+import { authenticate } from '../middlewares/auth.js';
+import { createAdmin, deleteAdmin, getAdminDetail, listAdmins } from '../services/admin.service.js';
+import type { PublicUser } from '../services/auth.service.js';
+import type { ApiResponse } from '../shared/api-response.js';
 
 export const adminRouter = Router();
 
@@ -7,33 +10,88 @@ adminRouter.get(
   '/',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Listar administradores' */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Listagem de administradores'),
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.responses[200] = { description: 'Lista de administradores comuns', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (_req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const admins = await listAdmins(userId);
+    const response: ApiResponse<PublicUser[]> = {
+      success: true,
+      data: admins,
+    };
+    res.status(200).json(response);
+  },
 );
 
 adminRouter.post(
   '/',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Cadastrar administrador' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Ana Silva', email: 'ana@example.com', initialPassword: 'senha-inicial' } } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Cadastro de administrador'),
+  /* #swagger.responses[201] = { description: 'Administrador criado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Dados invalidos', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[409] = { description: 'E-mail ja cadastrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const admin = await createAdmin(userId, req.body);
+    const response: ApiResponse<PublicUser> = {
+      success: true,
+      data: admin,
+    };
+    res.status(201).json(response);
+  },
 );
 
 adminRouter.get(
   '/:id',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Consultar administrador' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Consulta de administrador'),
+  /* #swagger.responses[200] = { description: 'Administrador encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'ID invalido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[404] = { description: 'Administrador nao encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const admin = await getAdminDetail(userId, req.params.id);
+    const response: ApiResponse<PublicUser> = {
+      success: true,
+      data: admin,
+    };
+    res.status(200).json(response);
+  },
 );
 
 adminRouter.delete(
   '/:id',
   /* #swagger.tags = ['Admins'] */
   /* #swagger.summary = 'Excluir administrador' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
-  /* #swagger.responses[501] = { description: 'Endpoint ainda não implementado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  notImplemented('Exclusão de administrador'),
+  /* #swagger.responses[204] = { description: 'Administrador excluido' } */
+  /* #swagger.responses[400] = { description: 'ID invalido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Nao autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[404] = { description: 'Administrador nao encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[409] = { description: 'Conflito com registros relacionados', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    await deleteAdmin(userId, req.params.id);
+    res.status(204).end();
+  },
 );
