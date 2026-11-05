@@ -21,6 +21,7 @@ const { Building } = await import('../models/building.js');
 const { Item } = await import('../models/item.js');
 const { ItemPhoto } = await import('../models/item-photo.js');
 const { LostReport } = await import('../models/lost-report.js');
+const { Notification } = await import('../models/notification.js');
 const { UserRole, ItemStatus, LostReportStatus } = await import('../models/enums.js');
 const { generateToken } = await import('../shared/token.js');
 const { Repository } = await import('typeorm');
@@ -58,6 +59,7 @@ after(async () => {
 });
 
 beforeEach(async () => {
+  await AppDataSource.query('DELETE FROM notifications');
   await AppDataSource.query('DELETE FROM lost_reports');
   await AppDataSource.query('DELETE FROM item_photos');
   await AppDataSource.query('DELETE FROM items');
@@ -79,6 +81,19 @@ async function postLostReport(
   const res = await fetch(`${baseUrl}/api/lost-reports`, {
     method: 'POST',
     headers,
+    body: JSON.stringify(payload),
+  });
+  return { status: res.status, body: (await res.json()) as ApiBody };
+}
+
+async function patchLostReport(
+  id: number,
+  payload: unknown,
+  authHeader: string,
+): Promise<{ status: number; body: ApiBody }> {
+  const res = await fetch(`${baseUrl}/api/lost-reports/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: authHeader },
     body: JSON.stringify(payload),
   });
   return { status: res.status, body: (await res.json()) as ApiBody };
@@ -724,6 +739,111 @@ test('RED13 — validação de description: aceita exatamente 10 e 2000 chars, r
   assert.equal(res2001.status, 400, `esperado HTTP 400 para 2001 caracteres mas recebeu ${res2001.status}`);
   assert.equal(res2001.body.success, false);
   assert.equal(res2001.body.error?.code, 400);
+});
+
+// -----------------------------------------------------------------------------
+// H04: NORMALIZAÇÃO DE DESCRIPTION (trim)
+// -----------------------------------------------------------------------------
+
+test('RED22a — description só com espaços é rejeitada (10 e 2000 espaços) sem criar relato nem notificação', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  for (const desc of [' '.repeat(10), ' '.repeat(2000)]) {
+    const res = await postLostReport(
+      { categoryId: category.id, description: desc, lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para ${desc.length} espaços mas recebeu ${res.status}`);
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.error?.code, 400);
+  }
+
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+});
+
+test('RED22b — texto útil de 9 caracteres cercado por espaços é rejeitado com 400', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  for (const desc of [' 123456789 ', '   123456789   ']) {
+    const res = await postLostReport(
+      { categoryId: category.id, description: desc, lossDate: '2026-10-23' },
+      `Bearer ${token}`,
+    );
+    assert.equal(res.status, 400, `esperado 400 para "${desc}" mas recebeu ${res.status}`);
+    assert.equal(res.body.error?.code, 400);
+  }
+
+  assert.equal(await AppDataSource.getRepository(LostReport).count(), 0);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+});
+
+test('RED22c — limites contam caracteres úteis após trim: 10 e 2000 aceitos, 2001 rejeitado', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  const res10 = await postLostReport(
+    { categoryId: category.id, description: ' 1234567890 ', lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res10.status, 201, `esperado 201 para 10 caracteres úteis mas recebeu ${res10.status}`);
+  assert.equal(res10.body.data.lostReport.description, '1234567890');
+
+  const desc2000 = 'A'.repeat(2000);
+  const res2000 = await postLostReport(
+    { categoryId: category.id, description: ` ${desc2000} `, lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res2000.status, 201, `esperado 201 para 2000 caracteres úteis mas recebeu ${res2000.status}`);
+  assert.equal(res2000.body.data.lostReport.description, desc2000);
+
+  const res2001 = await postLostReport(
+    { categoryId: category.id, description: ` ${'A'.repeat(2001)} `, lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res2001.status, 400, `esperado 400 para 2001 caracteres úteis mas recebeu ${res2001.status}`);
+  assert.equal(res2001.body.error?.code, 400);
+});
+
+test('RED22d — espaços nas extremidades são removidos na resposta e na persistência, preservando espaços internos', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+  const description = '  Guarda-chuva  azul   marinho com cabo de madeira  ';
+  const expected = 'Guarda-chuva  azul   marinho com cabo de madeira';
+
+  const res = await postLostReport(
+    { categoryId: category.id, description, lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res.status, 201);
+  assert.equal(res.body.data.lostReport.description, expected);
+
+  const saved = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: res.body.data.lostReport.id });
+  assert.equal(saved.description, expected);
+});
+
+test('RED22e — normalização da criação é coerente com a atualização via PATCH', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  const created = await postLostReport(
+    { categoryId: category.id, description: 'Descrição inicial válida', lossDate: '2026-10-23' },
+    `Bearer ${token}`,
+  );
+  assert.equal(created.status, 201);
+
+  const res = await patchLostReport(
+    created.body.data.lostReport.id,
+    { description: '  Descrição atualizada com espaços  ' },
+    `Bearer ${token}`,
+  );
+  assert.equal(res.status, 200);
+  assert.equal(res.body.data.description, 'Descrição atualizada com espaços');
+
+  const saved = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: created.body.data.lostReport.id });
+  assert.equal(saved.description, 'Descrição atualizada com espaços');
 });
 
 // -----------------------------------------------------------------------------
