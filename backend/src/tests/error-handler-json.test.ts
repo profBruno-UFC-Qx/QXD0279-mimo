@@ -86,66 +86,66 @@ async function postRaw(endpoint: string, rawBody: string): Promise<{ status: num
   return { status: res.status, body: (await res.json()) as ApiBody };
 }
 
-test('POST /api/auth/register rejeita JSON malformado com HTTP 500 do errorHandler atual sem criar usuário', async () => {
+test('POST /api/auth/register rejeita JSON malformado com HTTP 400 do errorHandler atual sem criar usuário', async () => {
   const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
 
   const { status, body } = await postRaw('/api/auth/register', '{"name":');
 
-  assert.equal(status, 500, 'JSON malformado no registro retorna 500 da infraestrutura compartilhada');
+  assert.equal(status, 400, 'JSON malformado no registro retorna 400 do errorHandler');
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 
   const finalCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
   assert.equal(finalCount, initialCount, 'Nenhum usuário deve ser inserido');
 });
 
-test('POST /api/auth/register rejeita JSON primitivo (null) com HTTP 500 do errorHandler atual sem criar usuário', async () => {
+test('POST /api/auth/register rejeita JSON primitivo (null) com HTTP 400 do errorHandler atual sem criar usuário', async () => {
   const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
 
   const { status, body } = await postRaw('/api/auth/register', 'null');
 
-  assert.equal(status, 500, 'JSON primitivo no registro retorna 500 da infraestrutura compartilhada');
+  assert.equal(status, 400, 'JSON primitivo no registro retorna 400 do errorHandler');
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 
   const finalCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
   assert.equal(finalCount, initialCount);
 });
 
-test('POST /api/auth/login rejeita JSON malformado com HTTP 500 do errorHandler atual sem vazar segredos', async () => {
+test('POST /api/auth/login rejeita JSON malformado com HTTP 400 do errorHandler atual sem vazar segredos', async () => {
   const { status, body } = await postRaw('/api/auth/login', '{"email":');
 
-  assert.equal(status, 500, 'JSON malformado no login retorna 500 da infraestrutura compartilhada');
+  assert.equal(status, 400, 'JSON malformado no login retorna 400 do errorHandler');
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
   assert.equal(JSON.stringify(body).includes('password'), false);
 });
 
-test('POST /api/auth/login rejeita JSON primitivo (123) com HTTP 500 do errorHandler atual sem vazar segredos', async () => {
+test('POST /api/auth/login rejeita JSON primitivo (123) com HTTP 400 do errorHandler atual sem vazar segredos', async () => {
   const { status, body } = await postRaw('/api/auth/login', '123');
 
-  assert.equal(status, 500, 'JSON primitivo no login retorna 500 da infraestrutura compartilhada');
+  assert.equal(status, 400, 'JSON primitivo no login retorna 400 do errorHandler');
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 });
 
-test('classificação: erro de parsing com type entity.parse.failed retorna HTTP 500 na infraestrutura compartilhada atual', async () => {
+test('classificação: erro de parsing com type entity.parse.failed retorna HTTP 400', async () => {
   const res = await fetch(`${baseUrl}/test-errors/trigger-valid-parse-error`);
   const body = (await res.json()) as ApiBody;
 
-  assert.equal(res.status, 500);
+  assert.equal(res.status, 400);
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 });
 
 test('classificação: SyntaxError genérico sem entity.parse.failed retorna HTTP 500', async () => {

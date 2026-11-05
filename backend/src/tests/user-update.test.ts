@@ -733,7 +733,7 @@ const invalidPrimitiveBodies = [
 ] as const;
 
 for (const [desc, bodyVal] of invalidPrimitiveBodies) {
-  test(`rejeição de formato inválido (primitivo): ${desc} retorna HTTP 500 da infraestrutura compartilhada`, async () => {
+  test(`rejeição de formato inválido (primitivo): ${desc} retorna HTTP 400 do errorHandler`, async () => {
     const created = await registerUser(userA);
     const loginRes = await login({ email: userA.email, password: userA.password });
     const token = loginRes.body.data.token;
@@ -742,11 +742,11 @@ for (const [desc, bodyVal] of invalidPrimitiveBodies) {
     const initialCount = (await AppDataSource.query('SELECT COUNT(*) as count FROM users'))[0].count;
 
     const { status, body } = await patchMe(bodyVal, `Bearer ${token}`);
-    assert.equal(status, 500, `Body "${desc}" retorna 500 do errorHandler atual`);
+    assert.equal(status, 400, `Body "${desc}" retorna 400 do errorHandler`);
     assert.equal(body.success, false);
     assert.equal(body.data, null);
-    assert.equal(body.error?.code, 500);
-    assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+    assert.equal(body.error?.code, 400);
+    assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 
     const finalRow = await userById(created.id);
     assert.equal(finalRow?.id, initialRow?.id);
@@ -760,7 +760,7 @@ for (const [desc, bodyVal] of invalidPrimitiveBodies) {
   });
 }
 
-test('rejeição de JSON sintaticamente malformado retorna HTTP 500 da infraestrutura compartilhada sem mutação no banco', async () => {
+test('rejeição de JSON sintaticamente malformado retorna HTTP 400 do errorHandler sem mutação no banco', async () => {
   const created = await registerUser(userA);
   const loginRes = await login({ email: userA.email, password: userA.password });
   const token = loginRes.body.data.token;
@@ -770,11 +770,11 @@ test('rejeição de JSON sintaticamente malformado retorna HTTP 500 da infraestr
 
   const { status, body } = await patchMeRaw('{"name":', `Bearer ${token}`);
 
-  assert.equal(status, 500, 'JSON sintaticamente malformado retorna 500 do errorHandler atual');
+  assert.equal(status, 400, 'JSON sintaticamente malformado retorna 400 do errorHandler');
   assert.equal(body.success, false);
   assert.equal(body.data, null);
-  assert.equal(body.error?.code, 500);
-  assert.equal(body.error?.details, 'Ocorreu um erro interno.');
+  assert.equal(body.error?.code, 400);
+  assert.equal(body.error?.details, 'O corpo da requisição contém JSON inválido.');
 
   const bodyText = JSON.stringify(body);
   assert.equal(bodyText.includes('{"name":'), false, 'Não deve expor o corpo malformado');

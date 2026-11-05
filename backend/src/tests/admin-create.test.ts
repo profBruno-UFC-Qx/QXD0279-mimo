@@ -438,8 +438,8 @@ test('B15 - payload invalido nao cria usuario', async () => {
     ['array de objetos', arrayPayload, 400],
     ['objeto vazio', {}, 400],
     ['campos obrigatorios ausentes', { name: 'Admin Incompleto' }, 400],
-    ['JSON null', null, 500],
-    ['JSON string', 'texto', 500],
+    ['JSON null', null, 400],
+    ['JSON string', 'texto', 400],
   ];
 
   for (const [label, payload, expectedStatus] of cases) {
