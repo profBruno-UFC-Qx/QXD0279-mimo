@@ -116,7 +116,7 @@ async function createFixtures() {
       categoryId: catEletronicos.id,
       buildingId: bldCentral.id,
       foundLocation: 'Laboratório de Informática 3',
-      foundDate: new Date('2026-11-01'),
+      foundDate: '2026-11-01',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -136,7 +136,7 @@ async function createFixtures() {
       categoryId: catDocumentos.id,
       buildingId: bldBiblioteca.id,
       foundLocation: 'Mesa de estudos 5',
-      foundDate: new Date('2026-10-15'),
+      foundDate: '2026-10-15',
       status: ItemStatus.ELIGIBLE,
       createdBy: admin.id,
     }),
@@ -156,9 +156,9 @@ async function createFixtures() {
 }
 
 // -----------------------------------------------------------------------------
-// RED01 — Detalhes de item existente (formato plano DTO estrito)
+// RED01 — Detalhes de item existente no contrato oficial { item, photos, building }
 // -----------------------------------------------------------------------------
-test('RED01 — GET /api/items/:id com item AVAILABLE existente retorna 200 e dados completos autorizados', async () => {
+test('RED01 — GET /api/items/:id com item AVAILABLE retorna 200 e estrutura { item, photos, building }', async () => {
   const { itemDisponivel, catEletronicos, bldCentral } = await createFixtures();
 
   const res = await getItem(itemDisponivel.id);
@@ -166,31 +166,51 @@ test('RED01 — GET /api/items/:id com item AVAILABLE existente retorna 200 e da
   assert.equal(res.body.success, true);
   assert.ok(res.body.data, 'Envelope data não pode ser nulo');
 
-  const item = res.body.data;
-  assert.equal(item.item, undefined, 'data não deve possuir wrapper item');
+  assert.deepEqual(Object.keys(res.body.data).sort(), ['building', 'item', 'photos']);
+
+  const item = res.body.data.item;
+  assert.ok(item, 'data.item deve existir');
   assert.equal(item.id, itemDisponivel.id);
   assert.equal(item.title, 'Notebook Dell Latitude 7490');
   assert.equal(item.description, 'Notebook preto com adesivo na tampa, carregador na bolsa');
   assert.equal(item.foundLocation, 'Laboratório de Informática 3');
+  assert.equal(item.foundDate, '2026-11-01');
   assert.equal(item.status, ItemStatus.AVAILABLE);
+  assert.equal(item.categoryId, catEletronicos.id);
+  assert.equal(item.buildingId, bldCentral.id);
 
-  // Relação de categoria
+  // Categoria permanece na representação pública do item
   assert.ok(item.category, 'Deve incluir categoria');
   assert.equal(item.category.id, catEletronicos.id);
   assert.equal(item.category.name, 'Eletrônicos');
 
-  // Relação de prédio com ponto de retirada e horário (RF03)
-  assert.ok(item.building, 'Deve incluir prédio');
-  assert.equal(item.building.id, bldCentral.id);
-  assert.equal(item.building.name, 'Campus Central');
-  assert.equal(item.building.pickupPoint, 'Recepção Bloco A - Balcão 1');
-  assert.equal(item.building.serviceHours, 'Segunda a sexta, das 8h às 18h');
+  // Prédio separado, com ponto de retirada e horário (RF03)
+  const building = res.body.data.building;
+  assert.ok(building, 'data.building deve existir');
+  assert.equal(building.id, bldCentral.id);
+  assert.equal(building.name, 'Campus Central');
+  assert.equal(building.pickupPoint, 'Recepção Bloco A - Balcão 1');
+  assert.equal(building.serviceHours, 'Segunda a sexta, das 8h às 18h');
 
-  // Fotos
-  assert.ok(Array.isArray(item.photos), 'Deve incluir lista de fotos');
-  assert.equal(item.photos.length, 2);
-  const urls = item.photos.map((p: any) => p.url).sort();
+  // Fotos separadas
+  const photos = res.body.data.photos;
+  assert.ok(Array.isArray(photos), 'data.photos deve ser lista');
+  assert.equal(photos.length, 2);
+  const urls = photos.map((p: any) => p.url).sort();
   assert.deepEqual(urls, ['https://exemplo.com/fotos/dell1.jpg', 'https://exemplo.com/fotos/dell2.jpg']);
+});
+
+test('RED01b — item ELIGIBLE retorna a mesma estrutura contratual', async () => {
+  const { itemElegivel, catDocumentos, bldBiblioteca } = await createFixtures();
+
+  const res = await getItem(itemElegivel.id);
+  assert.equal(res.status, 200);
+  assert.deepEqual(Object.keys(res.body.data).sort(), ['building', 'item', 'photos']);
+  assert.equal(res.body.data.item.id, itemElegivel.id);
+  assert.equal(res.body.data.item.status, ItemStatus.ELIGIBLE);
+  assert.equal(res.body.data.item.category.id, catDocumentos.id);
+  assert.equal(res.body.data.building.id, bldBiblioteca.id);
+  assert.deepEqual(res.body.data.photos, []);
 });
 
 // -----------------------------------------------------------------------------
@@ -274,13 +294,13 @@ test('RED05 — GET /api/items/:id retorna exclusivamente o prédio e categoria 
   const res = await getItem(itemDisponivel.id);
   assert.equal(res.status, 200);
 
-  const item = res.body.data;
+  const item = res.body.data.item;
   assert.equal(item.category.name, catEletronicos.name);
   assert.notEqual(item.category.name, 'Documentos');
 
-  assert.equal(item.building.name, bldCentral.name);
-  assert.equal(item.building.pickupPoint, bldCentral.pickupPoint);
-  assert.notEqual(item.building.name, 'Biblioteca Setorial');
+  assert.equal(res.body.data.building.name, bldCentral.name);
+  assert.equal(res.body.data.building.pickupPoint, bldCentral.pickupPoint);
+  assert.notEqual(res.body.data.building.name, 'Biblioteca Setorial');
 });
 
 // -----------------------------------------------------------------------------
@@ -297,7 +317,7 @@ test('RED06 — GET /api/items/:id isola fotos entre itens distintos e retorna a
       categoryId: catDocumentos.id,
       buildingId: bldBiblioteca.id,
       foundLocation: 'Setor A',
-      foundDate: new Date('2026-11-01'),
+      foundDate: '2026-11-01',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -312,7 +332,7 @@ test('RED06 — GET /api/items/:id isola fotos entre itens distintos e retorna a
       categoryId: catDocumentos.id,
       buildingId: bldBiblioteca.id,
       foundLocation: 'Setor B',
-      foundDate: new Date('2026-11-02'),
+      foundDate: '2026-11-02',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -326,7 +346,7 @@ test('RED06 — GET /api/items/:id isola fotos entre itens distintos e retorna a
       categoryId: catDocumentos.id,
       buildingId: bldBiblioteca.id,
       foundLocation: 'Setor C',
-      foundDate: new Date('2026-11-03'),
+      foundDate: '2026-11-03',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -378,7 +398,7 @@ for (const s of statuses) {
         categoryId: catEletronicos.id,
         buildingId: bldCentral.id,
         foundLocation: 'Sala X',
-        foundDate: new Date('2026-11-01'),
+        foundDate: '2026-11-01',
         status: s.status,
         createdBy: admin.id,
       }),
@@ -392,7 +412,7 @@ for (const s of statuses) {
         `Status ${s.status} é público e deve responder HTTP 200, observado ${res.status}`,
       );
       assert.equal(res.body.success, true);
-      assert.equal(res.body.data.status, s.status);
+      assert.equal(res.body.data.item.status, s.status);
     } else {
       assert.equal(
         res.status,
@@ -416,11 +436,13 @@ test('RED08 — GET /api/items/:id valida whitelist exata de chaves e nunca exp�
   const res = await getItem(itemDisponivel.id);
   assert.equal(res.status, 200);
 
-  const item = res.body.data;
+  const { item, photos, building } = res.body.data;
 
-  // 1. Whitelist exata de chaves do item
+  // 1. Whitelist exata do envelope de detalhe
+  assert.deepEqual(Object.keys(res.body.data).sort(), ['building', 'item', 'photos']);
+
+  // 2. Whitelist exata do item
   assert.deepEqual(Object.keys(item).sort(), [
-    'building',
     'buildingId',
     'category',
     'categoryId',
@@ -428,29 +450,35 @@ test('RED08 — GET /api/items/:id valida whitelist exata de chaves e nunca exp�
     'foundDate',
     'foundLocation',
     'id',
-    'photos',
     'status',
     'title',
   ]);
 
-  // 2. Whitelist exata da categoria
+  // 3. Whitelist exata da categoria
   assert.deepEqual(Object.keys(item.category).sort(), ['id', 'name']);
 
-  // 3. Whitelist exata do prédio: RF03 autoriza id, name, pickupPoint e serviceHours
-  assert.deepEqual(Object.keys(item.building).sort(), [
+  // 4. Whitelist exata do prédio: RF03 autoriza id, name, pickupPoint e serviceHours
+  assert.deepEqual(Object.keys(building).sort(), [
     'id',
     'name',
     'pickupPoint',
     'serviceHours',
   ]);
 
-  // 4. Whitelist exata de cada foto
-  assert.ok(item.photos.length > 0);
-  for (const photo of item.photos) {
+  // 5. Whitelist exata de cada foto
+  assert.ok(photos.length > 0);
+  for (const photo of photos) {
     assert.deepEqual(Object.keys(photo).sort(), ['id', 'url']);
   }
 
-  // 5. Proibição expressa de dados sensíveis e administrativos
+  // 6. Não existem propriedades duplicadas fora de data.item
+  for (const duplicated of ['id', 'title', 'category', 'status', 'description', 'foundDate']) {
+    assert.equal((res.body.data as any)[duplicated], undefined, `'${duplicated}' não deve duplicar fora de data.item`);
+  }
+  assert.equal((item as any).photos, undefined, "'photos' não deve duplicar dentro de data.item");
+  assert.equal((item as any).building, undefined, "'building' não deve duplicar dentro de data.item");
+
+  // 7. Proibição expressa de dados sensíveis e administrativos
   const forbidden = [
     'createdBy',
     'createdByUser',
@@ -466,7 +494,7 @@ test('RED08 — GET /api/items/:id valida whitelist exata de chaves e nunca exp�
 
   for (const f of forbidden) {
     assert.equal((item as any)[f], undefined, `Campo proibido '${f}' vazou no item`);
-    assert.equal((item.building as any)[f], undefined, `Campo proibido '${f}' vazou no prédio`);
+    assert.equal((building as any)[f], undefined, `Campo proibido '${f}' vazou no prédio`);
     assert.equal((item.category as any)[f], undefined, `Campo proibido '${f}' vazou na categoria`);
   }
 });
@@ -485,7 +513,7 @@ test('RED09 — GET /api/items/:id suporta campos opcionais nulos (description e
       categoryId: catEletronicos.id,
       buildingId: bldCentral.id,
       foundLocation: null,
-      foundDate: new Date('2026-11-03'),
+      foundDate: '2026-11-03',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -493,8 +521,9 @@ test('RED09 — GET /api/items/:id suporta campos opcionais nulos (description e
 
   const res = await getItem(itemSemDesc.id);
   assert.equal(res.status, 200);
-  assert.equal(res.body.data.description, null);
-  assert.equal(res.body.data.foundLocation, null);
+  assert.equal(res.body.data.item.description, null);
+  assert.equal(res.body.data.item.foundLocation, null);
+  assert.equal(res.body.data.item.foundDate, '2026-11-03');
 });
 
 // -----------------------------------------------------------------------------
@@ -536,7 +565,7 @@ test('RED11 — GET /api/items/:id não sofre confusão entre registros com dado
       categoryId: catEletronicos.id,
       buildingId: bldCentral.id,
       foundLocation: 'Sala 1',
-      foundDate: new Date('2026-11-01'),
+      foundDate: '2026-11-01',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -549,7 +578,7 @@ test('RED11 — GET /api/items/:id não sofre confusão entre registros com dado
       categoryId: catEletronicos.id,
       buildingId: bldCentral.id,
       foundLocation: 'Sala 2',
-      foundDate: new Date('2026-11-02'),
+      foundDate: '2026-11-02',
       status: ItemStatus.AVAILABLE,
       createdBy: admin.id,
     }),
@@ -557,13 +586,24 @@ test('RED11 — GET /api/items/:id não sofre confusão entre registros com dado
 
   const resA = await getItem(itemA.id);
   assert.equal(resA.status, 200);
-  assert.equal(resA.body.data.id, itemA.id);
-  assert.equal(resA.body.data.title, 'Celular Smartphone A');
+  assert.equal(resA.body.data.item.id, itemA.id);
+  assert.equal(resA.body.data.item.title, 'Celular Smartphone A');
 
   const resB = await getItem(itemB.id);
   assert.equal(resB.status, 200);
-  assert.equal(resB.body.data.id, itemB.id);
-  assert.equal(resB.body.data.title, 'Celular Smartphone B');
+  assert.equal(resB.body.data.item.id, itemB.id);
+  assert.equal(resB.body.data.item.title, 'Celular Smartphone B');
+});
+
+test('RED11b — o DTO retornado pelo serviço é consistente com a resposta HTTP', async () => {
+  const { getPublicItemDetails } = await import('../services/item.service.js');
+  const { itemDisponivel } = await createFixtures();
+
+  const serviceDto = await getPublicItemDetails(itemDisponivel.id);
+  const res = await getItem(itemDisponivel.id);
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(JSON.parse(JSON.stringify(serviceDto)), res.body.data);
 });
 
 // -----------------------------------------------------------------------------
