@@ -36,10 +36,26 @@ app.use(errorHandler);
 
 // Inicialização do servidor e conexão com o banco de dados
 AppDataSource.initialize()
-  .then(() => app.listen(port, () => {
-    console.log(`Servidor rodando em http://localhost:${port}`);
-    console.log(`Documentação Swagger em http://localhost:${port}/docs`);
-  }))
+  .then(() => {
+    const server = app.listen(port, () => {
+      console.log(`Servidor rodando em http://localhost:${port}`);
+      console.log(`Documentação Swagger em http://localhost:${port}/docs`);
+    });
+
+    const shutdown = async (signal: string) => {
+      console.log(`Recebido sinal ${signal}. Encerrando servidor graciosamente...`);
+      server.close(async () => {
+        if (AppDataSource.isInitialized) {
+          await AppDataSource.destroy();
+          console.log('Conexão com o banco de dados encerrada.');
+        }
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+  })
   .catch((error: unknown) => {
     console.error('Não foi possível conectar ao SQLite:', error);
     process.exitCode = 1;
