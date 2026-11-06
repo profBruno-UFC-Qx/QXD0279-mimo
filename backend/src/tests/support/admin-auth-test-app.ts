@@ -40,6 +40,7 @@ export async function startTestApp(): Promise<TestApp> {
   const app = express();
   app.use(express.json());
   app.use('/api', apiRouter);
+  app.use('/api/v1', apiRouter);
   app.use(errorHandler);
 
   const server = app.listen(0);

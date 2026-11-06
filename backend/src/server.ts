@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 });
 
 // Rotas da API
-app.use('/api', apiRouter);
+app.use('/api/v1', apiRouter);
 
 // Configuração Swagger
 const swaggerDocument = JSON.parse(fs.readFileSync(new URL('../swagger-output.json', import.meta.url), 'utf-8'));
