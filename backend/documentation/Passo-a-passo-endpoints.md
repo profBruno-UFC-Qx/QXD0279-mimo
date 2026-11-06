@@ -26,26 +26,26 @@ Requisitos correspondentes: **RF17 (Encerrar registro de perda)**, **RF07-RF09 (
 ## 3. Módulo: Handovers (`handovers`)
 Requisitos correspondentes: **RF16 (Registrar a entrega presencial)**, **RF11 (Histórico de itens recuperados)**.
 
-- [ ] **3.1. Repositório (`handover.repository.ts`)**
-  - [ ] Criar repositório TypeORM para `Handover`.
-  - [ ] Implementar criação de registro de entrega (`itemId`, `withdrawnName`, `withdrawnCpf`, `withdrawnUserId`, `adminId`, `handedAt`) e atualização atômica do status do item para `HANDED_OVER`.
-  - [ ] Implementar listagem/histórico de retiradas por usuário (`withdrawnUserId`).
-  - [ ] Implementar listagem administrativa de retiradas com filtros (`itemId`, `adminId`, `from`, `to`) e paginação.
-  - [ ] Implementar consulta de detalhes de uma retirada por ID.
+- [x] **3.1. Repositório (`handover.repository.ts`)**
+  - [x] Criar repositório TypeORM para `Handover`.
+  - [x] Implementar criação de registro de entrega (`itemId`, `withdrawnName`, `withdrawnCpf`, `withdrawnUserId`, `adminId`, `handedAt`) e atualização atômica do status do item para `HANDED_OVER`.
+  - [x] Implementar listagem/histórico de retiradas por usuário (`withdrawnUserId`).
+  - [x] Implementar listagem administrativa de retiradas com filtros (`itemId`, `adminId`, `from`, `to`) e paginação.
+  - [x] Implementar consulta de detalhes de uma retirada por ID.
 
-- [ ] **3.2. Serviço (`handover.service.ts`)**
-  - [ ] Implementar validações de negócio para registro de entrega (item existe, status é `AVAILABLE` ou `ELIGIBLE` cuja destinação não foi executada, CPF válido, etc.).
-  - [ ] Implementar listagem do histórico pessoal do usuário (`GET /api/handovers/mine`).
-  - [ ] Implementar listagem administrativa e consulta detalhada de handovers.
+- [x] **3.2. Serviço (`handover.service.ts`)**
+  - [x] Implementar validações de negócio para registro de entrega (item existe, status é `AVAILABLE` ou `ELIGIBLE` cuja destinação não foi executada, CPF válido, etc.).
+  - [x] Implementar listagem do histórico pessoal do usuário (`GET /api/handovers/mine`).
+  - [x] Implementar listagem administrativa e consulta detalhada de handovers.
 
-- [ ] **3.3. Controller (`handover.controller.ts`)**
-  - [ ] Implementar `POST /api/handovers` (Registro de entrega presencial, admin).
-  - [ ] Implementar `GET /api/handovers/mine` (Histórico pessoal de retiradas, usuário autenticado).
-  - [ ] Implementar `GET /api/handovers` (Listagem geral/administrativa de retiradas com filtros).
-  - [ ] Implementar `GET /api/handovers/:id` (Consulta de retirada específica).
+- [x] **3.3. Controller (`handover.controller.ts`)**
+  - [x] Implementar `POST /api/handovers` (Registro de entrega presencial, admin).
+  - [x] Implementar `GET /api/handovers/mine` (Histórico pessoal de retiradas, usuário autenticado).
+  - [x] Implementar `GET /api/handovers` (Listagem geral/administrativa de retiradas com filtros).
+  - [x] Implementar `GET /api/handovers/:id` (Consulta de retirada específica).
 
-- [ ] **3.4. Testes (`backend/src/tests/handover-*.test.ts`)**
-  - [ ] Criar testes unitários e de integração cobrindo registro de entrega para itens `AVAILABLE` e `ELIGIBLE`, restrições de itens já entregues/destinados, validação de CPF, histórico `mine`, listagem com filtros e detalhamento.
+- [x] **3.4. Testes (`backend/src/tests/handover-*.test.ts`)**
+  - [x] Criar testes unitários e de integração cobrindo registro de entrega para itens `AVAILABLE` e `ELIGIBLE`, restrições de itens já entregues/destinados, validação de CPF, histórico `mine`, listagem com filtros e detalhamento.
 
 ---
 
