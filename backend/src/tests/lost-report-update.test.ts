@@ -518,6 +518,7 @@ test('A15 — whitelist de retorno: resposta contém estritamente as 8 proprieda
     'id',
     'userId',
     'categoryId',
+    'confirmedItemId',
     'buildingId',
     'description',
     'lossDate',

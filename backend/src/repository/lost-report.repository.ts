@@ -4,7 +4,9 @@ import { LostReport } from '../models/lost-report.js';
 import { Category } from '../models/category.js';
 import { Building } from '../models/building.js';
 import { Item } from '../models/item.js';
-import { ItemStatus, LostReportStatus } from '../models/enums.js';
+import { User } from '../models/user.js';
+import { Notification } from '../models/notification.js';
+import { ItemStatus, LostReportStatus, UserRole, NotificationType } from '../models/enums.js';
 
 export interface InsertLostReportData {
   userId: number;
@@ -152,4 +154,56 @@ export async function cancelOwnLostReportIfOpen(
     .execute();
 
   return result.affected ?? 0;
+}
+
+export async function confirmLostReportSuggestionRepo(
+  reportId: number,
+  userId: number,
+  itemId: number,
+): Promise<'updated' | 'not_found' | 'not_open' | 'already_confirmed' | 'item_not_found'> {
+  return await AppDataSource.transaction(async (manager) => {
+    const reportRepo = manager.getRepository(LostReport);
+    const itemRepo = manager.getRepository(Item);
+    const userRepo = manager.getRepository(User);
+    const notificationRepo = manager.getRepository(Notification);
+
+    const report = await reportRepo.findOne({ where: { id: reportId } });
+    if (!report || report.userId !== userId) {
+      return 'not_found';
+    }
+    if (report.status !== LostReportStatus.OPEN) {
+      return 'not_open';
+    }
+    if (report.confirmedItemId !== null && report.confirmedItemId !== undefined) {
+      return 'already_confirmed';
+    }
+
+    const item = await itemRepo.findOne({ where: { id: itemId } });
+    if (!item) {
+      return 'item_not_found';
+    }
+
+    report.confirmedItemId = itemId;
+    await reportRepo.save(report);
+
+    const admins = await userRepo.find({
+      where: [
+        { role: UserRole.ADMIN },
+        { role: UserRole.SUPERADMIN },
+      ],
+    });
+
+    if (admins.length > 0) {
+      const notifications = admins.map((admin) =>
+        notificationRepo.create({
+          userId: admin.id,
+          type: NotificationType.ITEM_CLAIMED,
+          linkUrl: `/admin/items/${itemId}`,
+        }),
+      );
+      await notificationRepo.save(notifications);
+    }
+
+    return 'updated';
+  });
 }

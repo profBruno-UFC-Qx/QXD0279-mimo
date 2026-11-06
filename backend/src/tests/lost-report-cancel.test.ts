@@ -403,6 +403,7 @@ test('B12 — whitelist pública: resposta de sucesso respeita exatamente as 8 p
     'userId',
     'categoryId',
     'buildingId',
+    'confirmedItemId',
     'description',
     'lossDate',
     'status',

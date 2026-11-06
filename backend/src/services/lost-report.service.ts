@@ -12,6 +12,7 @@ import {
   findLostReportByIdAndUserId,
   updateOwnLostReportIfOpen,
   cancelOwnLostReportIfOpen,
+  confirmLostReportSuggestionRepo,
 } from '../repository/lost-report.repository.js';
 
 export interface ValidatedLostReportInput {
@@ -26,6 +27,7 @@ export interface PublicLostReportDto {
   userId: number;
   categoryId: number;
   buildingId: number | null;
+  confirmedItemId: number | null;
   description: string;
   lossDate: string;
   status: LostReportStatus;
@@ -145,6 +147,7 @@ export function formatPublicLostReport(lr: LostReport, rawLossDate?: string): Pu
     userId: lr.userId,
     categoryId: lr.categoryId,
     buildingId: lr.buildingId ?? null,
+    confirmedItemId: lr.confirmedItemId ?? null,
     description: lr.description,
     lossDate: formattedLossDate,
     status: lr.status,
@@ -415,3 +418,48 @@ export async function cancelOwnLostReport(
   }
   return formatPublicLostReport(updated);
 }
+
+function parseItemId(rawId: unknown): number {
+  if (typeof rawId !== 'string' && typeof rawId !== 'number') {
+    throw new HttpError(400, 'ID de item inválido.');
+  }
+  const str = String(rawId).trim();
+  if (!/^[1-9]\d*$/.test(str)) {
+    throw new HttpError(400, 'ID de item inválido.');
+  }
+  const parsed = Number(str);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== str) {
+    throw new HttpError(400, 'ID de item inválido.');
+  }
+  return parsed;
+}
+
+export async function confirmLostReportSuggestion(
+  userId: number,
+  rawReportId: unknown,
+  rawItemId: unknown,
+): Promise<PublicLostReportDto> {
+  const reportId = parseReportId(rawReportId);
+  const itemId = parseItemId(rawItemId);
+
+  const res = await confirmLostReportSuggestionRepo(reportId, userId, itemId);
+  if (res === 'not_found') {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+  if (res === 'not_open') {
+    throw new HttpError(409, 'Somente relatos em aberto podem ter sugestões confirmadas.');
+  }
+  if (res === 'already_confirmed') {
+    throw new HttpError(409, 'Este relato de perda já possui um item confirmado.');
+  }
+  if (res === 'item_not_found') {
+    throw new HttpError(404, 'O item sugerido não foi encontrado.');
+  }
+
+  const updated = await findLostReportByIdAndUserId(reportId, userId);
+  if (!updated) {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+  return formatPublicLostReport(updated);
+}
+

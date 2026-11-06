@@ -318,6 +318,7 @@ test('B-RED08 — whitelist estrita: objeto retornado contém apenas as 8 propri
     'userId',
     'categoryId',
     'buildingId',
+    'confirmedItemId',
     'description',
     'lossDate',
     'status',

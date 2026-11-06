@@ -1175,7 +1175,7 @@ test('RED20 — whitelist exata de resposta: lostReport e items em suggestions e
   const lostReport = res.body.data.lostReport;
 
   // 1. Chaves exatas de lostReport
-  const expectedLostReportKeys = ['buildingId', 'categoryId', 'createdAt', 'description', 'id', 'lossDate', 'status', 'userId'];
+  const expectedLostReportKeys = ['buildingId', 'categoryId', 'confirmedItemId', 'createdAt', 'description', 'id', 'lossDate', 'status', 'userId'];
   assert.deepEqual(Object.keys(lostReport).sort(), expectedLostReportKeys);
 
   // Ausência de relações aninhadas completas vazadas

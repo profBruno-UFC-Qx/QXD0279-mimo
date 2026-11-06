@@ -4,6 +4,7 @@ import { IsDate, IsEnum, IsInt, IsOptional, IsPositive, IsString, Length } from 
 import { User } from './user.js';
 import { Category } from './category.js';
 import { Building } from './building.js';
+import { Item } from './item.js';
 
 @Index('IDX_lost_reports_status', ['status'])
 @Entity('lost_reports')
@@ -41,6 +42,16 @@ export class LostReport {
   @ManyToOne(() => Building, (building) => building.lostReports, { nullable: true })
   @JoinColumn({ name: 'building_id' })
   building: Building | null;
+
+  @Column({ type: 'int', nullable: true, name: 'confirmed_item_id' })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  confirmedItemId: number | null;
+
+  @ManyToOne(() => Item, { nullable: true })
+  @JoinColumn({ name: 'confirmed_item_id' })
+  confirmedItem: Item | null;
 
   @Column({ type: 'text' })
   @IsString()

@@ -309,7 +309,7 @@ test('A-RED09 — whitelist e privacidade: relatos retornados contêm apenas cam
   assert.equal(res.body.data.length, 1);
 
   const report = res.body.data[0];
-  const expectedKeys = ['buildingId', 'categoryId', 'createdAt', 'description', 'id', 'lossDate', 'status', 'userId'];
+  const expectedKeys = ['buildingId', 'categoryId', 'confirmedItemId', 'createdAt', 'description', 'id', 'lossDate', 'status', 'userId'];
   assert.deepEqual(Object.keys(report).sort(), expectedKeys);
 
   assert.equal(report.userId, user.id);
