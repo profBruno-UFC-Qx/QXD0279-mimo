@@ -207,3 +207,63 @@ export async function confirmLostReportSuggestionRepo(
     return 'updated';
   });
 }
+
+export async function listAdminLostReportsRepo(
+  filters: { status?: LostReportStatus; categoryId?: number; buildingId?: number },
+  page: number,
+  perPage: number,
+): Promise<[LostReport[], number]> {
+  const repo = AppDataSource.getRepository(LostReport);
+  const qb = repo.createQueryBuilder('lostReport');
+
+  if (filters.status !== undefined) {
+    qb.andWhere('lostReport.status = :status', { status: filters.status });
+  }
+  if (filters.categoryId !== undefined) {
+    qb.andWhere('lostReport.categoryId = :categoryId', { categoryId: filters.categoryId });
+  }
+  if (filters.buildingId !== undefined) {
+    qb.andWhere('lostReport.buildingId = :buildingId', { buildingId: filters.buildingId });
+  }
+
+  return await qb
+    .orderBy('lostReport.createdAt', 'DESC')
+    .addOrderBy('lostReport.id', 'DESC')
+    .skip((page - 1) * perPage)
+    .take(perPage)
+    .getManyAndCount();
+}
+
+export async function findAdminLostReportById(reportId: number): Promise<LostReport | null> {
+  const repo = AppDataSource.getRepository(LostReport);
+  return await repo.findOne({ where: { id: reportId } });
+}
+
+export async function resolveLostReportRepo(
+  reportId: number,
+): Promise<'resolved' | 'not_found' | 'not_open'> {
+  return await AppDataSource.transaction(async (manager) => {
+    const reportRepo = manager.getRepository(LostReport);
+    const notificationRepo = manager.getRepository(Notification);
+
+    const report = await reportRepo.findOne({ where: { id: reportId } });
+    if (!report) {
+      return 'not_found';
+    }
+    if (report.status !== LostReportStatus.OPEN) {
+      return 'not_open';
+    }
+
+    report.status = LostReportStatus.RESOLVED;
+    await reportRepo.save(report);
+
+    const notification = notificationRepo.create({
+      userId: report.userId,
+      type: NotificationType.REPORT_RESOLVED,
+      linkUrl: `/lost-reports/${report.id}`,
+    });
+    await notificationRepo.save(notification);
+
+    return 'resolved';
+  });
+}

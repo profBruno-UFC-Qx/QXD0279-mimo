@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import swaggerAutogen from 'swagger-autogen';
 import { fileURLToPath } from 'node:url';
 

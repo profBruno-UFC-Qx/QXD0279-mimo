@@ -1,54 +1,25 @@
 # Passo a Passo para Implementação dos Endpoints Restantes do Achadex Backend
 
-## 1. Módulo: Confirmação de Sugestão de Perda (`lost-report-suggestion-confirmation`)
-Requisitos correspondentes: **RF12 (Sugerir achados compatíveis - Confirmação única)**, **RF27 (Notificações no app - ITEM_CLAIMED)**.
-
-- [ ] **1.1. Modelo e Persistência (`lost-report.ts`)**
-  - [ ] Adicionar campo `confirmedItemId` (inteiro, opcional/nullable, com índice e `@ManyToOne` para `Item`) na entidade `LostReport` para registrar qual item foi confirmado.
-  - [ ] Atualizar repositório (`lost-report.repository.ts`) para suportar a busca e atualização da perda com o item confirmado, garantindo que o relato pertença ao usuário autenticado e esteja com status `OPEN`.
-
-- [ ] **1.2. Serviço de Confirmação (`lost-report.service.ts`)**
-  - [ ] Implementar regra de negócio para confirmar item sugerido (`POST /api/lost-reports/:id/suggestions/:itemId/confirm`):
-    - Validar se o relato de perda existe e pertence ao usuário autenticado.
-    - Validar se o relato está com status `OPEN`.
-    - Validar se o relato **já possui um item confirmado** (caso já possua, retornar erro **409 Conflict** conforme especificado nas regras de unicidade de confirmação).
-    - Validar se o item sugerido (`itemId`) existe.
-    - Atualizar o relato de perda gravando `confirmedItemId`.
-    - Gravar notificações do tipo `ITEM_CLAIMED` para todos os administradores e superadministradores (RF27), com link para o painel do item.
-
-- [ ] **1.3. Controller (`lost-report.controller.ts`)**
-  - [ ] Substituir `notImplemented` em `lostReportRouter.post('/:id/suggestions/:itemId/confirm', authenticate, ...)` com a lógica chamando o serviço.
-
-- [ ] **1.4. Testes (`backend/src/tests/lost-report-confirm.test.ts`)**
-  - [ ] Criar suíte de testes cobrindo:
-    - Confirmação bem-sucedida de item sugerido para uma perda própria em aberto.
-    - Geração correta da notificação `ITEM_CLAIMED` para administradores.
-    - Rejeição (409 Conflict) ao tentar confirmar um segundo item para a mesma perda.
-    - Rejeição (404/403) para perda inexistente ou pertencente a outro usuário.
-    - Rejeição se a perda não estiver em status `OPEN`.
-
----
-
 ## 2. Módulo: Admin Lost Reports (`admin-lost-reports`)
 Requisitos correspondentes: **RF17 (Encerrar registro de perda)**, **RF07-RF09 (Consultas administrativas de perdas)**.
 
-- [ ] **2.1. Repositório (`admin-lost-report.repository.ts` ou expansão em `lost-report.repository.ts`)**
-  - [ ] Implementar método para listar perdas de todos os usuários com filtros (`status`, `categoryId`, `buildingId`) e paginação.
-  - [ ] Implementar método para buscar perda por ID (sem restrição de usuário autor, visível para administradores).
-  - [ ] Implementar método para atualizar o status de uma perda para `RESOLVED` e registrar notificação `REPORT_RESOLVED` para o autor da perda.
+- [x] **2.1. expansão em `lost-report.repository.ts`**
+  - [x] Implementar método para listar perdas de todos os usuários com filtros (`status`, `categoryId`, `buildingId`) e paginação.
+  - [x] Implementar método para buscar perda por ID (sem restrição de usuário autor, visível para administradores).
+  - [x] Implementar método para atualizar o status de uma perda para `RESOLVED` e registrar notificação `REPORT_RESOLVED` para o autor da perda.
 
-- [ ] **2.2. Serviço (`admin-lost-report.service.ts` ou expansão em `lost-report.service.ts`)**
-  - [ ] Criar regras de negócio para listagem administrativa com validação de parâmetros de filtro e paginação.
-  - [ ] Criar regras de negócio para detalhamento administrativo (retornando erro 404 se não encontrado).
-  - [ ] Criar regras de negócio para encerramento de perda como resolvida (validação de estado OPEN/RESOLVED, geração de notificação `REPORT_RESOLVED`).
+- [x] **2.2. Serviço (`admin-lost-report.service.ts` ou expansão em `lost-report.service.ts`)**
+  - [x] Criar regras de negócio para listagem administrativa com validação de parâmetros de filtro e paginação.
+  - [x] Criar regras de negócio para detalhamento administrativo (retornando erro 404 se não encontrado).
+  - [x] Criar regras de negócio para encerramento de perda como resolvida (validação de estado OPEN/RESOLVED, geração de notificação `REPORT_RESOLVED`).
 
-- [ ] **2.3. Controller (`admin-lost-report.controller.ts`)**
-  - [ ] Substituir `notImplemented` em `GET /api/admin/lost-reports` (protegido por `authenticate` e `requireAdmin`, aceitando query params `status`, `categoryId`, `buildingId`, `page`, `perPage`).
-  - [ ] Substituir `notImplemented` em `GET /api/admin/lost-reports/:id` (protegido por `authenticate` e `requireAdmin`).
-  - [ ] Substituir `notImplemented` em `POST /api/admin/lost-reports/:id/resolve` (protegido por `authenticate` e `requireAdmin`).
+- [x] **2.3. Controller (`admin-lost-report.controller.ts`)**
+  - [x] Substituir `notImplemented` em `GET /api/admin/lost-reports` (protegido por `authenticate` e `requireAdmin`, aceitando query params `status`, `categoryId`, `buildingId`, `page`, `perPage`).
+  - [x] Substituir `notImplemented` em `GET /api/admin/lost-reports/:id` (protegido por `authenticate` e `requireAdmin`).
+  - [x] Substituir `notImplemented` em `POST /api/admin/lost-reports/:id/resolve` (protegido por `authenticate` e `requireAdmin`).
 
-- [ ] **2.4. Testes (`backend/src/tests/admin-lost-report-*.test.ts`)**
-  - [ ] Criar suíte de testes cobrindo autenticação, restrição de acesso (401/403 para não-admins), listagem com filtros, detalhamento e resolução de perda com geração de notificação.
+- [x] **2.4. Testes (`backend/src/tests/admin-lost-report-*.test.ts`)**
+  - [x] Criar suíte de testes cobrindo autenticação, restrição de acesso (401/403 para não-admins), listagem com filtros, detalhamento e resolução de perda com geração de notificação.
 
 ---
 
