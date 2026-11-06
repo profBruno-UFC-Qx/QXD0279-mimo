@@ -74,20 +74,20 @@ Requisitos correspondentes: **RF22 (Executar a destinação)**.
 ## 5. Módulo: Jobs (`jobs`)
 Requisitos correspondentes: **RF21 (Aplicar prazos de destinação)**.
 
-- [ ] **5.1. Repositório / Serviço de Elegibilidade (`job.service.ts`)**
-  - [ ] Implementar lógica de processamento diário (RF21):
+- [x] **5.1. Repositório / Serviço de Elegibilidade (`job.service.ts`)**
+  - [x] Implementar lógica de processamento diário (RF21):
     - Buscar todos os itens com status `AVAILABLE`.
     - Buscar todas as `disposition_rules` ativas.
     - Calcular para cada item o prazo cumprido (dias decorridos desde `foundDate`).
     - Determinar a regra aplicável de maior prazo cumprido.
     - Atualizar o status do item para `ELIGIBLE` e definir o destino previsto (`destination`).
-  - [ ] Garantir transacionalidade e tratamento de múltiplos itens.
+  - [x] Garantir transacionalidade e tratamento de múltiplos itens.
 
-- [ ] **5.2. Controller (`job.controller.ts`)**
-  - [ ] Implementar `POST /api/jobs/disposition-eligibility` (Disparo do job de elegibilidade, protegido por autenticação de administrador).
+- [x] **5.2. Controller (`job.controller.ts`)**
+  - [x] Implementar `POST /api/jobs/disposition-eligibility` (Disparo do job de elegibilidade, protegido por autenticação de administrador).
 
-- [ ] **5.3. Testes (`backend/src/tests/job-eligibility.test.ts`)**
-  - [ ] Criar testes para verificar se itens com prazo vencido passam para `ELIGIBLE` com o destino correto, se itens dentro do prazo continuam `AVAILABLE`, e se a regra de maior prazo prevalece em caso de sobreposição.
+- [x] **5.3. Testes (`backend/src/tests/job-eligibility.test.ts`)**
+  - [x] Criar testes para verificar se itens com prazo vencido passam para `ELIGIBLE` com o destino correto, se itens dentro do prazo continuam `AVAILABLE`, e se a regra de maior prazo prevalece em caso de sobreposição.
 
 ---
 
