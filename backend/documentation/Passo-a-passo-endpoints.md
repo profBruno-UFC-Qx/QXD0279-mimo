@@ -52,22 +52,22 @@ Requisitos correspondentes: **RF16 (Registrar a entrega presencial)**, **RF11 (H
 ## 4. Módulo: Dispositions (`dispositions`)
 Requisitos correspondentes: **RF22 (Executar a destinação)**.
 
-- [ ] **4.1. Repositório (`disposition.repository.ts`)**
-  - [ ] Criar repositório TypeORM para `Disposition`.
-  - [ ] Implementar registro de destinação (`itemId`, `destination` [SOLD, AUCTIONED, DONATED, DISCARDED], `adminId`, `receiverDocument` [CPF/CNPJ]) e atualização atômica do status do item correspondente na tabela `items`.
-  - [ ] Implementar listagem de destinações executadas com filtros (`destination`, `from`, `to`) e paginação.
-  - [ ] Implementar consulta de detalhes de uma destinação por ID (se necessário).
+- [x] **4.1. Repositório (`disposition.repository.ts`)**
+  - [x] Criar repositório TypeORM para `Disposition`.
+  - [x] Implementar registro de destinação (`itemId`, `destination` [SOLD, AUCTIONED, DONATED, DISCARDED], `adminId`, `receiverDocument` [CPF/CNPJ]) e atualização atômica do status do item correspondente na tabela `items`.
+  - [x] Implementar listagem de destinações executadas com filtros (`destination`, `from`, `to`) e paginação.
+  - [x] Implementar consulta de detalhes de uma destinação por ID (se necessário).
 
-- [ ] **4.2. Serviço (`disposition.service.ts`)**
-  - [ ] Implementar regras de negócio para execução de destinação (item deve existir e estar com status `ELIGIBLE`, documento do recebedor válido, etc.).
-  - [ ] Implementar listagem de destinações com filtros e paginação.
+- [x] **4.2. Serviço (`disposition.service.ts`)**
+  - [x] Implementar regras de negócio para execução de destinação (item deve existir e estar com status `ELIGIBLE`, documento do recebedor válido, etc.).
+  - [x] Implementar listagem de destinações com filtros e paginação.
 
-- [ ] **4.3. Controller (`disposition.controller.ts`)**
-  - [ ] Implementar `POST /api/dispositions` (Execução de destinação de item elegível, admin).
-  - [ ] Implementar `GET /api/dispositions` (Listagem de destinações executadas, admin).
+- [x] **4.3. Controller (`disposition.controller.ts`)**
+  - [x] Implementar `POST /api/dispositions` (Execução de destinação de item elegível, admin).
+  - [x] Implementar `GET /api/dispositions` (Listagem de destinações executadas, admin).
 
-- [ ] **4.4. Testes (`backend/src/tests/disposition-*.test.ts`)**
-  - [ ] Criar suíte de testes cobrindo execução de destinação em itens elegíveis, rejeição de itens não-elegíveis ou já destinados/entregues, validação de CPF/CNPJ do recebedor, e listagem com filtros.
+- [x] **4.4. Testes (`backend/src/tests/disposition-*.test.ts`)**
+  - [x] Criar suíte de testes cobrindo execução de destinação em itens elegíveis, rejeição de itens não-elegíveis ou já destinados/entregues, validação de CPF/CNPJ do recebedor, e listagem com filtros.
 
 ---
 
