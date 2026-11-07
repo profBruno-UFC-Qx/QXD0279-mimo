@@ -7,6 +7,7 @@
   "scripts": {
     "start": "tsx src/swagger.ts",
     "dev": "tsx src/swagger.ts",
+    "seed": "tsx src/seed.ts",
     "build": "tsc"
   },
   "keywords": [],

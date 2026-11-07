@@ -100,10 +100,13 @@ categoryRouter.post(
   '/',
   /* #swagger.tags = ['Categories'] */
   /* #swagger.summary = 'Criar categoria' */
-  /* #swagger.description = 'Operação administrativa (ADMIN/SUPERADMIN). Autorização real ainda não está integrada; a rota está desprotegida e não deve ser exposta publicamente antes dessa integração.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Acessórios' } } */
   /* #swagger.responses[201] = { description: 'Categoria criada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   createCategory,
@@ -113,11 +116,14 @@ categoryRouter.patch(
   '/:id',
   /* #swagger.tags = ['Categories'] */
   /* #swagger.summary = 'Renomear categoria' */
-  /* #swagger.description = 'Operação administrativa (ADMIN/SUPERADMIN). Autorização real ainda não está integrada; a rota está desprotegida e não deve ser exposta publicamente antes dessa integração.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Acessórios' } } */
   /* #swagger.responses[200] = { description: 'Categoria renomeada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID ou payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
@@ -128,10 +134,13 @@ categoryRouter.delete(
   '/:id',
   /* #swagger.tags = ['Categories'] */
   /* #swagger.summary = 'Excluir categoria' */
-  /* #swagger.description = 'Operação administrativa (ADMIN/SUPERADMIN). Autorização real ainda não está integrada; a rota está desprotegida e não deve ser exposta publicamente antes dessa integração.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[204] = { description: 'Categoria excluída sem corpo de resposta' } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Categoria possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,

@@ -284,7 +284,8 @@ adminItemRouter.post(
   '/',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Cadastrar item encontrado' */
-  /* #swagger.description = 'Requer ADMIN/SUPERADMIN; fechado por padrão até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { title: 'Chaves', description: 'Chaves encontradas no saguão', categoryId: 1, buildingId: 1, foundLocation: 'Saguão', foundDate: '2026-10-23', photos: ['https://example.com/photo.jpg'] } } */
   /* #swagger.responses[201] = { description: 'Item cadastrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
@@ -292,7 +293,6 @@ adminItemRouter.post(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Categoria ou prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   createItem,
 );
@@ -301,7 +301,8 @@ adminItemRouter.get(
   '/',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Listar itens de todos os status para administração' */
-  /* #swagger.description = 'Requer ADMIN/SUPERADMIN; fechado por padrão até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['status'] = { in: 'query', type: 'string', enum: ['AVAILABLE', 'ELIGIBLE', 'HANDED_OVER', 'SOLD', 'AUCTIONED', 'DONATED', 'DISCARDED'] } */
   /* #swagger.parameters['categoryId'] = { in: 'query', type: 'integer' } */
   /* #swagger.parameters['buildingId'] = { in: 'query', type: 'integer' } */
@@ -312,7 +313,6 @@ adminItemRouter.get(
   /* #swagger.responses[400] = { description: 'Filtros ou paginação inválidos', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   listItems,
 );
@@ -321,14 +321,14 @@ adminItemRouter.get(
   '/:id/possible-owners',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Listar perdas compatíveis com um item' */
-  /* #swagger.description = 'Compatibilidade determinística: mesma categoria, prédio igual quando indicado e lossDate até foundDate. Requer ADMIN/SUPERADMIN; fechado até integrar autenticação.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Compatibilidade determinística: mesma categoria, prédio igual quando indicado e lossDate até foundDate. Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[200] = { description: 'Perdas abertas compatíveis', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   getPossibleOwners,
 );
@@ -337,14 +337,14 @@ adminItemRouter.get(
   '/:id',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Consultar item no painel administrativo' */
-  /* #swagger.description = 'Requer ADMIN/SUPERADMIN; fechado por padrão até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[200] = { description: 'Item e fotos', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   getItemDetails,
 );
@@ -353,7 +353,8 @@ adminItemRouter.patch(
   '/:id',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Atualizar item e suas fotos' */
-  /* #swagger.description = 'Requer ADMIN/SUPERADMIN; fechado por padrão até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { title: 'Chaves', description: 'Descrição', categoryId: 1, buildingId: 1, foundLocation: 'Saguão', foundDate: '2026-10-23', photosToAdd: ['https://example.com/photo.jpg'], photosToRemove: [2] } } */
   /* #swagger.responses[200] = { description: 'Item atualizado', schema: { $ref: '#/definitions/ApiResponse' } } */
@@ -362,7 +363,6 @@ adminItemRouter.patch(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item, referência ou foto não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item não pode ser atualizado neste estado', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   updateItem,
 );
@@ -371,7 +371,8 @@ adminItemRouter.delete(
   '/:id',
   /* #swagger.tags = ['Admin - Items'] */
   /* #swagger.summary = 'Excluir item' */
-  /* #swagger.description = 'Requer ADMIN/SUPERADMIN; fechado por padrão até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN/SUPERADMIN.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[204] = { description: 'Item excluído sem corpo' } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
@@ -379,7 +380,6 @@ adminItemRouter.delete(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item já entregue/destinado ou com histórico', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   deleteItem,
 );

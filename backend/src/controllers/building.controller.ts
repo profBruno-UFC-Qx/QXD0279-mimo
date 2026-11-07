@@ -76,7 +76,8 @@ function parseBuildingId(rawId: string): number {
 export async function createBuilding(req: Request, res: Response): Promise<void> {
   /* #swagger.tags = ['Buildings'] */
   /* #swagger.summary = 'Criar prédio' */
-  /* #swagger.description = 'Operação administrativa. Autorização real ainda não está integrada; integrar antes da exposição pública.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['body'] = {
     in: 'body',
     required: true,
@@ -89,6 +90,8 @@ export async function createBuilding(req: Request, res: Response): Promise<void>
   } */
   /* #swagger.responses[201] = { description: 'Prédio criado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   await requireAdmin(res);
   const data = await validateBuildingData(req.body, false);
@@ -141,11 +144,14 @@ buildingRouter.patch(
   '/:id',
   /* #swagger.tags = ['Buildings'] */
   /* #swagger.summary = 'Atualizar prédio' */
-  /* #swagger.description = 'Operação administrativa. Autorização real ainda não está integrada; integrar antes da exposição pública.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { name: 'Campus Central', address: 'Rua Exemplo, 123', pickupPoint: 'Recepção principal', serviceHours: 'Segunda a sexta, das 9h às 17h' } } */
   /* #swagger.responses[200] = { description: 'Prédio atualizado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID ou payload inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
@@ -167,10 +173,13 @@ buildingRouter.delete(
   '/:id',
   /* #swagger.tags = ['Buildings'] */
   /* #swagger.summary = 'Excluir prédio' */
-  /* #swagger.description = 'Operação administrativa. Autorização real ainda não está integrada; integrar antes da exposição pública.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Operação administrativa.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[204] = { description: 'Prédio excluído sem corpo de resposta' } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Prédio possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,

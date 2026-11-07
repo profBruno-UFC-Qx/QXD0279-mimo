@@ -149,13 +149,13 @@ dispositionRuleRouter.get(
   '/',
   /* #swagger.tags = ['Disposition Rules'] */
   /* #swagger.summary = 'Listar regras globais de destinação' */
-  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN; endpoint fechado até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN.' */
   /* #swagger.parameters['active'] = { in: 'query', type: 'string', enum: ['true', 'false'], description: 'Filtra regras ativas ou inativas.' } */
   /* #swagger.responses[200] = { description: 'Regras ordenadas por prazo e ID', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Filtro active inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   listDispositionRules,
 );
@@ -164,14 +164,14 @@ dispositionRuleRouter.get(
   '/:id',
   /* #swagger.tags = ['Disposition Rules'] */
   /* #swagger.summary = 'Consultar regra de destinação' */
-  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN; endpoint fechado até a integração da autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[200] = { description: 'Regra encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   getDispositionRule,
 );
@@ -180,14 +180,14 @@ dispositionRuleRouter.post(
   '/',
   /* #swagger.tags = ['Disposition Rules'] */
   /* #swagger.summary = 'Criar regra global de destinação' */
-  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN. destination aceita SOLD, AUCTIONED, DONATED ou DISCARDED. A regra é criada ativa e destravada; createdBy vem exclusivamente da identidade autenticada. Endpoint fechado até integrar autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Requer ADMIN ou SUPERADMIN. destination aceita SOLD, AUCTIONED, DONATED ou DISCARDED. A regra é criada ativa e destravada; createdBy vem exclusivamente da identidade autenticada.' */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { days: 30, destination: 'DONATED' } } */
   /* #swagger.responses[201] = { description: 'Regra criada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'Payload inválido ou com campos internos', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   createDispositionRule,
 );
@@ -196,7 +196,8 @@ dispositionRuleRouter.patch(
   '/:id',
   /* #swagger.tags = ['Disposition Rules'] */
   /* #swagger.summary = 'Atualizar regra de destinação' */
-  /* #swagger.description = 'Aceita qualquer subconjunto não vazio de days, destination, active e locked. destination aceita SOLD, AUCTIONED, DONATED ou DISCARDED. locked=true torna a regra somente leitura para ADMIN: apenas SUPERADMIN pode alterar locked ou sobrescrever uma regra travada. Endpoint fechado até integrar autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'Aceita qualquer subconjunto não vazio de days, destination, active e locked. destination aceita SOLD, AUCTIONED, DONATED ou DISCARDED. locked=true torna a regra somente leitura para ADMIN: apenas SUPERADMIN pode alterar locked ou sobrescrever uma regra travada.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.parameters['body'] = { in: 'body', required: true, schema: { days: 45, destination: 'AUCTIONED', active: true, locked: false } } */
   /* #swagger.responses[200] = { description: 'Regra atualizada', schema: { $ref: '#/definitions/ApiResponse' } } */
@@ -205,7 +206,6 @@ dispositionRuleRouter.patch(
   /* #swagger.responses[403] = { description: 'Papel sem permissão ou regra travada para ADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   updateDispositionRule,
 );
@@ -214,7 +214,8 @@ dispositionRuleRouter.delete(
   '/:id',
   /* #swagger.tags = ['Disposition Rules'] */
   /* #swagger.summary = 'Excluir regra de destinação' */
-  /* #swagger.description = 'ADMIN pode excluir apenas regras destravadas; SUPERADMIN pode excluir qualquer regra. A exclusão não altera itens elegíveis. Endpoint fechado até integrar autenticação real.' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.description = 'ADMIN pode excluir apenas regras destravadas; SUPERADMIN pode excluir qualquer regra. A exclusão não altera itens elegíveis.' */
   /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
   /* #swagger.responses[204] = { description: 'Regra excluída sem corpo' } */
   /* #swagger.responses[400] = { description: 'ID inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
@@ -222,7 +223,6 @@ dispositionRuleRouter.delete(
   /* #swagger.responses[403] = { description: 'Regra travada para ADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
-  /* #swagger.responses[503] = { description: 'Autenticação administrativa ainda não integrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
   removeDispositionRule,
 );
