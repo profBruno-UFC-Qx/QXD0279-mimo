@@ -1,0 +1,32 @@
+import { api } from './api'
+import type { LostReport, LostReportPayload, Page, PageQuery } from '../types'
+
+export const lostReportService = {
+  async list(params?: PageQuery): Promise<Page<LostReport>> {
+    const { data } = await api.get<Page<LostReport>>('/lost-reports', { params })
+    return data
+  },
+  async mine(params?: PageQuery): Promise<Page<LostReport>> {
+    const { data } = await api.get<Page<LostReport>>('/lost-reports/mine', { params })
+    return data
+  },
+  async getById(id: number): Promise<LostReport> {
+    const { data } = await api.get<LostReport>(`/lost-reports/${id}`)
+    return data
+  },
+  async create(payload: LostReportPayload): Promise<LostReport> {
+    const { data } = await api.post<LostReport>('/lost-reports', payload)
+    return data
+  },
+  async update(id: number, payload: Partial<LostReportPayload>): Promise<LostReport> {
+    const { data } = await api.put<LostReport>(`/lost-reports/${id}`, payload)
+    return data
+  },
+  async cancel(id: number): Promise<LostReport> {
+    const { data } = await api.patch<LostReport>(`/lost-reports/${id}/cancel`)
+    return data
+  },
+  async confirmMatch(reportId: number, itemId: number): Promise<void> {
+    await api.post(`/lost-reports/${reportId}/confirm`, { itemId })
+  },
+}

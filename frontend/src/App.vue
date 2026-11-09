@@ -1,18 +1,16 @@
-<template>
-  <v-app>
-    <v-main>
-      <HelloWorld />
-    </v-main>
-    <v-btn
-      class="ma-2"
-      icon="mdi-theme-light-dark"
-      location="top right"
-      position="absolute"
-      @click="$vuetify.theme.cycle()"
-    />
-  </v-app>
-</template>
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useUiStore } from '@/stores/ui'
 
-<script lang="ts" setup>
-  import HelloWorld from '@/components/HelloWorld.vue'
+const auth = useAuthStore()
+const ui = useUiStore()
+
+onMounted(async () => {
+  await auth.fetchMe()
+})
 </script>
+
+<template>
+ 
+</template>
