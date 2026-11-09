@@ -81,7 +81,11 @@ Se não souber como combinar as mudanças, converse com quem alterou o outro tre
 
 Não use `git push --force`. 
 
-## 4. Primeiro acesso após clonar
+---
+
+# Backend
+
+## 1. Primeiro acesso após clonar
 
 Cada dev configura o backend localmente. Não compartilhe o arquivo SQLite nem o `.env` pelo Git.
 
@@ -113,7 +117,7 @@ Cada dev configura o backend localmente. Não compartilhe o arquivo SQLite nem o
   Esse comando gera o `swagger-output.json` e inicia o servidor.
 
 
-## 5. Organização do backend
+## 2. Organização do backend
 
 - `src/models/`: entidades TypeORM e enums.
 - `src/repository/`: acesso e persistência de dados com TypeORM.
@@ -123,7 +127,7 @@ Cada dev configura o backend localmente. Não compartilhe o arquivo SQLite nem o
 - `src/shared/`: tipos e utilitários compartilhados.
 - `src/server.ts`: configura Express, monta os routers e middlewares e inicializa o DataSource.
 
-## 6. Fluxo para implementar uma funcionalidade
+## 3. Fluxo para implementar uma funcionalidade
 
 
 1. **Verifique o model**: confira se a entidade representa corretamente os requisitos, campos obrigatórios e opcionais, tipos, enums, índices, relações e nomes das colunas.
@@ -136,6 +140,10 @@ Cada dev configura o backend localmente. Não compartilhe o arquivo SQLite nem o
 Model → Repository → Service → Controller/Router → server.ts
 ```
 
-## 7. Banco SQLite e trabalho em equipe
+## 4. Banco SQLite e trabalho em equipe
 
 **O uso de migrations ainda não foi padronizado.** Por enquanto, não assumam que uma migration está sendo gerada ou aplicada. Até lá, mantenham as entidades e o `synchronize: true` local alinhados e avisem a equipe quando uma alteração de model exigir recriar/atualizar a base local.
+
+---
+
+# Frontend
