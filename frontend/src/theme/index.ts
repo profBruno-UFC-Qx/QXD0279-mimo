@@ -7,6 +7,7 @@ const achadexLight: ThemeDefinition = {
   dark: false,
   colors: {
     'primary': palette.primary,
+    'on-primary': palette.onPrimary,
     'secondary': palette.secondary,
     'accent': palette.accent,
     'success': palette.success,

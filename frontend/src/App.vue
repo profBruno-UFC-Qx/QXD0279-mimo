@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useUiStore } from '@/stores/ui'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import AppSnackbar from '@/components/common/AppSnackbar.vue'
+import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 
 const auth = useAuthStore()
-const ui = useUiStore()
 
 onMounted(async () => {
   await auth.fetchMe()
@@ -12,5 +13,14 @@ onMounted(async () => {
 </script>
 
 <template>
- 
+  <v-app>
+    <AppHeader />
+
+    <v-main>
+      <router-view />
+    </v-main>
+
+    <AppSnackbar />
+    <ConfirmDialog />
+  </v-app>
 </template>
