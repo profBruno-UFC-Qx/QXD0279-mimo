@@ -1,22 +1,28 @@
+export interface PaginationMeta {
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
+}
+
 export interface Page<T> {
-  content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
+  data: T[]
+  pagination: PaginationMeta
 }
 
 export interface PageQuery {
   page?: number
-  size?: number
+  per_page?: number
+  limit?: number
   search?: string
+  q?: string
   sortBy?: string
   sortDir?: 'asc' | 'desc'
   [key: string]: any
 }
 
 export interface ApiError {
+  statusCode: number
   message: string
-  status?: number
   errors?: Record<string, string[]>
 }

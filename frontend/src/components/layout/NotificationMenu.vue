@@ -28,7 +28,7 @@ async function fetchNotifications() {
   loading.value = true
   try {
     const res = await notificationService.list({ page: 1, size: 5 })
-    notifications.value = res.content
+    notifications.value = res.data ?? (res as any).content ?? []
   } catch {
     // ignore
   } finally {
