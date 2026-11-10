@@ -1,16 +1,52 @@
-export function formatDate(dateString?: string | null): string {
-  if (!dateString) return '-'
+export function formatDate(iso?: string | null): string {
+  if (!iso) return '-'
   try {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat('pt-BR').format(date)
+    const date = new Date(iso)
+    if (isNaN(date.getTime())) return iso
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date)
   } catch {
-    return dateString
+    return iso ?? '-'
   }
 }
 
-export function formatCpf(cpf?: string | null): string {
-  if (!cpf) return ''
-  const cleaned = cpf.replace(/\D/g, '')
-  if (cleaned.length !== 11) return cpf
-  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return '-'
+  try {
+    const date = new Date(iso)
+    if (isNaN(date.getTime())) return iso
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date)
+  } catch {
+    return iso ?? '-'
+  }
+}
+
+export function formatCpf(v?: string | null): string {
+  if (!v) return ''
+  const digits = v.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`
+}
+
+export function maskCpf(v?: string | null): string {
+  return formatCpf(v)
+}
+
+export function initials(name?: string | null): string {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 0 || !parts[0]) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
 }
