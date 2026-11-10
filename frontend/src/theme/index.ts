@@ -18,15 +18,18 @@ const achadexLight: ThemeDefinition = {
     'surface-muted': palette.surfaceMuted,
     'outline': palette.outline,
   },
+  variables: {
+    'font-body': typography.fontFamily,
+  },
 }
 
 export const vuetify = createVuetify({
   theme: { defaultTheme: 'achadexLight', themes: { achadexLight } },
   defaults: {
-    VBtn: { rounded: 'lg', elevation: 0 },
+    VBtn: { rounded: shapes.borderRadius, elevation: 0 },
     VTextField: { variant: 'outlined', density: 'comfortable' },
     VSelect: { variant: 'outlined', density: 'comfortable' },
-    VCard: { rounded: 'lg', elevation: 1 },
-    VAlert: { rounded: 'lg' },
+    VCard: { rounded: shapes.borderRadius, elevation: 1 },
+    VAlert: { rounded: shapes.borderRadius },
   },
 })

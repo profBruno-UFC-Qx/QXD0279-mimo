@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
 import { requireAdmin } from './admin-authorization.js';
 import {
   createHandover,
@@ -7,7 +8,6 @@ import {
   listAdminHandovers,
   getHandoverDetails,
 } from '../services/handover.service.js';
-import { findUserById } from '../repository/user.repository.js';
 import { UserRole } from '../models/enums.js';
 import { HttpError } from '../middlewares/http-error.js';
 import type { ApiResponse } from '../shared/api-response.js';
@@ -98,12 +98,12 @@ handoverRouter.get(
   /* #swagger.responses[403] = { description: 'Acesso negado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Retirada não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.USER, UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
-    const auth = res.locals.auth as { userId: number };
-    const user = await findUserById(auth.userId);
+    const user = res.locals.user;
     const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPERADMIN;
-    const handover = await getHandoverDetails(req.params.id, auth.userId);
-    if (!isAdmin && handover.withdrawnUserId !== auth.userId) {
+    const handover = await getHandoverDetails(req.params.id, res.locals.auth.userId);
+    if (!isAdmin && handover.withdrawnUserId !== res.locals.auth.userId) {
       throw new HttpError(403, 'Acesso negado.');
     }
     const response: ApiResponse<Handover> = {

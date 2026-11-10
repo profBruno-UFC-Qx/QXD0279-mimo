@@ -1,10 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { Building } from '../models/building.js';
+import { UserRole } from '../models/enums.js';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { BuildingService } from '../services/building.service.js';
-import { requireAdmin } from './admin-authorization.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 const buildingService = new BuildingService();
@@ -73,7 +74,20 @@ function parseBuildingId(rawId: string): number {
   return id;
 }
 
-export async function createBuilding(req: Request, res: Response): Promise<void> {
+buildingRouter.get(
+  '/',
+  /* #swagger.tags = ['Buildings'] */
+  /* #swagger.summary = 'Listar prédios para consulta pública' */
+  /* #swagger.responses[200] = { description: 'Prédios ordenados por nome', schema: { $ref: '#/definitions/ApiResponse' } } */
+  async (_req: Request, res: Response): Promise<void> => {
+    const buildings = await buildingService.list();
+    const response: ApiResponse<Building[]> = { success: true, data: buildings };
+    res.json(response);
+  },
+);
+
+buildingRouter.post(
+  '/',
   /* #swagger.tags = ['Buildings'] */
   /* #swagger.summary = 'Criar prédio' */
   /* #swagger.security = [{ "bearerAuth": [] }] */
@@ -93,42 +107,16 @@ export async function createBuilding(req: Request, res: Response): Promise<void>
   /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
-  await requireAdmin(res);
-  const data = await validateBuildingData(req.body, false);
-  const building = await buildingService.create(data as BuildingData);
-  const response: ApiResponse<Building> = { success: true, data: building };
-  res.status(201).json(response);
-}
-
-export async function getBuildings(_req: Request, res: Response): Promise<void> {
-  const buildings = await buildingService.list();
-  const response: ApiResponse<Building[]> = { success: true, data: buildings };
-  res.json(response);
-}
-
-export async function getBuildingById(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const id = parseBuildingId(req.params.id);
-  const building = await buildingService.getById(id);
-  if (!building) {
-    throw new HttpError(404, 'Não existe prédio cadastrado com esse ID.');
-  }
-
-  res.json({ success: true, data: building });
-}
-
-buildingRouter.get(
-  '/',
-  /* #swagger.tags = ['Buildings'] */
-  /* #swagger.summary = 'Listar prédios para consulta pública' */
-  /* #swagger.responses[200] = { description: 'Prédios ordenados por nome', schema: { $ref: '#/definitions/ApiResponse' } } */
-  getBuildings,
-);
-
-buildingRouter.post(
-  '/',
   authenticate,
-  createBuilding,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const data = await validateBuildingData(req.body, false);
+    const building = await buildingService.create(data as BuildingData);
+    const response: ApiResponse<Building> = { success: true, data: building };
+    res.status(201).json(response);
+  },
 );
+
 buildingRouter.get(
   '/:id',
   /* #swagger.tags = ['Buildings'] */
@@ -137,7 +125,15 @@ buildingRouter.get(
   /* #swagger.responses[200] = { description: 'Prédio encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[400] = { description: 'ID inválido' } */
   /* #swagger.responses[404] = { description: 'Prédio não encontrado' } */
-  getBuildingById,
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const id = parseBuildingId(req.params.id);
+    const building = await buildingService.getById(id);
+    if (!building) {
+      throw new HttpError(404, 'Não existe prédio cadastrado com esse ID.');
+    }
+
+    res.json({ success: true, data: building });
+  },
 );
 
 buildingRouter.patch(
@@ -155,8 +151,8 @@ buildingRouter.patch(
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe um prédio com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-    await requireAdmin(res);
     const id = parseBuildingId(req.params.id);
     const data = await validateBuildingData(req.body, true);
     const building = await buildingService.update(id, data);
@@ -183,8 +179,8 @@ buildingRouter.delete(
   /* #swagger.responses[404] = { description: 'Prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Prédio possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-    await requireAdmin(res);
     const id = parseBuildingId(req.params.id);
     const result = await buildingService.delete(id);
     if (result === 'not_found') {

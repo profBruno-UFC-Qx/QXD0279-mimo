@@ -1,10 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { Category } from '../models/category.js';
+import { UserRole } from '../models/enums.js';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { CategoryService } from '../services/category.service.js';
-import { requireAdmin } from './admin-authorization.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
 const categoryService = new CategoryService();
@@ -47,53 +48,16 @@ function parseCategoryId(rawId: string): number {
   return id;
 }
 
-async function listCategories(_req: Request, res: Response): Promise<void> {
-  const categories = await categoryService.list();
-  const response: ApiResponse<Category[]> = { success: true, data: categories };
-  res.json(response);
-}
-
-async function createCategory(req: Request, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const name = await validateCategoryBody(req.body);
-  const category = await categoryService.create(name);
-  const response: ApiResponse<Category> = { success: true, data: category };
-  res.status(201).json(response);
-}
-
-async function updateCategory(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const id = parseCategoryId(req.params.id);
-  const name = await validateCategoryBody(req.body);
-  const category = await categoryService.update(id, name);
-  if (!category) {
-    throw new HttpError(404, 'Não existe categoria cadastrada com esse ID.');
-  }
-
-  const response: ApiResponse<Category> = { success: true, data: category };
-  res.json(response);
-}
-
-async function deleteCategory(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const id = parseCategoryId(req.params.id);
-  const result = await categoryService.delete(id);
-  if (result === 'not_found') {
-    throw new HttpError(404, 'Não existe categoria cadastrada com esse ID.');
-  }
-  if (result === 'linked') {
-    throw new HttpError(409, 'Não é possível excluir uma categoria com itens ou perdas vinculados.');
-  }
-
-  res.status(204).end();
-}
-
 categoryRouter.get(
   '/',
   /* #swagger.tags = ['Categories'] */
   /* #swagger.summary = 'Listar categorias para consulta pública' */
   /* #swagger.responses[200] = { description: 'Categorias ordenadas por nome', schema: { $ref: '#/definitions/ApiResponse' } } */
-  listCategories,
+  async (_req: Request, res: Response): Promise<void> => {
+    const categories = await categoryService.list();
+    const response: ApiResponse<Category[]> = { success: true, data: categories };
+    res.json(response);
+  },
 );
 
 categoryRouter.post(
@@ -109,7 +73,13 @@ categoryRouter.post(
   /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  createCategory,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const name = await validateCategoryBody(req.body);
+    const category = await categoryService.create(name);
+    const response: ApiResponse<Category> = { success: true, data: category };
+    res.status(201).json(response);
+  },
 );
 
 categoryRouter.patch(
@@ -127,7 +97,18 @@ categoryRouter.patch(
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Já existe uma categoria com esse nome', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  updateCategory,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const id = parseCategoryId(req.params.id);
+    const name = await validateCategoryBody(req.body);
+    const category = await categoryService.update(id, name);
+    if (!category) {
+      throw new HttpError(404, 'Não existe categoria cadastrada com esse ID.');
+    }
+
+    const response: ApiResponse<Category> = { success: true, data: category };
+    res.json(response);
+  },
 );
 
 categoryRouter.delete(
@@ -144,5 +125,17 @@ categoryRouter.delete(
   /* #swagger.responses[404] = { description: 'Categoria não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Categoria possui itens ou perdas vinculados', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  deleteCategory,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const id = parseCategoryId(req.params.id);
+    const result = await categoryService.delete(id);
+    if (result === 'not_found') {
+      throw new HttpError(404, 'Não existe categoria cadastrada com esse ID.');
+    }
+    if (result === 'linked') {
+      throw new HttpError(409, 'Não é possível excluir uma categoria com itens ou perdas vinculados.');
+    }
+
+    res.status(204).end();
+  },
 );

@@ -1,11 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import { validate } from 'class-validator';
 import { DispositionRule } from '../models/disposition-rule.js';
-import { DispositionType } from '../models/enums.js';
+import { DispositionType, UserRole } from '../models/enums.js';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { DispositionRuleService } from '../services/disposition-rule.service.js';
-import { requireAdmin } from './admin-authorization.js';
 import type {
   CreateDispositionRuleData,
   UpdateDispositionRuleData,
@@ -105,46 +105,6 @@ function parseActiveFilter(value: unknown): boolean | undefined {
   throw new HttpError(400, 'O filtro active aceita somente true ou false.');
 }
 
-async function listDispositionRules(req: Request, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const rules = await dispositionRuleService.list(parseActiveFilter(req.query.active));
-  const response: ApiResponse<DispositionRule[]> = { success: true, data: rules };
-  res.json(response);
-}
-
-async function getDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const rule = await dispositionRuleService.getById(parseRuleId(req.params.id));
-  if (!rule) throw new HttpError(404, 'A regra de destinação não foi encontrada.');
-
-  const response: ApiResponse<DispositionRule> = { success: true, data: rule };
-  res.json(response);
-}
-
-async function createDispositionRule(req: Request, res: Response): Promise<void> {
-  const identity = await requireAdmin(res);
-  const rule = await dispositionRuleService.create(await parseCreatePayload(req.body), identity.id);
-  const response: ApiResponse<DispositionRule> = { success: true, data: rule };
-  res.status(201).json(response);
-}
-
-async function updateDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const identity = await requireAdmin(res);
-  const rule = await dispositionRuleService.update(
-    parseRuleId(req.params.id),
-    await parseUpdatePayload(req.body),
-    identity.role,
-  );
-  const response: ApiResponse<DispositionRule> = { success: true, data: rule };
-  res.json(response);
-}
-
-async function removeDispositionRule(req: Request<{ id: string }>, res: Response): Promise<void> {
-  const identity = await requireAdmin(res);
-  await dispositionRuleService.remove(parseRuleId(req.params.id), identity.role);
-  res.status(204).end();
-}
-
 dispositionRuleRouter.get(
   '/',
   /* #swagger.tags = ['Disposition Rules'] */
@@ -157,7 +117,12 @@ dispositionRuleRouter.get(
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  listDispositionRules,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const rules = await dispositionRuleService.list(parseActiveFilter(req.query.active));
+    const response: ApiResponse<DispositionRule[]> = { success: true, data: rules };
+    res.json(response);
+  },
 );
 
 dispositionRuleRouter.get(
@@ -173,7 +138,14 @@ dispositionRuleRouter.get(
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  getDispositionRule,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const rule = await dispositionRuleService.getById(parseRuleId(req.params.id));
+    if (!rule) throw new HttpError(404, 'A regra de destinação não foi encontrada.');
+
+    const response: ApiResponse<DispositionRule> = { success: true, data: rule };
+    res.json(response);
+  },
 );
 
 dispositionRuleRouter.post(
@@ -189,7 +161,13 @@ dispositionRuleRouter.post(
   /* #swagger.responses[403] = { description: 'Acesso restrito a ADMIN/SUPERADMIN', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  createDispositionRule,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const identity = res.locals.user;
+    const rule = await dispositionRuleService.create(await parseCreatePayload(req.body), identity.id);
+    const response: ApiResponse<DispositionRule> = { success: true, data: rule };
+    res.status(201).json(response);
+  },
 );
 
 dispositionRuleRouter.patch(
@@ -207,7 +185,17 @@ dispositionRuleRouter.patch(
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  updateDispositionRule,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const identity = res.locals.user;
+    const rule = await dispositionRuleService.update(
+      parseRuleId(req.params.id),
+      await parseUpdatePayload(req.body),
+      identity.role,
+    );
+    const response: ApiResponse<DispositionRule> = { success: true, data: rule };
+    res.json(response);
+  },
 );
 
 dispositionRuleRouter.delete(
@@ -224,5 +212,10 @@ dispositionRuleRouter.delete(
   /* #swagger.responses[404] = { description: 'Regra não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito com uma alteração simultânea', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  removeDispositionRule,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const identity = res.locals.user;
+    await dispositionRuleService.remove(parseRuleId(req.params.id), identity.role);
+    res.status(204).end();
+  },
 );

@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
+import { UserRole } from '../models/enums.js';
 import { createAdmin, deleteAdmin, getAdminDetail, listAdmins } from '../services/admin.service.js';
 import type { PublicUser } from '../services/auth.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
@@ -16,6 +18,7 @@ adminRouter.get(
   /* #swagger.responses[403] = { description: 'Acesso restrito ao superadministrador', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.SUPERADMIN),
   async (_req: Request, res: Response) => {
     const userId = res.locals.auth.userId as number;
     const admins = await listAdmins(userId);
@@ -40,6 +43,7 @@ adminRouter.post(
   /* #swagger.responses[409] = { description: 'E-mail ja cadastrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
     const userId = res.locals.auth.userId as number;
     const admin = await createAdmin(userId, req.body);
@@ -64,6 +68,7 @@ adminRouter.get(
   /* #swagger.responses[404] = { description: 'Administrador nao encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
     const userId = res.locals.auth.userId as number;
     const admin = await getAdminDetail(userId, req.params.id);
@@ -89,6 +94,7 @@ adminRouter.delete(
   /* #swagger.responses[409] = { description: 'Conflito com registros relacionados', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[500] = { description: 'Erro interno', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
     const userId = res.locals.auth.userId as number;
     await deleteAdmin(userId, req.params.id);

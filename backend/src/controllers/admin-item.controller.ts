@@ -3,11 +3,11 @@ import { validate } from 'class-validator';
 import { Item } from '../models/item.js';
 import { ItemPhoto } from '../models/item-photo.js';
 import { LostReport } from '../models/lost-report.js';
-import { ItemStatus } from '../models/enums.js';
+import { ItemStatus, UserRole } from '../models/enums.js';
 import { authenticate } from '../middlewares/auth.js';
+import { authorize } from '../middlewares/authorization.js';
 import { HttpError } from '../middlewares/http-error.js';
 import { AdminItemService } from '../services/admin-item.service.js';
-import { requireAdmin } from './admin-authorization.js';
 import type {
   AdminItemFilters,
   CreateAdminItemData,
@@ -234,52 +234,6 @@ function parseListQuery(query: Record<string, unknown>): {
   return { filters, page, perPage };
 }
 
-async function createItem(req: Request, res: Response): Promise<void> {
-  const createdBy = (await requireAdmin(res)).id;
-  const item = await adminItemService.create(await parseCreatePayload(req.body), createdBy);
-  const response: ApiResponse<Item> = { success: true, data: item };
-  res.status(201).json(response);
-}
-
-async function listItems(req: Request, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const { filters, page, perPage } = parseListQuery(req.query as Record<string, unknown>);
-  const data = await adminItemService.list(filters, page, perPage);
-  const response: ApiResponse<Paginated<Item>> = { success: true, data };
-  res.json(response);
-}
-
-async function getItemDetails(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const details = await adminItemService.getDetails(parsePathId(req.params.id));
-  if (!details) throw new HttpError(404, 'O item não foi encontrado.');
-
-  const response: ApiResponse<{ item: Item; photos: ItemPhoto[] }> = { success: true, data: details };
-  res.json(response);
-}
-
-async function getPossibleOwners(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const reports = await adminItemService.getPossibleOwners(parsePathId(req.params.id));
-  if (!reports) throw new HttpError(404, 'O item não foi encontrado.');
-
-  const response: ApiResponse<LostReport[]> = { success: true, data: reports };
-  res.json(response);
-}
-
-async function updateItem(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  const item = await adminItemService.update(parsePathId(req.params.id), await parseUpdatePayload(req.body));
-  const response: ApiResponse<Item> = { success: true, data: item };
-  res.json(response);
-}
-
-async function deleteItem(req: Request<{ id: string }>, res: Response): Promise<void> {
-  await requireAdmin(res);
-  await adminItemService.remove(parsePathId(req.params.id));
-  res.status(204).end();
-}
-
 adminItemRouter.post(
   '/',
   /* #swagger.tags = ['Admin - Items'] */
@@ -294,7 +248,13 @@ adminItemRouter.post(
   /* #swagger.responses[404] = { description: 'Categoria ou prédio não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Conflito de integridade ou concorrência', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  createItem,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const createdBy = res.locals.user.id;
+    const item = await adminItemService.create(await parseCreatePayload(req.body), createdBy);
+    const response: ApiResponse<Item> = { success: true, data: item };
+    res.status(201).json(response);
+  },
 );
 
 adminItemRouter.get(
@@ -314,7 +274,13 @@ adminItemRouter.get(
   /* #swagger.responses[401] = { description: 'Identidade autenticada inválida', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  listItems,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request, res: Response): Promise<void> => {
+    const { filters, page, perPage } = parseListQuery(req.query as Record<string, unknown>);
+    const data = await adminItemService.list(filters, page, perPage);
+    const response: ApiResponse<Paginated<Item>> = { success: true, data };
+    res.json(response);
+  },
 );
 
 adminItemRouter.get(
@@ -330,7 +296,14 @@ adminItemRouter.get(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  getPossibleOwners,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const reports = await adminItemService.getPossibleOwners(parsePathId(req.params.id));
+    if (!reports) throw new HttpError(404, 'O item não foi encontrado.');
+
+    const response: ApiResponse<LostReport[]> = { success: true, data: reports };
+    res.json(response);
+  },
 );
 
 adminItemRouter.get(
@@ -346,7 +319,14 @@ adminItemRouter.get(
   /* #swagger.responses[403] = { description: 'Papel sem permissão administrativa', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  getItemDetails,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const details = await adminItemService.getDetails(parsePathId(req.params.id));
+    if (!details) throw new HttpError(404, 'O item não foi encontrado.');
+
+    const response: ApiResponse<{ item: Item; photos: ItemPhoto[] }> = { success: true, data: details };
+    res.json(response);
+  },
 );
 
 adminItemRouter.patch(
@@ -364,7 +344,12 @@ adminItemRouter.patch(
   /* #swagger.responses[404] = { description: 'Item, referência ou foto não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item não pode ser atualizado neste estado', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  updateItem,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    const item = await adminItemService.update(parsePathId(req.params.id), await parseUpdatePayload(req.body));
+    const response: ApiResponse<Item> = { success: true, data: item };
+    res.json(response);
+  },
 );
 
 adminItemRouter.delete(
@@ -381,5 +366,9 @@ adminItemRouter.delete(
   /* #swagger.responses[404] = { description: 'Item não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Item já entregue/destinado ou com histórico', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
-  deleteItem,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
+  async (req: Request<{ id: string }>, res: Response): Promise<void> => {
+    await adminItemService.remove(parsePathId(req.params.id));
+    res.status(204).end();
+  },
 );

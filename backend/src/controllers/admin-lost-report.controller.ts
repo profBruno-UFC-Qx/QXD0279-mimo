@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { authenticate } from '../middlewares/auth.js';
-import { requireAdmin } from './admin-authorization.js';
+import { authorize } from '../middlewares/authorization.js';
+import { UserRole } from '../models/enums.js';
 import {
   listAdminLostReports,
   getAdminLostReportDetails,
@@ -27,8 +28,8 @@ adminLostReportRouter.get(
   /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
-    await requireAdmin(res);
     const result = await listAdminLostReports(req.query as Record<string, unknown>);
     const response: ApiResponse<Paginated<PublicLostReportDto>> = {
       success: true,
@@ -50,8 +51,8 @@ adminLostReportRouter.get(
   /* #swagger.responses[403] = { description: 'Acesso restrito a administradores', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[404] = { description: 'Perda não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
-    await requireAdmin(res);
     const result = await getAdminLostReportDetails(req.params.id);
     const response: ApiResponse<PublicLostReportDto> = {
       success: true,
@@ -74,8 +75,8 @@ adminLostReportRouter.post(
   /* #swagger.responses[404] = { description: 'Perda não encontrada', schema: { $ref: '#/definitions/ApiResponse' } } */
   /* #swagger.responses[409] = { description: 'Perda não está aberta', schema: { $ref: '#/definitions/ApiResponse' } } */
   authenticate,
+  authorize(UserRole.ADMIN, UserRole.SUPERADMIN),
   async (req: Request, res: Response) => {
-    await requireAdmin(res);
     const result = await resolveAdminLostReport(req.params.id);
     const response: ApiResponse<PublicLostReportDto> = {
       success: true,
