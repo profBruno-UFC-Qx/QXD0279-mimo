@@ -12,3 +12,6 @@ export const palette = {
   surfaceMuted: '#EEF1F6',
   outline: '#C4CEDC',
 }
+
+export type StatusColorToken = keyof typeof palette | string
+
