@@ -1,6 +1,7 @@
 import type { Category } from './category'
 import type { Building } from './building'
 import type { User } from './user'
+import type { PageQuery } from './api'
 
 export type ItemStatus =
   | 'AVAILABLE'
@@ -47,4 +48,11 @@ export interface ItemPayload {
   foundLocation?: string | null
   foundDate: string
   photoUrls?: string[]
+}
+
+export interface ItemQuery extends PageQuery {
+  categoryId?: number
+  buildingId?: number
+  search?: string
+  status?: ItemStatus
 }
