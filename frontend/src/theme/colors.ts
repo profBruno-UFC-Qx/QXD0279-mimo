@@ -1,16 +1,16 @@
 export const palette = {
-  primary: '#1E4FA3',
+  primary: '#173B57',
   onPrimary: '#FFFFFF',
-  secondary: '#0E7C6B',
-  accent: '#F58A1F',
-  success: '#2E9E5B',
-  warning: '#E5A50A',
-  error: '#C63A3A',
-  info: '#2C7FD8',
-  background: '#F5F7FA',
+  secondary: '#28766E',
+  accent: '#C58A2A',
+  success: '#347A52',
+  warning: '#A96812',
+  error: '#B54747',
+  info: '#3A718F',
+  background: '#F3F6F8',
   surface: '#FFFFFF',
-  surfaceMuted: '#EEF1F6',
-  outline: '#C4CEDC',
+  surfaceMuted: '#E8EEF2',
+  outline: '#BCC9D2',
 }
 
 export type StatusColorToken = keyof typeof palette | string

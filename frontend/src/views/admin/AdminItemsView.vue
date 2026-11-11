@@ -5,7 +5,7 @@
   <div>
     <v-card class="pa-6 rounded-lg text-center" variant="flat">
       <v-icon icon="mdi-package-variant-closed" size="48" color="primary" class="mb-2" />
-      <div class="text-subtitle-1 font-weight-medium">Gerenciamento de Itens — Em construção (Pessoa 3)</div>
+      <div class="text-subtitle-1 font-weight-medium">Gerenciamento de Itens — Em construção</div>
     </v-card>
   </div>
 </template>
