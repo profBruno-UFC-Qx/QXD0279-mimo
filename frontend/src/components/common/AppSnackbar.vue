@@ -11,7 +11,9 @@ const ui = useUiStore()
     v-model="ui.snackbar.show"
     :color="ui.snackbar.color"
     :timeout="ui.snackbar.timeout"
+    location="bottom right"
     elevation="2"
+    @update:model-value="(visible) => { if (!visible) ui.dismissSnackbar() }"
   >
     <span class="text-on-primary">{{ ui.snackbar.message }}</span>
     <template v-slot:actions>
@@ -19,7 +21,7 @@ const ui = useUiStore()
         variant="text"
         color="on-primary"
         class="text-none"
-        @click="ui.snackbar.show = false"
+        @click="ui.dismissSnackbar()"
       >
         Fechar
       </v-btn>

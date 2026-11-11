@@ -22,23 +22,27 @@ export function validateCpfDigits(cpf: string): boolean {
   return true
 }
 
-export const rules = {
-  required: (v: unknown) => {
-    if (v === null || v === undefined) return 'Campo obrigatório.'
-    if (typeof v === 'string' && v.trim() === '') return 'Campo obrigatório.'
-    if (Array.isArray(v) && v.length === 0) return 'Campo obrigatório.'
-    return true
-  },
-  email: (v: string) => {
-    if (!v) return true
-    return /.+@.+\..+/.test(v) || 'E-mail inválido.'
-  },
-  minLen: (min: number) => (v: string) => {
-    if (!v) return true
-    return v.length >= min || `Mínimo de ${min} caracteres.`
-  },
-  cpf: (v: string) => {
-    if (!v) return true
-    return validateCpfDigits(v) || 'CPF inválido.'
-  },
+export const required = (v: unknown): true | string => {
+  if (v === null || v === undefined) return 'Campo obrigatório.'
+  if (typeof v === 'string' && v.trim() === '') return 'Campo obrigatório.'
+  if (Array.isArray(v) && v.length === 0) return 'Campo obrigatório.'
+  return true
 }
+
+export const email = (v: string): true | string => {
+  if (!v) return true
+  return /.+@.+\..+/.test(v) || 'E-mail inválido.'
+}
+
+export const minLen = (min: number) => (v: string): true | string => {
+  if (!v) return true
+  return v.length >= min || `Mínimo de ${min} caracteres.`
+}
+
+export const cpf = (v: string): true | string => {
+  if (!v) return true
+  return validateCpfDigits(v) || 'CPF inválido.'
+}
+
+// Mantém também o objeto agrupado
+export const rules = { required, email, minLen, cpf }

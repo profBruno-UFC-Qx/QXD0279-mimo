@@ -9,8 +9,15 @@ async function handleConfirm() {
   try {
     await ui.confirmDialog.onConfirm()
   } finally {
-    ui.confirmDialog.show = false
+    close(true)
   }
+}
+
+function close(confirmed: boolean) {
+  const resolve = ui.confirmDialog.resolve
+  ui.confirmDialog.show = false
+  ui.confirmDialog.open = false
+  resolve(confirmed)
 }
 </script>
 
@@ -29,12 +36,12 @@ async function handleConfirm() {
           variant="outlined"
           color="outline"
           class="text-none px-4 text-primary"
-          @click="ui.confirmDialog.show = false"
+          @click="close(false)"
         >
           {{ ui.confirmDialog.cancelText }}
         </v-btn>
         <v-btn
-          color="primary"
+          :color="ui.confirmDialog.danger ? 'error' : 'primary'"
           class="text-none px-4 ml-2"
           @click="handleConfirm"
         >

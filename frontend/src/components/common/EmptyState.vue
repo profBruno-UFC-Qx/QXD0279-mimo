@@ -6,19 +6,18 @@ defineProps<{
   icon?: string
   title: string
   description?: string
-  actionText?: string
-}>()
-
-defineEmits<{
-  (e: 'action'): void
+  compact?: boolean
 }>()
 </script>
 
 <template>
-  <div class="d-flex flex-column align-center justify-center text-center py-12 px-4">
+  <div
+    class="d-flex flex-column align-center justify-center text-center px-4"
+    :class="compact ? 'py-6' : 'py-12'"
+  >
     <v-icon
-      :icon="icon || 'mdi-folder-open-outline'"
-      size="64"
+      :icon="icon || 'mdi-magnify'"
+      :size="compact ? 40 : 64"
       color="outline"
       class="mb-4"
     />
@@ -26,13 +25,6 @@ defineEmits<{
     <p v-if="description" class="text-body-2 text-medium-emphasis mb-6 max-width-400">
       {{ description }}
     </p>
-    <v-btn
-      v-if="actionText"
-      color="primary"
-      class="text-none px-6"
-      @click="$emit('action')"
-    >
-      {{ actionText }}
-    </v-btn>
+    <div v-if="$slots.action" class="mt-2"><slot name="action" /></div>
   </div>
 </template>

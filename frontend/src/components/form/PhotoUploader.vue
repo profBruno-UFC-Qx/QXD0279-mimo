@@ -1,0 +1,92 @@
+<script setup lang="ts">
+import { ref, watch, onUnmounted } from 'vue'
+
+const props = withDefaults(
+  defineProps<{
+    max?: number
+  }>(),
+  {
+    max: 5,
+  }
+)
+
+const photos = defineModel<File[]>('photos', { default: () => [] })
+const fileInput = ref<File[] | null>(null)
+const previews = ref<string[]>([])
+
+function updatePreviews() {
+  previews.value.forEach((url) => URL.revokeObjectURL(url))
+  previews.value = photos.value.map((file) => URL.createObjectURL(file))
+}
+
+function onFilesSelected(files: File | File[] | null) {
+  if (!files) return
+  const fileArray = Array.isArray(files) ? files : [files]
+  const remainingSlots = props.max - photos.value.length
+  const newFiles = fileArray.slice(0, remainingSlots)
+
+  photos.value = [...photos.value, ...newFiles]
+  fileInput.value = null
+  updatePreviews()
+}
+
+function removePhoto(index: number) {
+  URL.revokeObjectURL(previews.value[index])
+  photos.value = photos.value.filter((_, i) => i !== index)
+  updatePreviews()
+}
+
+watch(photos, () => {
+  updatePreviews()
+}, { immediate: true })
+
+onUnmounted(() => {
+  previews.value.forEach((url) => URL.revokeObjectURL(url))
+})
+</script>
+
+<template>
+  <div>
+    <v-file-input
+      v-model="fileInput"
+      accept="image/*"
+      multiple
+      :label="`Fotos do Item (Máx. ${max})`"
+      prepend-icon="mdi-camera-outline"
+      variant="outlined"
+      density="comfortable"
+      @update:model-value="onFilesSelected"
+      :disabled="photos.length >= max"
+    />
+    <div class="text-caption text-medium-emphasis mb-3">
+      💡 A primeira foto é a capa do item.
+    </div>
+
+    <div v-if="previews.length > 0" class="d-flex flex-wrap gap-3">
+      <div
+        v-for="(url, index) in previews"
+        :key="index"
+        class="position-relative rounded-lg overflow-hidden border"
+        style="width: 90px; height: 90px;"
+      >
+        <v-img :src="url" cover width="100%" height="100%" />
+        <v-btn
+          icon="mdi-close"
+          size="x-small"
+          color="error"
+          variant="flat"
+          class="position-absolute top-0 right-0 ma-1"
+          @click="removePhoto(index)"
+        />
+        <v-chip
+          v-if="index === 0"
+          size="x-small"
+          color="primary"
+          class="position-absolute bottom-0 left-0 ma-1"
+        >
+          Capa
+        </v-chip>
+      </div>
+    </div>
+  </div>
+</template>

@@ -10,6 +10,7 @@ export const useUiStore = defineStore('ui', () => {
     color: 'success',
     timeout: 4000,
   })
+  const snackbarQueue = ref<Array<{ message: string; color: string }>>([])
 
   const confirmDialog = ref({
     show: false,
@@ -26,12 +27,22 @@ export const useUiStore = defineStore('ui', () => {
 
   // actions: Centraliza a configuração do snackbar para que cada notificação reinicie sua duração.
   function showSnackbar(message: string, color = 'success') {
+    if (snackbar.value.show) {
+      snackbarQueue.value.push({ message, color })
+      return
+    }
     snackbar.value = {
       show: true,
       message,
       color,
       timeout: 4000,
     }
+  }
+
+  function dismissSnackbar() {
+    snackbar.value.show = false
+    const next = snackbarQueue.value.shift()
+    if (next) showSnackbar(next.message, next.color)
   }
 
   function notifySuccess(message: string) {
@@ -73,10 +84,12 @@ export const useUiStore = defineStore('ui', () => {
 
   return {
     snackbar,
+    snackbarQueue,
     confirmDialog,
     showSnackbar,
     notifySuccess,
     notifyError,
+    dismissSnackbar,
     confirm,
   }
 })

@@ -1,9 +1,6 @@
 <!--Caixa de alerta padronizada para exibir mensagens de erro em formulários e telas com opção de retry-->
 <script setup lang="ts">
-defineProps<{
-  error?: string | null
-  title?: string
-}>()
+defineProps<{ error?: string | null }>()
 
 defineEmits<{
   (e: 'retry'): void
@@ -12,14 +9,13 @@ defineEmits<{
 
 <template>
   <v-alert
-    v-if="error"
     type="error"
     variant="tonal"
     class="my-4 rounded-lg"
-    :title="title || 'Ocorreu um erro'"
+    title="Não foi possível carregar os dados"
   >
     <div class="d-flex align-center justify-space-between flex-wrap">
-      <span>{{ error }}</span>
+      <span>{{ error || 'Ocorreu um erro inesperado.' }}</span>
       <v-btn
         size="small"
         variant="text"
