@@ -27,4 +27,6 @@ coverage
 
 *.tsbuildinfo
 
+# arqs
 frontend/PlanoImplementação.md
+.env

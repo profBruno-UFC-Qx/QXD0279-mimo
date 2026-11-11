@@ -1,6 +1,9 @@
 import { ref } from 'vue'
 import type { Page, PageQuery } from '@/types'
 
+
+// Composable genérico de paginação. Deve ser chamado por uma view/componente
+// passando como `fetcher` o método de um service; 
 export function usePagination<T>(fetcher: (q: PageQuery) => Promise<Page<T>>) {
   const items = ref<T[]>([]) as any
   const page = ref(1)
@@ -9,6 +12,7 @@ export function usePagination<T>(fetcher: (q: PageQuery) => Promise<Page<T>>) {
   const loading = ref(false)
   const error = ref(false)
 
+  // Busca a página atual pelo service recebido e atualiza os dados e estados da lista.
   async function load(extraParams?: PageQuery) {
     loading.value = true
     error.value = false
