@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import router from '@/router'
 
 // Instância HTTP compartilhada pelos services (componentes e views chamam os services)

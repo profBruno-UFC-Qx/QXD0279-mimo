@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSnackbar from '@/components/common/AppSnackbar.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'

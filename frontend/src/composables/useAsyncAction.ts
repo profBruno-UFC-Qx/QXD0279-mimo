@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { useUiStore } from '@/stores/ui'
+import { useUiStore } from '@/stores/uiStore'
 
 // Composable reutilizável para envolver uma operação assíncrona.
 // Deve ser chamado na configuração de uma view/componente.

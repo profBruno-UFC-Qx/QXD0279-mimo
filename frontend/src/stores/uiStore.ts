@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+// Store de estado visual compartilhado: fornece notificações e confirmação modal.
 export const useUiStore = defineStore('ui', () => {
+  // state: Estado observado pelos componentes globais de snackbar e diálogo de confirmação.
   const snackbar = ref({
     show: false,
     message: '',
@@ -22,6 +24,7 @@ export const useUiStore = defineStore('ui', () => {
     resolve: (val: boolean) => {},
   })
 
+  // actions: Centraliza a configuração do snackbar para que cada notificação reinicie sua duração.
   function showSnackbar(message: string, color = 'success') {
     snackbar.value = {
       show: true,
@@ -39,6 +42,8 @@ export const useUiStore = defineStore('ui', () => {
     showSnackbar(message, 'error')
   }
 
+  // Configura o diálogo global e prepara uma Promise para o chamador aguardar a escolha.
+  // O componente precisa chamar resolve quando o usuário confirmar ou cancelar.
   function confirm(options: {
     title: string
     text?: string

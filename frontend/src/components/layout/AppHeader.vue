@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore.ts'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
 

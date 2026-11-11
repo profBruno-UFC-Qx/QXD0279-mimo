@@ -3,7 +3,7 @@
   gerenciado pela uiStore.
 -->
 <script setup lang="ts">
-import { useUiStore } from '@/stores/ui'
+import { useUiStore } from '@/stores/uiStore'
 
 const ui = useUiStore()
 

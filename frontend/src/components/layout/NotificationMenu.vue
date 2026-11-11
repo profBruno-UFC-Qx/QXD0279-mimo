@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { notificationService } from '@/services/notification.service'
 import type { Notification } from '@/types'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@/stores/authStore'
 
 const auth = useAuthStore()
 const unreadCount = ref(0)
