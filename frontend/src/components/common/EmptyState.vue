@@ -1,7 +1,6 @@
-<!--
-  Funcionalidade: Exibe um estado vazio ilustrado com ícone, título, descrição opcional e botão de ação
-  quando tabelas ou listas não possuem registros.
--->
+<!--Funcionalidade: Exibe um estado vazio ilustrado com ícone, título, descrição opcional e botão de ação
+quando tabelas ou listas não possuem registros-->
+
 <script setup lang="ts">
 defineProps<{
   icon?: string

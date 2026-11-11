@@ -1,7 +1,5 @@
-<!--
-  Exibe notificações globais de feedback (sucesso, erro, aviso) no rodapé da aplicação,
-  controlado centralmente pela uiStore.
--->
+<!--Exibe notificações globais de feedback (sucesso, erro, aviso) no rodapé da aplicação,
+controlado centralmente pela uiStore-->
 <script setup lang="ts">
 import { useUiStore } from '@/stores/uiStore'
 

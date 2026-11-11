@@ -1,6 +1,4 @@
-<!--
-  Caixa de alerta padronizada para exibir mensagens de erro em formulários e telas com opção de retry.
--->
+<!--Caixa de alerta padronizada para exibir mensagens de erro em formulários e telas com opção de retry-->
 <script setup lang="ts">
 defineProps<{
   error?: string | null

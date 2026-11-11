@@ -1,6 +1,4 @@
-<!--
-  Rodapé padronizado de paginação contendo o total de registros e controles de navegação de páginas.
--->
+<!--Rodapé padronizado de paginação contendo o total de registros e controles de navegação de páginas.-->
 <script setup lang="ts">
 defineProps<{
   page: number

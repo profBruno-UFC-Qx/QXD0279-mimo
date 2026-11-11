@@ -1,7 +1,5 @@
-<!--
-  Exibe chips coloridos com ícones para indicar o status de itens (disponível, elegível, etc.)
-  ou de relatos de perdas (aberto, resolvido, cancelado) utilizando exclusivamente as cores do tema.
--->
+<!--Exibe chips coloridos com ícones para indicar o status de itens (disponível, elegível, etc.)
+ou de relatos de perdas (aberto, resolvido, cancelado) utilizando exclusivamente as cores do tema.-->
 <script setup lang="ts">
 import { computed } from 'vue'
 

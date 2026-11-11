@@ -1,7 +1,5 @@
-<!--
-  Modal de confirmação reutilizável para ações críticas (ex.: exclusão, cancelamento),
-  gerenciado pela uiStore.
--->
+<!--Modal de confirmação reutilizável para ações críticas (ex.: exclusão, cancelamento),
+gerenciado pela uiStore-->
 <script setup lang="ts">
 import { useUiStore } from '@/stores/uiStore'
 

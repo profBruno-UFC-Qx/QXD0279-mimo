@@ -1,6 +1,4 @@
-<!--
-  Exibe um indicador circular de carregamento centralizado enquanto dados assíncronos são processados.
--->
+<!--Exibe um indicador circular de carregamento centralizado enquanto dados assíncronos são processados-->
 <script setup lang="ts">
 defineProps<{
   loading?: boolean
