@@ -15,7 +15,7 @@ const metadata = computed(() => {
 </script>
 
 <template>
-  <v-chip :color="metadata.color" size="small" variant="tonal" rounded="pill">
+  <v-chip :color="metadata.color" size="small" variant="outlined" rounded="sm" class="font-weight-medium">
     {{ metadata.label }}
   </v-chip>
 </template>

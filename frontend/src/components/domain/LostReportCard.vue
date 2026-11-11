@@ -11,7 +11,13 @@ defineProps<{ lostReport: LostReport }>()
     <v-card-title class="text-wrap">{{ lostReport.title }}</v-card-title>
     <v-card-text>
       <div class="d-flex flex-wrap ga-2 mb-3">
-        <v-chip v-if="lostReport.category?.name" size="small" variant="tonal" color="primary">
+        <v-chip
+          v-if="lostReport.category?.name"
+          size="small"
+          variant="outlined"
+          color="grey-darken-1"
+          rounded="sm"
+        >
           {{ lostReport.category.name }}
         </v-chip>
         <StatusChip :status="lostReport.status" kind="lostReport" />

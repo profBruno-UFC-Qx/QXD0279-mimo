@@ -60,7 +60,13 @@ onMounted(() => { void loadItem() })
       <v-col cols="12" md="6">
         <div class="d-flex flex-wrap ga-2 mb-3">
           <StatusChip :status="details.item.status" kind="item" />
-          <v-chip v-if="details.item.category?.name" color="primary" variant="tonal" size="small">
+          <v-chip
+            v-if="details.item.category?.name"
+            color="grey-darken-1"
+            variant="outlined"
+            size="small"
+            rounded="sm"
+          >
             {{ details.item.category.name }}
           </v-chip>
         </div>

@@ -20,7 +20,13 @@ defineProps<{ item: Item | PublicCatalogItem }>()
     </div>
     <v-card-text class="d-flex flex-column flex-grow-1">
       <div class="d-flex flex-wrap ga-2 mb-3">
-        <v-chip v-if="item.category?.name" size="small" variant="tonal" color="primary">
+        <v-chip
+          v-if="item.category?.name"
+          size="small"
+          variant="outlined"
+          color="grey-darken-1"
+          rounded="sm"
+        >
           {{ item.category.name }}
         </v-chip>
         <StatusChip :status="item.status" kind="item" />
