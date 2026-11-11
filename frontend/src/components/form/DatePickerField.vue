@@ -1,24 +1,29 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { formatDate } from '@/utils/format'
+import { required as requiredRule, type ValidationRule } from '@/utils/rules'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   label?: string
-  rules?: any[]
+  rules?: ValidationRule[]
+  required?: boolean
   clearable?: boolean
-}>()
+  minDate?: string
+}>(), { required: false, clearable: true })
 
 const modelValue = defineModel<string | null | undefined>()
 const menu = ref(false)
+const rules = computed(() => [...(props.rules ?? []), ...(props.required ? [requiredRule] : [])])
+const fieldLabel = computed(() => `${props.label ?? 'Data'}${props.required ? ' *' : ''}`)
 
 const formattedDate = computed(() => {
   if (!modelValue.value) return ''
   return formatDate(modelValue.value)
 })
 
-function onDateChange(val: any) {
-  if (val) {
-    const d = new Date(val)
+function onDateChange(value: string | Date | null) {
+  if (value) {
+    const d = value instanceof Date ? value : new Date(value)
     if (!isNaN(d.getTime())) {
       modelValue.value = d.toISOString().split('T')[0]
     }
@@ -41,9 +46,9 @@ function onDateChange(val: any) {
       <v-text-field
         v-bind="menuProps"
         :model-value="formattedDate"
-        :label="label"
+        :label="fieldLabel"
         :rules="rules"
-        :clearable="clearable"
+        :clearable="props.clearable"
         readonly
         prepend-inner-icon="mdi-calendar"
         variant="outlined"
@@ -52,7 +57,8 @@ function onDateChange(val: any) {
       />
     </template>
     <v-date-picker
-      v-model="modelValue"
+      :model-value="modelValue"
+      :min="props.minDate"
       @update:model-value="onDateChange"
       color="primary"
     />

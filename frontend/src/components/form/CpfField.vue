@@ -36,12 +36,13 @@ const rules = computed(() => {
   r.push(cpfRule)
   return r
 })
+const fieldLabel = computed(() => `${props.label}${props.required ? ' *' : ''}`)
 </script>
 
 <template>
   <v-text-field
     v-model="displayValue"
-    :label="label"
+    :label="fieldLabel"
     :rules="rules"
     placeholder="___.___.___-__"
     maxlength="14"

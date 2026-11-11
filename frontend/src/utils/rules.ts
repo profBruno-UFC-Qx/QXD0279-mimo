@@ -29,19 +29,24 @@ export const required = (v: unknown): true | string => {
   return true
 }
 
-export const email = (v: string): true | string => {
-  if (!v) return true
-  return /.+@.+\..+/.test(v) || 'E-mail inválido.'
+export type ValidationRule = (value: unknown) => true | string
+
+export const email: ValidationRule = (value) => {
+  if (value === null || value === undefined || value === '') return true
+  if (typeof value !== 'string') return 'E-mail inválido.'
+  return /.+@.+\..+/.test(value) || 'E-mail inválido.'
 }
 
-export const minLen = (min: number) => (v: string): true | string => {
-  if (!v) return true
-  return v.length >= min || `Mínimo de ${min} caracteres.`
+export const minLen = (min: number): ValidationRule => (value) => {
+  if (value === null || value === undefined || value === '') return true
+  if (typeof value !== 'string') return `Mínimo de ${min} caracteres.`
+  return value.length >= min || `Mínimo de ${min} caracteres.`
 }
 
-export const cpf = (v: string): true | string => {
-  if (!v) return true
-  return validateCpfDigits(v) || 'CPF inválido.'
+export const cpf: ValidationRule = (value) => {
+  if (value === null || value === undefined || value === '') return true
+  if (typeof value !== 'string') return 'CPF inválido.'
+  return validateCpfDigits(value) || 'CPF inválido.'
 }
 
 // Mantém também o objeto agrupado

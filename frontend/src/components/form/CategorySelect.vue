@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useCategoriesStore } from '@/stores/categoriesStore'
+import { required as requiredRule, type ValidationRule } from '@/utils/rules'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   label?: string
-  rules?: any[]
+  rules?: ValidationRule[]
+  required?: boolean
   clearable?: boolean
   placeholder?: string
-}>()
+}>(), { required: false })
 
 const modelValue = defineModel<number | null | undefined>()
 const categoriesStore = useCategoriesStore()
+const rules = computed(() => [...(props.rules ?? []), ...(props.required ? [requiredRule] : [])])
+const fieldLabel = computed(() => `${props.label ?? 'Categoria'}${props.required ? ' *' : ''}`)
 
 onMounted(() => {
   categoriesStore.ensureLoaded()
@@ -23,7 +27,7 @@ onMounted(() => {
     :items="categoriesStore.items"
     item-title="name"
     item-value="id"
-    :label="label ?? 'Categoria'"
+    :label="fieldLabel"
     :rules="rules"
     :clearable="clearable ?? true"
     :placeholder="placeholder ?? 'Selecione a categoria'"

@@ -1,18 +1,27 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
+import { computed } from 'vue'
+import { required as requiredRule, type ValidationRule } from '@/utils/rules'
 
 const props = withDefaults(
   defineProps<{
     max?: number
+    label?: string
+    required?: boolean
+    rules?: ValidationRule[]
   }>(),
   {
     max: 5,
+    label: 'Fotos do item',
+    required: false,
   }
 )
 
 const photos = defineModel<File[]>('photos', { default: () => [] })
 const fileInput = ref<File[] | null>(null)
 const previews = ref<string[]>([])
+const fieldRules = computed(() => [...(props.rules ?? []), ...(props.required ? [requiredRule] : [])])
+const fieldLabel = computed(() => `${props.label}${props.required ? ' *' : ''} (máx. ${props.max})`)
 
 function updatePreviews() {
   previews.value.forEach((url) => URL.revokeObjectURL(url))
@@ -51,7 +60,8 @@ onUnmounted(() => {
       v-model="fileInput"
       accept="image/*"
       multiple
-      :label="`Fotos do Item (Máx. ${max})`"
+      :label="fieldLabel"
+      :rules="fieldRules"
       prepend-icon="mdi-camera-outline"
       variant="outlined"
       density="comfortable"

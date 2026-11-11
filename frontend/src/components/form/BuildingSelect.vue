@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useBuildingsStore } from '@/stores/buildingsStore'
+import { required as requiredRule, type ValidationRule } from '@/utils/rules'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   label?: string
-  rules?: any[]
+  rules?: ValidationRule[]
+  required?: boolean
   clearable?: boolean
   placeholder?: string
-}>()
+}>(), { required: false })
 
 const modelValue = defineModel<number | null | undefined>()
 const buildingsStore = useBuildingsStore()
+const rules = computed(() => [...(props.rules ?? []), ...(props.required ? [requiredRule] : [])])
+const fieldLabel = computed(() => `${props.label ?? 'Prédio'}${props.required ? ' *' : ''}`)
 
 onMounted(() => {
   buildingsStore.ensureLoaded()
@@ -23,7 +27,7 @@ onMounted(() => {
     :items="buildingsStore.items"
     item-title="name"
     item-value="id"
-    :label="label ?? 'Prédio'"
+    :label="fieldLabel"
     :rules="rules"
     :clearable="clearable ?? true"
     :placeholder="placeholder ?? 'Selecione o prédio'"
