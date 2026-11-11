@@ -22,11 +22,11 @@ defineEmits<{
           />
         </v-col>
         <slot />
-        <v-col cols="12" md="auto" class="d-flex align-center gap-2 mt-2 mt-md-0">
+        <v-col cols="12" md="auto" class="d-flex align-center mt-2 mt-md-0">
           <v-btn
             type="submit"
             color="primary"
-            class="text-none px-6"
+            class="text-none px-6 mr-2"
             prepend-icon="mdi-filter-outline"
           >
             Filtrar

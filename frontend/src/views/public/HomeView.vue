@@ -59,10 +59,20 @@ onMounted(() => { void load(filters.value) })
 
   <FilterBar v-model:q="queryText" @submit="applyFilters" @clear="clearFilters">
     <v-col cols="12" md="3">
-      <BuildingSelect v-model="buildingId" label="Prédio" placeholder="Todos os prédios" />
+      <BuildingSelect
+        v-model="buildingId"
+        label="Prédio"
+        placeholder="Todos os prédios"
+        hide-details
+      />
     </v-col>
     <v-col cols="12" md="3">
-      <CategorySelect v-model="categoryId" label="Categoria" placeholder="Todas as categorias" />
+      <CategorySelect
+        v-model="categoryId"
+        label="Categoria"
+        placeholder="Todas as categorias"
+        hide-details
+      />
     </v-col>
   </FilterBar>
 

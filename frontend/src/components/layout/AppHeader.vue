@@ -21,7 +21,8 @@ const auth = useAuthStore()
       <v-btn
         variant="text"
         to="/"
-        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        exact
+        class="text-none font-weight-medium px-4 text-grey-darken-3 mr-2"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-format-list-bulleted"
       >
@@ -30,7 +31,8 @@ const auth = useAuthStore()
       <v-btn
         variant="text"
         to="/predios"
-        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        exact
+        class="text-none font-weight-medium px-4 text-grey-darken-3 mr-2"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-domain"
       >
@@ -40,6 +42,7 @@ const auth = useAuthStore()
         v-if="auth.isLoggedIn"
         variant="text"
         to="/minhas-perdas"
+        exact
         class="text-none font-weight-medium px-4 text-grey-darken-3"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-alert-box-outline"
