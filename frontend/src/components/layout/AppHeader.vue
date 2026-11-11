@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
 
 const auth = useAuthStore()
+const route = useRoute()
+const isLoginRoute = computed(() => route.path === '/entrar')
 </script>
 
 <template>
@@ -57,8 +61,9 @@ const auth = useAuthStore()
     <div class="d-flex align-center">
       <template v-if="!auth.isLoggedIn">
         <v-btn
-          variant="tonal"
+          :variant="isLoginRoute ? 'tonal' : 'text'"
           to="/entrar"
+          exact
           class="text-none mr-2 font-weight-medium text-primary"
         >
           Entrar
@@ -66,6 +71,7 @@ const auth = useAuthStore()
         <v-btn
           color="primary"
           to="/registrar"
+          exact
           class="text-none font-weight-medium"
         >
           Criar conta

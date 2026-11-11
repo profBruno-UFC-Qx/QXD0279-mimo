@@ -6,7 +6,9 @@ defineProps<{ building: Building }>()
 
 <template>
   <v-card class="h-100">
-    <v-card-title>{{ building.name }}</v-card-title>
+    <v-card-title class="text-h6 font-weight-bold pb-2">
+      {{ building.name }}
+    </v-card-title>
     <v-card-text>
       <p>{{ building.address }}</p>
       <v-divider class="my-4" />
