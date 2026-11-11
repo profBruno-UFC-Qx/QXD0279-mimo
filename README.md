@@ -1,5 +1,8 @@
-# :checkered_flag: NOME DO PROJETO
+# :checkered_flag: Achadex
 
-Breve descrição do que o seu projeto faz — atualize esta seção conforme o projeto evoluir.
+Em backend/
+- npm run seed para popular a tabela
+- npm run dev para executar o back
 
-> A proposta do projeto está em [`PROPOSTA.md`](PROPOSTA.md) e a documentação de entrega final em [`ENTREGA.md`](ENTREGA.md).
+No frontend/
+- npm run dev para executar o front

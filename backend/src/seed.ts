@@ -15,16 +15,16 @@ import { UserRole, ItemStatus, LostReportStatus, DispositionType, NotificationTy
 import { hashPassword } from './shared/password.js';
 
 async function seed() {
-  console.log('🌱 Iniciando o povoamento do banco de dados do Achadex...');
+  console.log('Iniciando o povoamento do banco de dados do Achadex...');
 
   await AppDataSource.initialize();
-  console.log('📦 Conexão com o banco de dados estabelecida.');
+  console.log('Conexão com o banco de dados estabelecida.');
 
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
 
   // Limpar tabelas existentes na ordem correta de dependência (de baixo para cima)
-  console.log('🧹 Limpando dados anteriores...');
+  console.log('Limpando dados anteriores...');
   await queryRunner.query('DELETE FROM notifications');
   await queryRunner.query('DELETE FROM dispositions');
   await queryRunner.query('DELETE FROM handovers');
@@ -48,7 +48,7 @@ async function seed() {
   const notificationRepository = AppDataSource.getRepository(Notification);
 
   // 1. Criar Superadmin e Admin
-  console.log('👤 Criando usuários administradores...');
+  console.log('Criando usuários administradores...');
   const hashedPassword = await hashPassword('Senha123!');
 
   const superadmin = await userRepository.save(
@@ -72,7 +72,7 @@ async function seed() {
   );
 
   // 2. Criar Usuários Normais (25 usuários)
-  console.log('👥 Criando 25 usuários comuns...');
+  console.log('Criando 25 usuários comuns...');
   const firstNames = ['Ana', 'Bruno', 'Carla', 'Daniel', 'Eduarda', 'Felipe', 'Gabriela', 'Henrique', 'Isabela', 'João', 'Karina', 'Lucas', 'Mariana', 'Nicolas', 'Olivia', 'Pedro', 'Rafaela', 'Samuel', 'Tatiane', 'Vitor', 'Yasmin', 'Zeca', 'Beatriz', 'Diego', 'Camila'];
   const lastNames = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves', 'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho', 'Almeida', 'Lopes', 'Soares', 'Fernandes', 'Vieira', 'Barbosa'];
 
@@ -93,14 +93,14 @@ async function seed() {
   }
 
   // 3. Criar Prédios (Buildings - 6 unidades)
-  console.log('🏢 Criando prédios do campus...');
+  console.log('Criando prédios do campus...');
   const buildingsData = [
-    { name: 'Prédio Central', address: 'Av. Principal, 1000 - Campus Universitário', pickupPoint: 'Portaria Principal - Achados e Perdidos', serviceHours: 'Segunda a Sexta, das 08:00 às 18:00' },
-    { name: 'Biblioteca Reitora Maria', address: 'Praça das Letras, 200 - Campus Universitário', pickupPoint: 'Balcão de Atendimento do Térreo', serviceHours: 'Segunda a Sábado, das 07:00 às 22:00' },
-    { name: 'Centro de Tecnologia (CT)', address: 'Rua dos Engenheiros, 500 - Campus Universitário', pickupPoint: 'Sala da Administração do Bloco A', serviceHours: 'Segunda a Sexta, das 09:00 às 17:00' },
-    { name: 'Faculdade de Direito', address: 'Largo da Justiça, 50 - Centro', pickupPoint: 'Secretaria Acadêmica', serviceHours: 'Segunda a Sexta, das 08:00 às 19:00' },
-    { name: 'Refeitório Universitário (RU)', address: 'Av. da Fome, 300 - Campus Universitário', pickupPoint: 'Sala da Nutrição e Apoio', serviceHours: 'Segunda a Sexta, das 11:00 às 14:30' },
-    { name: 'Hospital das Clínicas (HC)', address: 'Av. da Saúde, 1500 - Zona Leste', pickupPoint: 'Serviço Social - Térreo', serviceHours: 'Segunda a Domingo, 24 horas' },
+    { name: 'Reitoria da UFC', address: 'Av. da Universidade, 2853 - Benfica, Fortaleza - CE, CEP 60020-181', pickupPoint: 'Recepção da Reitoria - térreo', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
+    { name: 'Centro de Tecnologia (CT)', address: 'Campus do Pici, Av. Humberto Monte, s/n - Pici, Fortaleza - CE', pickupPoint: 'Secretaria administrativa do Centro de Tecnologia', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
+    { name: 'Faculdade de Direito (FADIR)', address: 'Rua Meton de Alencar, s/n - Centro, Fortaleza - CE', pickupPoint: 'Recepção da Faculdade de Direito', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
+    { name: 'Restaurante Universitário - Campus do Pici', address: 'Campus do Pici, Av. Humberto Monte, s/n - Pici, Fortaleza - CE', pickupPoint: 'Guichê de atendimento do Restaurante Universitário', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
+    { name: 'Hospital Universitário Walter Cantídio (HUWC)', address: 'Rua Pastor Samuel Munguba, 1290 - Rodolfo Teófilo, Fortaleza - CE', pickupPoint: 'Recepção principal do Hospital Universitário', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
+    { name: 'Instituto de Ciências do Mar (Labomar)', address: 'Av. da Abolição, 3207 - Meireles, Fortaleza - CE', pickupPoint: 'Recepção do Instituto de Ciências do Mar', serviceHours: 'Segunda a sexta, das 08:00 às 17:00' },
   ];
 
   const buildings: Building[] = [];
@@ -109,27 +109,30 @@ async function seed() {
     buildings.push(building);
   }
 
-  // 4. Criar Categorias (8 categorias)
-  console.log('🏷️ Criando categorias de itens...');
+  // 4. Criar Categorias (9 categorias)
+  console.log('Criando categorias de itens...');
   const categoriesData = [
-    'Eletrônicos e Gadgets',
-    'Documentos e Cartões',
-    'Chaves e Chaveiros',
-    'Roupas e Agasalhos',
-    'Livros, Cadernos e Apostilas',
-    'Bolsas, Mochilas e Carteiras',
-    'Óculos e Relógios',
-    'Garrafas, Copos e Squeezes',
+    'Eletrônicos',
+    'Documentos',
+    'Chaves',
+    'Vestuário',
+    'Papelaria',
+    'Bolsas',
+    'Acessórios',
+    'Garrafas',
+    'Outros',
   ];
+
 
   const categories: Category[] = [];
   for (const cName of categoriesData) {
     const cat = await categoryRepository.save(categoryRepository.create({ name: cName }));
     categories.push(cat);
   }
+  const categoriesByName = new Map(categories.map((category) => [category.name, category]));
 
   // 5. Criar Regras de Destinação (Disposition Rules)
-  console.log('📋 Criando regras de destinação...');
+  console.log('Criando regras de destinação...');
   await dispositionRuleRepository.save([
     dispositionRuleRepository.create({ days: 30, destination: DispositionType.DONATED, active: true, locked: true, createdBy: superadmin.id }),
     dispositionRuleRepository.create({ days: 60, destination: DispositionType.SOLD, active: true, locked: false, createdBy: superadmin.id }),
@@ -137,23 +140,100 @@ async function seed() {
   ]);
 
   // 6. Criar Itens Achados (Items - 120 itens com variedade de status)
-  console.log('📦 Criando 120 itens achados realistas...');
+  console.log('Criando 120 itens achados realistas...');
+
+
   const itemTemplates = [
-    { title: 'iPhone 13 Pro Max Azul', desc: 'Aparelho celular com capa protetora transparente e pelagem trincada no canto superior.', catIdx: 0 },
-    { title: 'MacBook Air M1 Cinza Espacial', desc: 'Notebook com adesivos de programação na tampa. Carregador original incluso.', catIdx: 0 },
-    { title: 'Fone de Ouvido AirPods Pro', desc: 'Estojo de carregamento branco com marcas de uso.', catIdx: 0 },
-    { title: 'Carteira de Couro Marrom com CNH', desc: 'Contém documentos em nome de Carlos Silva, cartões de crédito e R$ 45 em espécie.', catIdx: 5 },
-    { title: 'RG e Cartão do Metrô', desc: 'Documento de identidade estudantil e bilhete único.', catIdx: 1 },
-    { title: 'Chaveiro com Chaves de Carro Ford e Casa', desc: 'Chaveiro de pelúcia em formato de panda.', catIdx: 2 },
-    { title: 'Moletom Preto Universitário G', desc: 'Moletom com capuz, estampa do curso de Engenharia.', catIdx: 3 },
-    { title: 'Jaqueta Jeans Azul Escuro M', desc: 'Marca Levi\'s, bolsos internos contendo lenços de papel.', catIdx: 3 },
-    { title: 'Livro "Calculo A - Stewart 7ª Edição"', desc: 'Livro em bom estado com anotações a lápis nas margens.', catIdx: 4 },
-    { title: 'Caderno Espiral 10 Matérias Tilibra', desc: 'Capa azul com adesivos de física quântica.', catIdx: 4 },
-    { title: 'Mochila Executiva Preto Targus', desc: 'Mochila impermeável com compartimento para notebook de até 15.6 polegadas.', catIdx: 5 },
-    { title: 'Óculos de Sol Ray-Ban Aviador', desc: 'Armação dourada com lentes escuras degradê, acompanha estojo.', catIdx: 6 },
-    { title: 'Relógio Casio Vintage Digital', desc: 'Pulseira de aço prateado.', catIdx: 6 },
-    { title: 'Garrafa Térmica Stanley Verde 750ml', desc: 'Garrafa com arranhões na base.', catIdx: 7 },
-    { title: 'Squeeze Inox Azul 500ml', desc: 'Com adesivo de academia.', catIdx: 7 },
+  {
+    title: 'iPhone 13',
+    desc: 'Estava com capinha transparente já meio amarelada e tem um trincado pequeno na película, bem no canto de cima. A tela de bloqueio tem foto de um cachorro.',
+    category: 'Eletrônicos',
+    photoUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&h=400&fit=crop',
+  },
+  {
+    title: 'MacBook Air M1',
+    desc: 'Tem vários adesivos de linguagens de programação e Linux colados na tampa. Estava dentro de uma capa cinza junto com o carregador original.',
+    category: 'Eletrônicos',
+    photoUrl: 'https://images.pexels.com/photos/129205/pexels-photo-129205.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Fone de Ouvido AirPods',
+    desc: 'Caixinha branca meio arranhada de ficar no bolso. Só está com o fone do lado direito dentro, o esquerdo não estava junto.',
+    category: 'Eletrônicos',
+    photoUrl: 'https://images.pexels.com/photos/3921872/pexels-photo-3921872.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Carteira de Couro com CNH',
+    desc: 'Carteira marrom um pouco gasta. Tem CNH em nome de Carlos Silva, cartão do banco roxo, carteirinha do RU e algumas notas trocadas.',
+    category: 'Bolsas',
+    photoUrl: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=600&h=400&fit=crop',
+  },
+  {
+    title: 'RG e Cartão',
+    desc: 'Encontrado caído perto da catraca. Estão juntos em um plástico transparente: um RG e um cartão de passe estudantil.',
+    category: 'Documentos',
+    photoUrl: 'https://images.pexels.com/photos/7108126/pexels-photo-7108126.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Chaveiro',
+    desc: 'Molho com três chaves comuns e uma tag azul de condomínio, preso num chaveiro de pelúcia de panda meio sujinho.',
+    category: 'Chaves',
+    photoUrl: 'https://images.pexels.com/photos/14721/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Moletom Preto',
+    desc: 'Tamanho G, com estampa da atlética de Engenharia nas costas. Estava dobrado em cima de uma carteira no fundo da sala.',
+    category: 'Vestuário',
+    photoUrl: 'https://images.pexels.com/photos/28701960/pexels-photo-28701960/free-photo-of-young-man-in-black-hoodie-against-gray-background.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Jaqueta Jeans Azul',
+    desc: 'Lavagem clara, tamanho M. Tem um pacote de lenços e um ingresso de cinema amassado no bolso de dentro.',
+    category: 'Vestuário',
+    photoUrl: 'https://images.pexels.com/photos/36607477/pexels-photo-36607477/free-photo-of-stylish-man-posing-in-dark-denim-outfit.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Livro "Calculo A - Stewart 7ª Edição"',
+    desc: 'Capa bem surrada nas pontas, com várias anotações a lápis e post-its coloridos marcando os capítulos de derivadas.',
+    category: 'Papelaria',
+    photoUrl: 'https://images.pexels.com/photos/240163/pexels-photo-240163.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Caderno',
+    desc: 'Caderno universitário de 10 matérias, capa azul com adesivos de física e uma folha solta com lista de exercícios no meio.',
+    category: 'Papelaria',
+    photoUrl: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Mochila Preta',
+    desc: 'Mochila de lona preta com um zíper lateral meio emperrado. Dentro tem apenas um guarda-chuva dobrável e um carregador.',
+    category: 'Bolsas',
+    photoUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Óculos de Sol Aviador',
+    desc: 'Armação dourada fina e lentes escuras. Estava solto em cima da mesa da cantina, sem a caixinha.',
+    category: 'Acessórios',
+    photoUrl: 'https://images.pexels.com/photos/26575042/pexels-photo-26575042.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Relógio Casio',
+    desc: 'Modelo clássico prateado digital, com uns risquinhos leves no vidro e fecho um pouco frouxo.',
+    category: 'Acessórios',
+    photoUrl: 'https://images.pexels.com/photos/39102103/pexels-photo-39102103.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Garrafa Stanley',
+    desc: 'Garrafa térmica verde musgo, com um amassado pequeno na parte de baixo e sem a tampa protetora do bocal.',
+    category: 'Garrafas',
+    photoUrl: 'https://images.pexels.com/photos/8330506/pexels-photo-8330506.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
+  {
+    title: 'Estojo',
+    desc: 'Estojo preto de tecido bem cheio, com várias canetas coloridas, marca-texto amarelo, borracha e uma lapiseira 0.7.',
+    category: 'Papelaria',
+    photoUrl: 'https://images.pexels.com/photos/37187501/pexels-photo-37187501.jpeg?auto=compress&cs=tinysrgb&w=600&h=400&fit=crop',
+  },
   ];
 
   const statuses = [ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE, ItemStatus.HANDED_OVER, ItemStatus.SOLD, ItemStatus.DONATED, ItemStatus.DISCARDED];
@@ -162,7 +242,10 @@ async function seed() {
   for (let i = 1; i <= 120; i++) {
     const template = itemTemplates[(i - 1) % itemTemplates.length];
     const building = buildings[(i * 3) % buildings.length];
-    const category = categories[template.catIdx];
+    const category = categoriesByName.get(template.category);
+    if (!category) {
+      throw new Error(`Categoria "${template.category}" não encontrada para o item "${template.title}".`);
+    }
     const status = statuses[i % statuses.length];
     
     // Gerar data nos últimos 120 dias
@@ -172,8 +255,8 @@ async function seed() {
 
     const item = await itemRepository.save(
       itemRepository.create({
-        title: `${template.title} #${i}`,
-        description: `${template.desc} (Encontrado no bloco ${building.name})`,
+        title: `${template.title}`,
+        description: `${template.desc}`,
         categoryId: category.id,
         buildingId: building.id,
         foundLocation: `Corredor principal próximo à sala ${100 + (i % 50)}`,
@@ -184,21 +267,13 @@ async function seed() {
       })
     );
 
-    // Adicionar 1 ou 2 fotos para cada item
-    await itemPhotoRepository.save([
+    // Usa a imagem definida no template para manter a foto relacionada ao item.
+    await itemPhotoRepository.save(
       itemPhotoRepository.create({
         itemId: item.id,
-        url: `https://picsum.photos/seed/achadex-item-${item.id}-1/600/400`,
-      }),
-    ]);
-    if (i % 2 === 0) {
-      await itemPhotoRepository.save([
-        itemPhotoRepository.create({
-          itemId: item.id,
-          url: `https://picsum.photos/seed/achadex-item-${item.id}-2/600/400`,
-        }),
-      ]);
-    }
+        url: template.photoUrl,
+      })
+    );
 
     // Se o status for HANDED_OVER, criar handover
     if (status === ItemStatus.HANDED_OVER) {
@@ -235,7 +310,7 @@ async function seed() {
   }
 
   // 7. Criar Registros de Perda (Lost Reports - 40 registros)
-  console.log('🔍 Criando 40 registros de objetos perdidos...');
+  console.log('Criando 40 registros de objetos perdidos...');
   const lostReportStatuses = [LostReportStatus.OPEN, LostReportStatus.RESOLVED, LostReportStatus.CANCELLED];
   
   for (let i = 1; i <= 40; i++) {
@@ -264,7 +339,7 @@ async function seed() {
   }
 
   // 8. Criar Notificações (Notifications)
-  console.log('🔔 Criando notificações para os usuários...');
+  console.log('Criando notificações para os usuários...');
   for (let i = 1; i <= 30; i++) {
     const user = users[i % users.length];
     const type = [NotificationType.MATCH_FOUND, NotificationType.ITEM_CLAIMED, NotificationType.REPORT_RESOLVED][i % 3];
@@ -279,8 +354,8 @@ async function seed() {
     );
   }
 
-  console.log('✨ Povoamento do banco de dados concluído com sucesso!');
-  console.log('🔑 Credenciais úteis para teste:');
+  console.log('Povoamento do banco de dados concluído com sucesso!');
+  console.log('Credenciais úteis para teste:');
   console.log('   - Superadmin: superadmin@achadex.com / Senha123!');
   console.log('   - Admin:      admin@achadex.com / Senha123!');
   console.log('   - Usuários:   usuario1@achadex.com até usuario25@achadex.com / Senha123!');
@@ -290,6 +365,6 @@ async function seed() {
 }
 
 seed().catch((err) => {
-  console.error('❌ Erro durante o povoamento do banco de dados:', err);
+  console.error('Erro durante o povoamento do banco de dados:', err);
   process.exit(1);
 });
