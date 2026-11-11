@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/authStore.ts'
+import { useAuthStore } from '@/stores/authStore'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
 
@@ -7,53 +7,71 @@ const auth = useAuthStore()
 </script>
 
 <template>
-  <v-app-bar flat color="primary" class="px-4" elevation="0">
+  <v-app-bar flat color="surface" border class="px-4" elevation="0">
     <!-- Logo / Nome à esquerda -->
     <v-app-bar-title class="font-weight-bold d-flex align-center">
-      <router-link to="/items" class="text-decoration-none d-flex align-center" style="color: #FFFFFF;">
-        <v-icon icon="mdi-archive-search" size="28" class="mr-2" style="color: #FFFFFF;" />
-        <span class="text-h6 font-weight-black tracking-wide" style="color: #FFFFFF;">Achadex</span>
+      <router-link to="/" class="text-decoration-none d-flex align-center text-primary">
+        <v-icon icon="mdi-archive-search" size="28" class="mr-2" color="primary" />
+        <span class="text-h6 font-weight-black tracking-wide">Achadex</span>
       </router-link>
     </v-app-bar-title>
 
-    <!-- Navegação central/esquerda -->
+    <!-- Navegação central -->
     <div class="d-none d-md-flex align-center ml-6"> 
       <v-btn
         variant="text"
-        to="/items"
-        style="color: on-primary;";
-        class="text-none font-weight-medium px-4"
+        to="/"
+        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        active-class="text-primary font-weight-bold"
         prepend-icon="mdi-format-list-bulleted"
       >
         Itens
       </v-btn>
       <v-btn
         variant="text"
-        to="/buildings"
-        style="color: on-primary;"
-        class="text-none font-weight-medium px-4"
+        to="/predios"
+        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        active-class="text-primary font-weight-bold"
         prepend-icon="mdi-domain"
       >
         Prédios
       </v-btn>
       <v-btn
-        v-if="auth.isAuthenticated"
+        v-if="auth.isLoggedIn"
         variant="text"
-        to="/lost-reports"
-        style="color: on-primary;"
-        class="text-none font-weight-medium px-4"
+        to="/minhas-perdas"
+        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        active-class="text-primary font-weight-bold"
         prepend-icon="mdi-alert-box-outline"
       >
-        Minhas Perdas
+        Minhas perdas
       </v-btn>
     </div>
 
     <v-spacer />
 
-    <!-- A direita: Sino de notificação e Perfil -->
+    <!-- A direita: deslogado (Entrar / Criar conta) ou logado (Sino + UserMenu) -->
     <div class="d-flex align-center">
-      <NotificationMenu />
-      <UserMenu />
+      <template v-if="!auth.isLoggedIn">
+        <v-btn
+          variant="tonal"
+          to="/entrar"
+          class="text-none mr-2 font-weight-medium text-primary"
+        >
+          Entrar
+        </v-btn>
+        <v-btn
+          color="primary"
+          to="/registrar"
+          class="text-none font-weight-medium"
+        >
+          Criar conta
+        </v-btn>
+      </template>
+      <template v-else>
+        <NotificationMenu />
+        <UserMenu />
+      </template>
     </div>
   </v-app-bar>
 </template>
