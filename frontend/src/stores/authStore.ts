@@ -22,25 +22,14 @@ export const useAuthStore = defineStore('auth', () => {
   // actions: Funções que atualizam o estado reativo e interagem com os serviços de autenticação.
   async function login(payload: LoginPayload) {
     const res = await authService.login(payload)
-    const accessToken = res.accessToken || (res as any).token
-    const userData = res.user
-    token.value = accessToken
-    user.value = userData
-    if (accessToken) {
-      localStorage.setItem('achadex.token', accessToken)
-    }
+    token.value = res.token
+    user.value = res.user
+    localStorage.setItem('achadex.token', res.token)
   }
 
   // Registra a conta.
   async function register(payload: RegisterPayload) {
-    const res = await authService.register(payload)
-    if (res && (res as any).accessToken) {
-      const accessToken = (res as any).accessToken
-      const userData = (res as any).user
-      token.value = accessToken
-      user.value = userData
-      localStorage.setItem('achadex.token', accessToken)
-    }
+    return authService.register(payload)
   }
 
   // Se o tokne não for mais válido encerra a sessão.

@@ -1,13 +1,93 @@
 <script setup lang="ts">
-// HomeView - Catálogo público de itens achados
+import { computed, onMounted, ref } from 'vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import FilterBar from '@/components/common/FilterBar.vue'
+import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
+import ErrorAlert from '@/components/common/ErrorAlert.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import PaginationFooter from '@/components/common/PaginationFooter.vue'
+import BuildingSelect from '@/components/form/BuildingSelect.vue'
+import CategorySelect from '@/components/form/CategorySelect.vue'
+import ItemCard from '@/components/domain/ItemCard.vue'
+import { usePagination } from '@/composables/usePagination'
+import { itemService } from '@/services/item.service'
+import type { ItemQuery, PublicCatalogItem } from '@/types'
+
+const queryText = ref('')
+const buildingId = ref<number | null>()
+const categoryId = ref<number | null>()
+const filters = ref<ItemQuery>({})
+const { items, page, limit, total, loading, error, load } = usePagination<PublicCatalogItem, ItemQuery>(itemService.list)
+const totalPages = computed(() => Math.ceil(total.value / limit.value))
+
+function applyFilters() {
+  page.value = 1
+  filters.value = {
+    search: queryText.value.trim() || undefined,
+    buildingId: buildingId.value ?? undefined,
+    categoryId: categoryId.value ?? undefined,
+  }
+  void load(filters.value)
+}
+
+function clearFilters() {
+  queryText.value = ''
+  buildingId.value = undefined
+  categoryId.value = undefined
+  applyFilters()
+}
+
+function changePage(nextPage: number) {
+  page.value = nextPage
+  void load(filters.value)
+}
+
+function changeLimit(nextLimit: number) {
+  limit.value = nextLimit
+  page.value = 1
+  void load(filters.value)
+}
+
+onMounted(() => { void load(filters.value) })
 </script>
+
 <template>
-  <div>
-    <h1 class="text-h4 font-weight-bold mb-2">Itens Achados</h1>
-    <p class="text-body-1 text-medium-emphasis mb-6">Consulte objetos encontrados nos prédios da instituição.</p>
-    <v-card class="pa-6 rounded-lg text-center" variant="flat">
-      <v-icon icon="mdi-archive-search" size="48" color="primary" class="mb-2" />
-      <div class="text-subtitle-1 font-weight-medium">Catálogo público de itens em exibição</div>
-    </v-card>
-  </div>
+  <PageHeader
+    title="Itens encontrados"
+    subtitle="Consulte objetos encontrados nos prédios da instituição."
+  />
+
+  <FilterBar v-model:q="queryText" @submit="applyFilters" @clear="clearFilters">
+    <v-col cols="12" md="3">
+      <BuildingSelect v-model="buildingId" label="Prédio" placeholder="Todos os prédios" />
+    </v-col>
+    <v-col cols="12" md="3">
+      <CategorySelect v-model="categoryId" label="Categoria" placeholder="Todas as categorias" />
+    </v-col>
+  </FilterBar>
+
+  <ErrorAlert v-if="error" @retry="load(filters)" />
+
+  <LoadingOverlay :loading="loading" text="Carregando itens...">
+    <v-row v-if="items.length" class="mb-2">
+      <v-col v-for="item in items" :key="item.id" cols="12" sm="6" md="4" lg="3">
+        <ItemCard :item="item" />
+      </v-col>
+    </v-row>
+    <EmptyState
+      v-else-if="!loading && !error"
+      title="Nenhum item encontrado"
+      description="Tente alterar os filtros ou volte mais tarde para consultar novos itens."
+    />
+  </LoadingOverlay>
+
+  <PaginationFooter
+    :page="page"
+    :total-pages="totalPages"
+    :total-elements="total"
+    :limit="limit"
+    :disabled="loading"
+    @update:page="changePage"
+    @update:limit="changeLimit"
+  />
 </template>

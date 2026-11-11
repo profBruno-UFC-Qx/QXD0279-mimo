@@ -26,7 +26,7 @@ const sectionTitle = computed(() => {
 </script>
 
 <template>
-  <v-app>
+  <div class="admin-layout">
     <AppDrawer />
     <v-app-bar flat border class="px-4 bg-surface" elevation="0">
       <v-app-bar-title class="text-subtitle-1 font-weight-bold text-grey-darken-3">
@@ -44,5 +44,5 @@ const sectionTitle = computed(() => {
         <router-view />
       </v-container>
     </v-main>
-  </v-app>
+  </div>
 </template>

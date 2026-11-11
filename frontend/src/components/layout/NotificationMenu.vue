@@ -8,7 +8,7 @@ const auth = useAuthStore()
 const unreadCount = ref(0)
 const notifications = ref<Notification[]>([])
 const loading = ref(false)
-let pollInterval: any = null
+let pollInterval: ReturnType<typeof setInterval> | undefined
 
 async function fetchUnreadCount() {
   if (!auth.isAuthenticated) {
@@ -27,7 +27,7 @@ async function fetchNotifications() {
   if (!auth.isAuthenticated) return
   loading.value = true
   try {
-    const res = await notificationService.list({ page: 1, size: 5 })
+    const res = await notificationService.list()
     notifications.value = res.data ?? (res as any).content ?? []
   } catch {
     // ignore
@@ -65,7 +65,7 @@ async function markAllAsRead() {
 
 onMounted(() => {
   fetchUnreadCount()
-  pollInterval = setInterval(fetchUnreadCount, 60000) // poll every minute
+  pollInterval = setInterval(fetchUnreadCount, 30000)
 })
 
 onUnmounted(() => {

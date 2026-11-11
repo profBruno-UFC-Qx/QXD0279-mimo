@@ -12,8 +12,8 @@ watch(() => props.photos, () => { selectedIndex.value = 0 })
 <template>
   <div>
     <v-img
-      v-if="selectedPhoto?.photoUrl"
-      :src="selectedPhoto.photoUrl"
+      v-if="selectedPhoto?.url || selectedPhoto?.photoUrl"
+      :src="selectedPhoto?.url ?? selectedPhoto?.photoUrl"
       height="420"
       cover
       class="rounded-lg bg-surface-muted"
@@ -35,7 +35,7 @@ watch(() => props.photos, () => { selectedIndex.value = 0 })
         height="64"
         @click="selectedIndex = index"
       >
-        <v-img :src="photo.photoUrl" :alt="`Miniatura ${index + 1}`" width="72" height="64" cover />
+        <v-img :src="photo.url ?? photo.photoUrl" :alt="`Miniatura ${index + 1}`" width="72" height="64" cover />
       </v-btn>
     </div>
   </div>

@@ -15,8 +15,8 @@ const emit = defineEmits<{ confirm: []; discard: [] }>()
   <v-card class="suggestion-card" :class="{ 'suggestion-card--discarded': state === 'discarded' }">
     <div class="d-flex flex-column flex-sm-row">
       <v-img
-        v-if="item.photos?.[0]?.photoUrl"
-        :src="item.photos[0].photoUrl"
+        v-if="item.photos?.[0]?.url || item.photos?.[0]?.photoUrl"
+        :src="item.photos?.[0]?.url ?? item.photos?.[0]?.photoUrl"
         :alt="`Foto de ${item.title}`"
         width="150"
         max-width="150"

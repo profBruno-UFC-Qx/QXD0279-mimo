@@ -17,7 +17,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     loading.value = true
     try {
       const res = await categoryService.list()
-      items.value = Array.isArray(res) ? res : (res as any).data || []
+      items.value = res
       loaded.value = true
     } catch {
       items.value = []

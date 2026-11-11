@@ -1,21 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
 import AppSnackbar from '@/components/common/AppSnackbar.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-
-const auth = useAuthStore()
-
-onMounted(async () => {
-  await auth.fetchMe()
-})
 </script>
 
 <template>
   <v-app>
-    <v-main>
-      <router-view />
-    </v-main>
+    <router-view />
 
     <AppSnackbar />
     <ConfirmDialog />

@@ -18,7 +18,6 @@ export interface PageQuery {
   q?: string
   sortBy?: string
   sortDir?: 'asc' | 'desc'
-  [key: string]: any
 }
 
 export interface ApiError {

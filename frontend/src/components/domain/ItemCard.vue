@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import type { Item } from '@/types'
+import type { Item, PublicCatalogItem } from '@/types'
 import { formatDate } from '@/utils/format'
 import StatusChip from './StatusChip.vue'
 
-defineProps<{ item: Item }>()
+defineProps<{ item: Item | PublicCatalogItem }>()
 </script>
 
 <template>
   <v-card :to="`/itens/${item.id}`" link class="h-100 d-flex flex-column">
     <v-img
-      v-if="item.photos?.[0]?.photoUrl"
-      :src="item.photos[0].photoUrl"
+      v-if="item.photos?.[0]?.url || item.photos?.[0]?.photoUrl"
+      :src="item.photos?.[0]?.url ?? item.photos?.[0]?.photoUrl"
       :alt="`Foto de ${item.title}`"
       height="190"
       cover

@@ -16,9 +16,32 @@ export type DispositionType = 'SOLD' | 'AUCTIONED' | 'DONATED' | 'DISCARDED'
 
 export interface ItemPhoto {
   id: number
-  itemId: number
-  photoUrl: string
-  createdAt: string
+  itemId?: number
+  url?: string
+  photoUrl?: string
+  createdAt?: string
+}
+
+export interface PublicCatalogItem {
+  id: number
+  title: string
+  description: string | null
+  categoryId: number
+  buildingId: number
+  foundLocation: string | null
+  foundDate: string
+  status: ItemStatus
+  category: Pick<Category, 'id' | 'name'>
+  building: Pick<Building, 'id' | 'name'>
+  photos: ItemPhoto[]
+}
+
+export interface PublicItemDetails {
+  item: Pick<Item, 'id' | 'title' | 'description' | 'categoryId' | 'buildingId' | 'foundLocation' | 'foundDate' | 'status'> & {
+    category: Pick<Category, 'id' | 'name'>
+  }
+  photos: ItemPhoto[]
+  building: Pick<Building, 'id' | 'name' | 'pickupPoint' | 'serviceHours'>
 }
 
 export interface Item {

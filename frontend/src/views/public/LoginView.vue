@@ -1,77 +1,63 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
-import { useUiStore } from '@/stores/uiStore'
+import { useAsyncAction } from '@/composables/useAsyncAction'
+import { email, required } from '@/utils/rules'
 
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
-const ui = useUiStore()
-
-const email = ref('')
+const emailAddress = ref('')
 const password = ref('')
-const loading = ref(false)
+const valid = ref(false)
+
+const { running: loading, run } = useAsyncAction(async () => {
+  await auth.login({ email: emailAddress.value, password: password.value })
+  const redirect = route.query.redirect
+  await router.push(typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/')
+}, 'Login realizado com sucesso!', 'E-mail ou senha inválidos.')
 
 async function handleLogin() {
-  if (!email.value || !password.value) {
-    ui.notifyError('Preencha e-mail e senha.')
-    return
-  }
-  loading.value = true
-  try {
-    await auth.login({ email: email.value, password: password.value })
-    ui.notifySuccess('Login realizado com sucesso!')
-    const redirect = route.query.redirect as string
-    router.push(redirect || '/')
-  } catch (err: any) {
-    ui.notifyError(err.response?.data?.message || 'E-mail ou senha inválidos.')
-  } finally {
-    loading.value = false
-  }
+  if (valid.value) await run()
 }
 </script>
+
 <template>
-  <div class="d-flex justify-center align-center py-12">
-    <v-card width="420" max-width="90vw" class="pa-8 rounded-lg elevation-2">
+  <div class="d-flex justify-center py-8 py-sm-12">
+    <v-card width="430" max-width="100%" class="pa-6 pa-sm-8">
       <div class="text-center mb-6">
         <v-icon icon="mdi-lock-outline" size="40" color="primary" class="mb-2" />
-        <h1 class="text-h5 font-weight-bold">Entrar no Achadex</h1>
-        <p class="text-body-2 text-medium-emphasis">Acesse sua conta para gerenciar perdas e notificações</p>
+        <h1 class="text-h5 font-weight-bold">Entrar</h1>
+        <p class="text-body-2 text-medium-emphasis">Acesse sua conta para gerenciar perdas e notificações.</p>
       </div>
-
-      <v-form @submit.prevent="handleLogin">
+      <v-form v-model="valid" @submit.prevent="handleLogin">
         <v-text-field
-          v-model="email"
-          label="E-mail"
+          v-model="emailAddress"
+          label="E-mail *"
           type="email"
-          required
-          class="mb-3"
+          autocomplete="email"
           prepend-inner-icon="mdi-email-outline"
+          :rules="[required, email]"
+          class="mb-2"
         />
         <v-text-field
           v-model="password"
-          label="Senha"
+          label="Senha *"
           type="password"
-          required
-          class="mb-6"
+          autocomplete="current-password"
           prepend-inner-icon="mdi-key-outline"
+          :rules="[required]"
+          class="mb-4"
         />
-        <v-btn
-          type="submit"
-          color="primary"
-          block
-          size="large"
-          :loading="loading"
-          class="text-none font-weight-bold"
-        >
+        <v-btn type="submit" color="primary" block size="large" :loading="loading" :disabled="!valid">
           Entrar
         </v-btn>
       </v-form>
-
-      <div class="text-center mt-6 text-body-2 text-medium-emphasis">
-        Ainda não tem conta? <router-link to="/registrar" class="text-primary font-weight-bold text-decoration-none">Criar conta</router-link>
-      </div>
+      <p class="text-center text-body-2 mt-6 mb-0">
+        Ainda não tem conta?
+        <router-link to="/registrar" class="text-primary font-weight-bold text-decoration-none">Criar conta</router-link>
+      </p>
     </v-card>
   </div>
 </template>
