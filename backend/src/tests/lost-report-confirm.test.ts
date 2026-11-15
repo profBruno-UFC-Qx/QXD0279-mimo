@@ -284,3 +284,266 @@ test('CONFIRM04 — rejeita confirmação (404) para relato inexistente ou de ou
   const res = await confirmSuggestion(report.id, item.id, token);
   assert.equal(res.status, 404);
 });
+
+test('B01 & B06 & B07 — rejeita confirmação (404) para item de categoria incompatível sem vazar dados nem mutar', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Cat');
+  const admin = await createFixtureUser('admin@ufc.br', 'Admin Cat', UserRole.ADMIN);
+  const catA = await createFixtureCategory('Documentos');
+  const catB = await createFixtureCategory('Eletrônicos');
+  const building = await createFixtureBuilding();
+
+  const report = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: catA.id,
+      buildingId: building.id,
+      description: 'Perdi minha carteira de identidade',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const foreignItem = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Notebook Secreto Categoria B',
+      foundLocation: 'Sala Restrita 999',
+      categoryId: catB.id,
+      buildingId: building.id,
+      foundDate: '2026-10-23',
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.user.id,
+    }),
+  );
+
+  const res = await confirmSuggestion(report.id, foreignItem.id, token);
+  assert.equal(res.status, 404);
+  assert.equal(res.body.success, false);
+  const serialized = JSON.stringify(res.body);
+  assert.equal(serialized.includes('Notebook Secreto'), false);
+  assert.equal(serialized.includes('Sala Restrita'), false);
+  assert.equal(serialized.includes('Eletrônicos'), false);
+
+  const inDb = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: report.id });
+  assert.equal(inDb.confirmedItemId, null);
+  assert.equal(inDb.status, LostReportStatus.OPEN);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+});
+
+test('B02, B03, B06 & B07 — rejeita confirmação (404) para itens HANDED_OVER, SOLD, AUCTIONED, DONATED e DISCARDED', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Status');
+  const admin = await createFixtureUser('admin@ufc.br', 'Admin Status', UserRole.ADMIN);
+  const category = await createFixtureCategory('Acessórios');
+  const building = await createFixtureBuilding();
+
+  const report = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Perdi meus óculos escuros',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const forbiddenStatuses = [
+    ItemStatus.HANDED_OVER,
+    ItemStatus.SOLD,
+    ItemStatus.AUCTIONED,
+    ItemStatus.DONATED,
+    ItemStatus.DISCARDED,
+  ];
+
+  for (const forbiddenStatus of forbiddenStatuses) {
+    const privateItem = await AppDataSource.getRepository(Item).save(
+      AppDataSource.getRepository(Item).create({
+        title: `Item Privado ${forbiddenStatus}`,
+        categoryId: category.id,
+        buildingId: building.id,
+        foundDate: '2026-10-23',
+        status: forbiddenStatus,
+        createdBy: admin.user.id,
+      }),
+    );
+
+    const res = await confirmSuggestion(report.id, privateItem.id, token);
+    assert.equal(res.status, 404, `Expected 404 for item status ${forbiddenStatus}, got ${res.status}`);
+    assert.equal(res.body.success, false);
+    const serialized = JSON.stringify(res.body);
+    assert.equal(serialized.includes(forbiddenStatus), false);
+    assert.equal(serialized.includes('Item Privado'), false);
+
+    const freshReport = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: report.id });
+    assert.equal(freshReport.confirmedItemId, null);
+    assert.equal(freshReport.status, LostReportStatus.OPEN);
+    const freshItem = await AppDataSource.getRepository(Item).findOneByOrFail({ id: privateItem.id });
+    assert.equal(freshItem.status, forbiddenStatus);
+    assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+  }
+});
+
+test('B04 — itens públicos AVAILABLE e ELIGIBLE da mesma categoria continuam confirmáveis e preservam status', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Eligible');
+  const admin = await createFixtureUser('admin@ufc.br', 'Admin Eligible', UserRole.ADMIN);
+  const category = await createFixtureCategory('Livros');
+  const building = await createFixtureBuilding();
+
+  const report = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: category.id,
+      buildingId: null,
+      description: 'Perdi um livro de algoritmos',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const eligibleItem = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Livro Algoritmos',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: '2026-10-24',
+      status: ItemStatus.ELIGIBLE,
+      createdBy: admin.user.id,
+    }),
+  );
+
+  const res = await confirmSuggestion(report.id, eligibleItem.id, token);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.data.confirmedItemId, eligibleItem.id);
+  assert.equal(res.body.data.status, LostReportStatus.OPEN);
+
+  const freshItem = await AppDataSource.getRepository(Item).findOneByOrFail({ id: eligibleItem.id });
+  assert.equal(freshItem.status, ItemStatus.ELIGIBLE);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 1);
+});
+
+test('B05 — rejeita item inexistente (404) sem mutação nem notificações', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Missing');
+  await createFixtureUser('admin@ufc.br', 'Admin Missing', UserRole.ADMIN);
+  const category = await createFixtureCategory();
+
+  const report = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: category.id,
+      buildingId: null,
+      description: 'Perdi um carregador branco',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const res = await confirmSuggestion(report.id, 99999, token);
+  assert.equal(res.status, 404);
+  const inDb = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: report.id });
+  assert.equal(inDb.confirmedItemId, null);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+});
+
+test('B08 — duas confirmações concorrentes para itens diferentes do mesmo relato efetivam no máximo uma', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Race');
+  const admin = await createFixtureUser('admin@ufc.br', 'Admin Race', UserRole.ADMIN);
+  const category = await createFixtureCategory();
+  const building = await createFixtureBuilding();
+
+  const report = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Perdi minha garrafa térmica',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const itemA = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Garrafa A',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: '2026-10-23',
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.user.id,
+    }),
+  );
+  const itemB = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Garrafa B',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: '2026-10-23',
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.user.id,
+    }),
+  );
+
+  const [resA, resB] = await Promise.all([
+    confirmSuggestion(report.id, itemA.id, token),
+    confirmSuggestion(report.id, itemB.id, token),
+  ]);
+
+  const okResponses = [resA, resB].filter((r) => r.status === 200);
+  const nonOkResponses = [resA, resB].filter((r) => r.status !== 200);
+  assert.equal(okResponses.length, 1);
+  assert.equal(nonOkResponses.length, 1);
+  assert.ok(nonOkResponses[0].status >= 400);
+  assert.equal(nonOkResponses[0].body.success, false);
+
+  const inDb = await AppDataSource.getRepository(LostReport).findOneByOrFail({ id: report.id });
+  assert.ok(inDb.confirmedItemId === itemA.id || inDb.confirmedItemId === itemB.id);
+  assert.equal(okResponses[0].body.data.confirmedItemId, inDb.confirmedItemId);
+
+  const notifications = await AppDataSource.getRepository(Notification).find({
+    where: { userId: admin.user.id },
+  });
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].linkUrl, `/admin/items/${inDb.confirmedItemId}`);
+});
+
+test('B09 — regressões de 401 sem autenticação, 400 ID inválido e 409 em relato RESOLVED', async () => {
+  const { user, token } = await createFixtureUser('user@ufc.br', 'User Reg');
+  const admin = await createFixtureUser('admin@ufc.br', 'Admin Reg', UserRole.ADMIN);
+  const category = await createFixtureCategory();
+  const building = await createFixtureBuilding();
+
+  const item = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Item Regressão',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: '2026-10-23',
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.user.id,
+    }),
+  );
+
+  const resolvedReport = await AppDataSource.getRepository(LostReport).save(
+    AppDataSource.getRepository(LostReport).create({
+      userId: user.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Relato já resolvido anteriormente',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.RESOLVED,
+    }),
+  );
+
+  const noAuth = await fetch(`${baseUrl}/api/lost-reports/${resolvedReport.id}/suggestions/${item.id}/confirm`, {
+    method: 'POST',
+  });
+  assert.equal(noAuth.status, 401);
+
+  const badReportId = await confirmSuggestion('abc', item.id, token);
+  assert.equal(badReportId.status, 400);
+
+  const badItemId = await confirmSuggestion(resolvedReport.id, '0', token);
+  assert.equal(badItemId.status, 400);
+
+  const resolvedRes = await confirmSuggestion(resolvedReport.id, item.id, token);
+  assert.equal(resolvedRes.status, 409);
+  assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
+});
