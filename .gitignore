@@ -30,3 +30,8 @@ coverage
 # arqs
 frontend/PlanoImplementação.md
 .env
+
+# E2E & visual review artifacts
+artifacts/
+frontend/test-results/
+frontend/playwright-report/

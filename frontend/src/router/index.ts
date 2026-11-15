@@ -119,6 +119,11 @@ const router = createRouter({
           redirect: { name: 'admin-items' },
         },
         {
+          path: 'dashboard',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/AdminDashboardView.vue'),
+        },
+        {
           path: 'itens',
           name: 'admin-items',
           component: () => import('@/views/admin/AdminItemsView.vue'),

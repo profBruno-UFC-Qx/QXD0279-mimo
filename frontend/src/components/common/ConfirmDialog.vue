@@ -1,22 +1,35 @@
 <!--Modal de confirmação reutilizável para ações críticas (ex.: exclusão, cancelamento),
 gerenciado pela uiStore-->
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useUiStore } from '@/stores/uiStore'
 
 const ui = useUiStore()
+const confirming = ref(false)
 
 async function handleConfirm() {
+  if (confirming.value || !ui.confirmDialog.show) return
+  confirming.value = true
+  const expectedResolve = ui.confirmDialog.resolve
+  let ok = true
   try {
     await ui.confirmDialog.onConfirm()
+  } catch {
+    ok = false
   } finally {
-    close(true)
+    confirming.value = false
+    if (ui.confirmDialog.resolve === expectedResolve) {
+      close(ok)
+    }
   }
 }
 
 function close(confirmed: boolean) {
+  if (confirming.value) return
   const resolve = ui.confirmDialog.resolve
   ui.confirmDialog.show = false
   ui.confirmDialog.open = false
+  ui.confirmDialog.resolve = () => {}
   resolve(confirmed)
 }
 </script>
@@ -36,6 +49,7 @@ function close(confirmed: boolean) {
           variant="outlined"
           color="outline"
           class="text-none px-4 text-primary"
+          :disabled="confirming"
           @click="close(false)"
         >
           {{ ui.confirmDialog.cancelText }}
@@ -43,6 +57,8 @@ function close(confirmed: boolean) {
         <v-btn
           :color="ui.confirmDialog.danger ? 'error' : 'primary'"
           class="text-none px-4 ml-2"
+          :loading="confirming"
+          :disabled="confirming"
           @click="handleConfirm"
         >
           {{ ui.confirmDialog.confirmText }}

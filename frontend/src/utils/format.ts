@@ -1,5 +1,21 @@
 export function formatDate(iso?: string | null): string {
   if (!iso) return '-'
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (dateOnlyMatch) {
+    const [, yearStr, monthStr, dayStr] = dateOnlyMatch
+    const year = Number(yearStr)
+    const month = Number(monthStr)
+    const day = Number(dayStr)
+    const utcDate = new Date(Date.UTC(year, month - 1, day))
+    if (
+      utcDate.getUTCFullYear() === year &&
+      utcDate.getUTCMonth() + 1 === month &&
+      utcDate.getUTCDate() === day
+    ) {
+      return `${dayStr}/${monthStr}/${yearStr}`
+    }
+    return iso
+  }
   try {
     const date = new Date(iso)
     if (isNaN(date.getTime())) return iso

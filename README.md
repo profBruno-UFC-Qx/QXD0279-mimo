@@ -29,3 +29,21 @@ npm install
 cp .env.example .env
 npm run dev
 ```
+
+## Build e testes
+
+Para gerar o build e executar os testes do backend:
+
+```bash
+cd backend
+npm run build
+node --import tsx --test src/tests/*.test.ts
+```
+
+Para gerar o build e executar os testes do frontend:
+
+```bash
+cd frontend
+npm run build
+npm test
+```

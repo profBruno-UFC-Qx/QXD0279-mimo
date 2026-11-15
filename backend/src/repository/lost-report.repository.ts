@@ -156,56 +156,95 @@ export async function cancelOwnLostReportIfOpen(
   return result.affected ?? 0;
 }
 
+let lostReportTxQueue: Promise<void> = Promise.resolve();
+
+function serializeLostReportTransaction<T>(work: () => Promise<T>): Promise<T> {
+  // O driver SQLite do TypeORM compartilha uma única conexão; enfileirar transações de mutação evita colisão de BEGIN TRANSACTION sob carga concorrente.
+  const run = lostReportTxQueue.then(work, work);
+  lostReportTxQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
 export async function confirmLostReportSuggestionRepo(
   reportId: number,
   userId: number,
   itemId: number,
 ): Promise<'updated' | 'not_found' | 'not_open' | 'already_confirmed' | 'item_not_found'> {
-  return await AppDataSource.transaction(async (manager) => {
-    const reportRepo = manager.getRepository(LostReport);
-    const itemRepo = manager.getRepository(Item);
-    const userRepo = manager.getRepository(User);
-    const notificationRepo = manager.getRepository(Notification);
+  return await serializeLostReportTransaction(() =>
+    AppDataSource.transaction(async (manager) => {
+      const reportRepo = manager.getRepository(LostReport);
+      const itemRepo = manager.getRepository(Item);
+      const userRepo = manager.getRepository(User);
+      const notificationRepo = manager.getRepository(Notification);
 
-    const report = await reportRepo.findOne({ where: { id: reportId } });
-    if (!report || report.userId !== userId) {
-      return 'not_found';
-    }
-    if (report.status !== LostReportStatus.OPEN) {
-      return 'not_open';
-    }
-    if (report.confirmedItemId !== null && report.confirmedItemId !== undefined) {
-      return 'already_confirmed';
-    }
+      const report = await reportRepo.findOne({ where: { id: reportId } });
+      if (!report || report.userId !== userId) {
+        return 'not_found';
+      }
+      if (report.status !== LostReportStatus.OPEN) {
+        return 'not_open';
+      }
+      if (report.confirmedItemId !== null && report.confirmedItemId !== undefined) {
+        return 'already_confirmed';
+      }
 
-    const item = await itemRepo.findOne({ where: { id: itemId } });
-    if (!item) {
-      return 'item_not_found';
-    }
+      const eligibleItem = await itemRepo
+        .createQueryBuilder('item')
+        .where('item.id = :itemId', { itemId })
+        .andWhere('item.categoryId = :categoryId', { categoryId: report.categoryId })
+        .andWhere('item.status IN (:...publicStatuses)', {
+          publicStatuses: [ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE],
+        })
+        .getOne();
+      if (!eligibleItem) {
+        return 'item_not_found';
+      }
 
-    report.confirmedItemId = itemId;
-    await reportRepo.save(report);
+      const updateResult = await manager
+        .createQueryBuilder()
+        .update(LostReport)
+        .set({ confirmedItemId: eligibleItem.id })
+        .where('id = :reportId', { reportId })
+        .andWhere('userId = :userId', { userId })
+        .andWhere('status = :openStatus', { openStatus: LostReportStatus.OPEN })
+        .andWhere('confirmedItemId IS NULL')
+        .execute();
 
-    const admins = await userRepo.find({
-      where: [
-        { role: UserRole.ADMIN },
-        { role: UserRole.SUPERADMIN },
-      ],
-    });
+      if ((updateResult.affected ?? 0) !== 1) {
+        const fresh = await reportRepo.findOne({ where: { id: reportId } });
+        if (!fresh || fresh.userId !== userId) {
+          return 'not_found';
+        }
+        if (fresh.status !== LostReportStatus.OPEN) {
+          return 'not_open';
+        }
+        return 'already_confirmed';
+      }
 
-    if (admins.length > 0) {
-      const notifications = admins.map((admin) =>
-        notificationRepo.create({
-          userId: admin.id,
-          type: NotificationType.ITEM_CLAIMED,
-          linkUrl: `/admin/items/${itemId}`,
-        }),
-      );
-      await notificationRepo.save(notifications);
-    }
+      const admins = await userRepo.find({
+        where: [
+          { role: UserRole.ADMIN },
+          { role: UserRole.SUPERADMIN },
+        ],
+      });
 
-    return 'updated';
-  });
+      if (admins.length > 0) {
+        const notifications = admins.map((admin) =>
+          notificationRepo.create({
+            userId: admin.id,
+            type: NotificationType.ITEM_CLAIMED,
+            linkUrl: `/admin/items/${eligibleItem.id}`,
+          }),
+        );
+        await notificationRepo.save(notifications);
+      }
+
+      return 'updated';
+    }),
+  );
 }
 
 export async function listAdminLostReportsRepo(
@@ -242,28 +281,37 @@ export async function findAdminLostReportById(reportId: number): Promise<LostRep
 export async function resolveLostReportRepo(
   reportId: number,
 ): Promise<'resolved' | 'not_found' | 'not_open'> {
-  return await AppDataSource.transaction(async (manager) => {
-    const reportRepo = manager.getRepository(LostReport);
-    const notificationRepo = manager.getRepository(Notification);
+  return await serializeLostReportTransaction(() =>
+    AppDataSource.transaction(async (manager) => {
+      const reportRepo = manager.getRepository(LostReport);
+      const notificationRepo = manager.getRepository(Notification);
 
-    const report = await reportRepo.findOne({ where: { id: reportId } });
-    if (!report) {
-      return 'not_found';
-    }
-    if (report.status !== LostReportStatus.OPEN) {
-      return 'not_open';
-    }
+      const updateResult = await manager
+        .createQueryBuilder()
+        .update(LostReport)
+        .set({ status: LostReportStatus.RESOLVED })
+        .where('id = :reportId', { reportId })
+        .andWhere('status = :openStatus', { openStatus: LostReportStatus.OPEN })
+        .execute();
 
-    report.status = LostReportStatus.RESOLVED;
-    await reportRepo.save(report);
+      if ((updateResult.affected ?? 0) !== 1) {
+        const existing = await reportRepo.findOne({ where: { id: reportId } });
+        return existing ? 'not_open' : 'not_found';
+      }
 
-    const notification = notificationRepo.create({
-      userId: report.userId,
-      type: NotificationType.REPORT_RESOLVED,
-      linkUrl: `/lost-reports/${report.id}`,
-    });
-    await notificationRepo.save(notification);
+      const resolved = await reportRepo.findOne({ where: { id: reportId } });
+      if (!resolved) {
+        return 'not_found';
+      }
 
-    return 'resolved';
-  });
+      const notification = notificationRepo.create({
+        userId: resolved.userId,
+        type: NotificationType.REPORT_RESOLVED,
+        linkUrl: `/lost-reports/${resolved.id}`,
+      });
+      await notificationRepo.save(notification);
+
+      return 'resolved';
+    }),
+  );
 }

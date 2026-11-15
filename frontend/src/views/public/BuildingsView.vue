@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onBeforeUnmount, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import ErrorAlert from '@/components/common/ErrorAlert.vue'
@@ -8,7 +8,17 @@ import BuildingCard from '@/components/domain/BuildingCard.vue'
 import { useBuildingsStore } from '@/stores/buildingsStore'
 
 const buildings = useBuildingsStore()
-onMounted(() => { void buildings.ensureLoaded() })
+let releaseConsumer: (() => void) | null = null
+
+onMounted(() => {
+  releaseConsumer = buildings.acquireConsumer()
+  void buildings.ensureLoaded()
+})
+
+onBeforeUnmount(() => {
+  releaseConsumer?.()
+  releaseConsumer = null
+})
 </script>
 
 <template>

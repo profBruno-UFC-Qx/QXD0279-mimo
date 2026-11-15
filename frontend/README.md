@@ -1,75 +1,49 @@
-# frontend
+# Achadex
 
-Scaffolded with Vuetify CLI.
+Sistema de achados e perdidos institucional.
 
-## ❗️ Documentation
+> **Em desenvolvimento.** O sistema ainda está sendo construído; algumas telas e funcionalidades estão incompletas.
 
-- Primary docs: https://vuetifyjs.com/
-- Getting started guide: https://vuetifyjs.com/en/getting-started/installation/
-- Community support: https://community.vuetifyjs.com/
-- Issue tracker: https://issues.vuetifyjs.com/
+## Tecnologias
 
-## 🧱 Stack
+- **Frontend:** Vue 3, TypeScript, Vuetify e Vite
+- **Backend:** Node.js, TypeScript, Express, TypeORM e SQLite
 
-- Framework: Vue 3 + Vite
-- UI Library: Vuetify
-- Language: TypeScript
-- Package manager: npm
+## Executar localmente
 
-## 🧭 Start Here
-
-- Main entry: `src/main.ts`
-- Main app component: `src/App.vue`
-- Main styles: `src/styles/`
-- Plugin setup: `src/plugins/`
-
-## 📁 Project Structure
-
-- `src/main.ts` — application entry point
-- `src/App.vue` — root component
-- `src/components/` — reusable Vue components
-- `src/plugins/` — plugin registration and setup
-- `src/styles/` — global styles and theme settings
-- `public/` — static public files
-
-## ✨ Enabled Features
-
-- Base setup
-
-## 💿 Install
-
-Use your selected package manager (npm) to install dependencies:
+É necessário ter Node.js e npm instalados. Em dois terminais, instale as dependências e inicie cada aplicação:
 
 ```bash
+cd backend
 npm install
-```
-
-## 🚀 Quick Start
-
-```bash
-npm install
+cp .env.example .env
 npm run dev
 ```
 
-## 🏗️ Build
+Para popular o banco com dados, execute `npm run seed` dentro da pasta `backend` (Esse comando recria os dados do banco por completo)
+
 
 ```bash
-npm run build
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-## 🧪 Available Scripts
+## Build e testes
 
-- `npm run dev`
-- `npm run build`
-- `npm run preview`
-- `npm run build-only`
-- `npm run type-check`
+Para gerar o build e executar os testes do backend:
 
-## 💪 Support Vuetify Development
+```bash
+cd backend
+npm run build
+node --import tsx --test src/tests/*.test.ts
+```
 
-This project uses Vuetify - an MIT licensed Open Source project. We are glad to welcome contributors and any support for ongoing development:
+Para gerar o build e executar os testes do frontend:
 
-- Contribute to Vuetify and ecosystem projects: https://github.com/vuetifyjs
-- Request enterprise support: https://support.vuetifyjs.com/
-- Sponsor on GitHub: https://github.com/sponsors/vuetifyjs
-- Support on Open Collective: https://opencollective.com/vuetify
+```bash
+cd frontend
+npm run build
+npm test
+```

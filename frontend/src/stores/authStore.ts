@@ -11,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(
     localStorage.getItem('achadex.token')
   )
+  const sessionGeneration = ref(0)
 
   // getters: Valores derivados do estado para controlar acesso e exibir ações conforme a sessão e o perfil.
   const isLoggedIn = computed(() => !!token.value && !!user.value)
@@ -22,6 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
   // actions: Funções que atualizam o estado reativo e interagem com os serviços de autenticação.
   async function login(payload: LoginPayload) {
     const res = await authService.login(payload)
+    sessionGeneration.value += 1
     token.value = res.token
     user.value = res.user
     localStorage.setItem('achadex.token', res.token)
@@ -32,18 +34,35 @@ export const useAuthStore = defineStore('auth', () => {
     return authService.register(payload)
   }
 
-  // Se o tokne não for mais válido encerra a sessão.
+  function isUnauthorizedError(err: unknown): boolean {
+    if (typeof err !== 'object' || err === null || !('response' in err)) return false
+    const response = (err as { response?: { status?: unknown } }).response
+    return response?.status === 401
+  }
+
+  // Recupera os dados da sessão atual ignorando respostas obsoletas e preservando a sessão em falhas recuperáveis.
   async function fetchMe() {
     if (!token.value) return
+    const requestToken = token.value
+    const requestGeneration = sessionGeneration.value
+    const isSameSession = () =>
+      token.value === requestToken && sessionGeneration.value === requestGeneration
+
     try {
-      user.value = await authService.me()
-    } catch {
-      logout()
+      const me = await authService.me()
+      if (!isSameSession()) return
+      user.value = me
+    } catch (err: unknown) {
+      if (!isSameSession()) return
+      if (isUnauthorizedError(err)) {
+        logout()
+      }
     }
   }
 
   // Limpa os dados em memória e o token persistido para encerrar completamente a sessão.
   function logout() {
+    sessionGeneration.value += 1
     token.value = null
     user.value = null
     localStorage.removeItem('achadex.token')
@@ -52,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user,
     token,
+    sessionGeneration,
     isLoggedIn,
     isAuthenticated,
     role,
