@@ -10,7 +10,7 @@ defineEmits<{
 <template>
   <v-card class="pa-4 mb-6 rounded-lg" variant="flat" border>
     <v-form @submit.prevent="$emit('submit')" @reset.prevent="$emit('clear')">
-      <v-row align="center" dense>
+      <v-row align="center" density="compact">
         <v-col cols="12" md="4">
           <v-text-field
             v-model="q"

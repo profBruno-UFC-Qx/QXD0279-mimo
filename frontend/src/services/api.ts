@@ -27,9 +27,45 @@ function isCurrentAuthenticatedSession(config?: TrackedRequestConfig): boolean {
   return true
 }
 
+const DEFAULT_API_BASE_URL = '/api/v1'
+
+export function resolveApiBaseUrl(configuredValue: unknown): string {
+  if (configuredValue === undefined || configuredValue === null) {
+    return DEFAULT_API_BASE_URL
+  }
+  if (typeof configuredValue !== 'string') {
+    throw new Error('Configuração inválida para VITE_API_URL.')
+  }
+
+  const trimmed = configuredValue.trim()
+  if (trimmed === '') {
+    return DEFAULT_API_BASE_URL
+  }
+
+  if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith('//') || trimmed === '/' || /\s/.test(trimmed)) {
+      throw new Error('Configuração inválida para VITE_API_URL.')
+    }
+    return trimmed.replace(/\/+$/, '')
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    throw new Error('Configuração inválida para VITE_API_URL.')
+  }
+
+  if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || !parsed.hostname || /\s/.test(trimmed)) {
+    throw new Error('Configuração inválida para VITE_API_URL.')
+  }
+
+  return trimmed.replace(/\/+$/, '')
+}
+
 // Instância HTTP compartilhada pelos services (componentes e views chamam os services)
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: resolveApiBaseUrl(import.meta.env.VITE_API_URL),
   headers: {
     'Content-Type': 'application/json',
   },
