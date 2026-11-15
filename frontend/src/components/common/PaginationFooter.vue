@@ -25,7 +25,7 @@ const pageNumbers = computed(() => {
 </script>
 
 <template>
-  <div v-if="(totalElements ?? totalPages) > 0" class="d-flex align-center justify-space-between flex-wrap py-4 px-2">
+  <div v-if="(totalElements ?? totalPages) > 0" class="d-flex align-center justify-space-between flex-wrap ga-3 py-4 px-2">
     <div v-if="totalElements !== undefined" class="text-body-2 text-medium-emphasis">
       Total de registros: <span class="font-weight-bold text-primary">{{ totalElements }}</span>
     </div>

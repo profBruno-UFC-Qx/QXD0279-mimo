@@ -4,6 +4,17 @@ import { useAuthStore } from '@/stores/authStore'
 
 const auth = useAuthStore()
 
+const drawerModel = defineModel<boolean>({ default: true })
+
+withDefaults(
+  defineProps<{
+    permanent?: boolean
+  }>(),
+  {
+    permanent: true,
+  },
+)
+
 const adminNavItems = computed(() => {
   const items = [
     { title: 'Itens', icon: 'mdi-package-variant-closed', to: '/admin/itens' },
@@ -22,7 +33,14 @@ const adminNavItems = computed(() => {
 </script>
 
 <template>
-  <v-navigation-drawer permanent rail-width="72" width="260" class="border-right">
+  <v-navigation-drawer
+    v-model="drawerModel"
+    :permanent="permanent"
+    :temporary="!permanent"
+    rail-width="72"
+    width="260"
+    class="border-right"
+  >
     <div class="pa-4 d-flex align-center">
       <v-icon icon="mdi-shield-crown" color="primary" size="28" class="mr-2" />
       <span class="text-subtitle-1 font-weight-bold text-primary">Painel Admin</span>
@@ -37,7 +55,21 @@ const adminNavItems = computed(() => {
         :to="item.to"
         class="rounded-lg mb-1"
         color="primary"
+        @click="!permanent && (drawerModel = false)"
       />
     </v-list>
+
+    <template #append>
+      <v-divider />
+      <v-list density="compact" nav class="pa-2">
+        <v-list-item
+          prepend-icon="mdi-arrow-left"
+          title="Voltar ao catálogo"
+          to="/"
+          class="rounded-lg"
+          @click="!permanent && (drawerModel = false)"
+        />
+      </v-list>
+    </template>
   </v-navigation-drawer>
 </template>

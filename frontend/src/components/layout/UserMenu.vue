@@ -35,6 +35,9 @@ function handleSelect(action: string) {
     case 'notifications':
       router.push('/notificacoes')
       break
+    case 'admin':
+      router.push('/admin')
+      break
     case 'logout':
       auth.logout()
       ui.notifySuccess('Você saiu da sua conta.')
@@ -74,6 +77,12 @@ function handleSelect(action: string) {
         <v-list-item prepend-icon="mdi-account-outline" title="Perfil" @click="handleSelect('profile')" />
         <v-list-item prepend-icon="mdi-history" title="Histórico" @click="handleSelect('history')" />
         <v-list-item prepend-icon="mdi-bell-outline" title="Notificações" @click="handleSelect('notifications')" />
+        <v-list-item
+          v-if="auth.isAdmin"
+          prepend-icon="mdi-shield-crown-outline"
+          title="Painel Administrativo"
+          @click="handleSelect('admin')"
+        />
         
         <v-divider class="my-1" />
         <v-list-item

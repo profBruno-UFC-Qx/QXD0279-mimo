@@ -8,10 +8,20 @@ import NotificationMenu from './NotificationMenu.vue'
 const auth = useAuthStore()
 const route = useRoute()
 const isLoginRoute = computed(() => route.path === '/entrar')
+
+const emit = defineEmits<{
+  (e: 'toggle-drawer'): void
+}>()
 </script>
 
 <template>
-  <v-app-bar flat color="surface" border class="px-4" elevation="0">
+  <v-app-bar flat color="surface" border class="px-2 px-sm-4" elevation="0">
+    <v-app-bar-nav-icon
+      class="d-md-none mr-1"
+      aria-label="Abrir menu de navegação"
+      @click="emit('toggle-drawer')"
+    />
+
     <!-- Logo / Nome à esquerda -->
     <v-app-bar-title class="font-weight-bold d-flex align-center">
       <router-link to="/" class="text-decoration-none d-flex align-center text-primary">
