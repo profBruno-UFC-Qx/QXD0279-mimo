@@ -21,6 +21,7 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     css: false,
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     server: {
       deps: {
         inline: ['vuetify'],
