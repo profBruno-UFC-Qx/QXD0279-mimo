@@ -471,4 +471,148 @@ test.describe.serial('Achadex Pessoa 1 — E2E Integrated Journeys', () => {
     await expect(availableCard).toContainText('1')
     await expect(eligibleCard).toContainText('2')
   })
+
+  test('Flow 10 (E2E-ENV-01..03): Startup without VITE_API_URL, API outage resilience, HTML 200 rejection with retry, and auth navigation', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = []
+    const consoleWarnings: string[] = []
+    const observedApiResponses: { url: string; status: number; contentType: string }[] = []
+
+    page.on('pageerror', (err) => pageErrors.push(err.message))
+    page.on('console', (msg) => {
+      if (msg.type() === 'warning' || msg.type() === 'error') {
+        consoleWarnings.push(msg.text())
+      }
+    })
+    page.on('response', (res) => {
+      if (res.url().includes('/api/v1/')) {
+        observedApiResponses.push({
+          url: new URL(res.url()).pathname,
+          status: res.status(),
+          contentType: res.headers()['content-type'] ?? '',
+        })
+      }
+    })
+
+    // E2E-ENV-01: Frontend started without VITE_API_URL reaches /api/v1/* via default baseURL and Vite proxy
+    const healthRes = await page.request.get('http://localhost:5173/api/v1/health')
+    expect(healthRes.status()).toBe(200)
+    expect(healthRes.headers()['content-type']).toContain('application/json')
+    expect(await healthRes.json()).toMatchObject({
+      success: true,
+      data: {
+        status: 'healthy',
+        database: 'connected',
+      },
+    })
+
+    await page.goto('/')
+    await expect(page.getByText(ctx.seed.items.available.title)).toBeVisible()
+
+    // Hard reload on Home preserves catalog, filters, and zero runtime/deprecation errors
+    await page.reload()
+    await expect(page.getByText(ctx.seed.items.available.title)).toBeVisible()
+
+    expect(
+      observedApiResponses.some(
+        (r) => r.url === '/api/v1/items' && r.status === 200 && r.contentType.includes('application/json'),
+      ),
+    ).toBe(true)
+    expect(
+      observedApiResponses.some(
+        (r) => r.url === '/api/v1/buildings' && r.status === 200 && r.contentType.includes('application/json'),
+      ),
+    ).toBe(true)
+    expect(
+      observedApiResponses.some(
+        (r) => r.url === '/api/v1/categories' && r.status === 200 && r.contentType.includes('application/json'),
+      ),
+    ).toBe(true)
+    expect(pageErrors).toEqual([])
+    expect(consoleWarnings.join('\n')).not.toContain("'dense' is deprecated")
+
+    const appBar = page.locator('header')
+    await appBar.getByRole('link', { name: 'Entrar' }).click()
+    await expect(page).toHaveURL(/\/entrar$/)
+    await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/$/)
+    await appBar.getByRole('link', { name: 'Criar conta' }).click()
+    await expect(page).toHaveURL(/\/registrar$/)
+    await expect(page.getByRole('heading', { name: 'Criar conta' })).toBeVisible()
+
+    // E2E-ENV-02: Simulated API outage preserves navigation to /entrar and /registrar without stuck loading
+    let simulateOutage = true
+    const outageHandler = async (route: Parameters<Parameters<Page['route']>[1]>[0]) => {
+      if (simulateOutage) {
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, error: { code: 503, details: 'Service Unavailable' } }),
+        })
+        return
+      }
+      await route.continue()
+    }
+    await page.route('**/api/v1/items*', outageHandler)
+    await page.route('**/api/v1/buildings*', outageHandler)
+    await page.route('**/api/v1/categories*', outageHandler)
+
+    await page.goto('/')
+    await expect(page.getByText('Não foi possível carregar os dados')).toBeVisible()
+    await expect(page.getByText('Carregando itens...')).toHaveCount(0)
+    expect(pageErrors).toEqual([])
+
+    await appBar.getByRole('link', { name: 'Entrar' }).click()
+    await expect(page).toHaveURL(/\/entrar$/)
+    await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/$/)
+    await appBar.getByRole('link', { name: 'Criar conta' }).click()
+    await expect(page).toHaveURL(/\/registrar$/)
+    await expect(page.getByRole('heading', { name: 'Criar conta' })).toBeVisible()
+
+    simulateOutage = false
+    await page.unroute('**/api/v1/items*', outageHandler)
+    await page.unroute('**/api/v1/buildings*', outageHandler)
+    await page.unroute('**/api/v1/categories*', outageHandler)
+
+    // E2E-ENV-03: Simulated HTTP 200 HTML on /api/v1/items is rejected safely, allows retry recovery, and keeps navigation working
+    let serveHtmlOnce = true
+    const htmlHandler = async (route: Parameters<Parameters<Page['route']>[1]>[0]) => {
+      if (serveHtmlOnce) {
+        serveHtmlOnce = false
+        await route.fulfill({
+          status: 200,
+          contentType: 'text/html; charset=utf-8',
+          body: '<!doctype html><html><head><title>Fallback</title></head><body><div id="app"></div></body></html>',
+        })
+        return
+      }
+      await route.continue()
+    }
+    await page.route('**/api/v1/items*', htmlHandler)
+
+    await page.goto('/')
+    await expect(page.getByText('Não foi possível carregar os dados')).toBeVisible()
+    await expect(page.getByText('Carregando itens...')).toHaveCount(0)
+    await expect(page.getByText(ctx.seed.items.available.title)).toHaveCount(0)
+    expect(pageErrors).toEqual([])
+
+    // Retry recovers catalog listing from real backend
+    await page.getByRole('button', { name: 'Tentar novamente' }).first().click()
+    await expect(page.getByText(ctx.seed.items.available.title)).toBeVisible()
+    await expect(page.getByText('Não foi possível carregar os dados')).toHaveCount(0)
+
+    await appBar.getByRole('link', { name: 'Entrar' }).click()
+    await expect(page).toHaveURL(/\/entrar$/)
+    await appBar.getByRole('link', { name: 'Criar conta' }).click()
+    await expect(page).toHaveURL(/\/registrar$/)
+    expect(pageErrors).toEqual([])
+
+    await page.unroute('**/api/v1/items*', htmlHandler)
+  })
 })

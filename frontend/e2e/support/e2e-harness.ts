@@ -182,14 +182,14 @@ export async function startIsolatedE2EStack(): Promise<E2EServerContext> {
 
     await waitForHttp('http://127.0.0.1:3000/api/v1/health', 20_000, 'E2E backend', backendChild)
 
+    const frontendEnv: NodeJS.ProcessEnv = { ...process.env }
+    delete frontendEnv.VITE_API_URL
+
     const frontendLogs: string[] = []
     frontendChild = spawn(process.execPath, [viteBinPath, '--port', '5173', '--strictPort'], {
       cwd: frontendDir,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        VITE_API_URL: '/api/v1',
-      },
+      env: frontendEnv,
     })
     frontendChild.stdout?.on('data', (chunk) => frontendLogs.push(String(chunk)))
     frontendChild.stderr?.on('data', (chunk) => frontendLogs.push(String(chunk)))
