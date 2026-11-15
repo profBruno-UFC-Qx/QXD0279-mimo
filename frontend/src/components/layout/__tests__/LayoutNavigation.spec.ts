@@ -7,9 +7,12 @@ import { VApp, VAppBar } from 'vuetify/components'
 import PublicLayout from '../PublicLayout.vue'
 import AdminShell from '../AdminShell.vue'
 import UserMenu from '../UserMenu.vue'
+import realRouter from '@/router'
 import { vuetify } from '@/theme'
 import { useAuthStore } from '@/stores/authStore'
 import { notificationService } from '@/services/notification.service'
+import { adminLostReportService } from '@/services/adminLostReport.service'
+import { adminItemService } from '@/services/adminItem.service'
 import type { User } from '@/types'
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -86,6 +89,7 @@ function createTestRouter(): Router {
         component: AdminShell,
         children: [
           { path: '', redirect: '/admin/itens' },
+          { path: 'dashboard', name: 'admin-dashboard', component: { template: '<div>Admin Dashboard</div>' } },
           { path: 'itens', name: 'admin-items', component: { template: '<div>Admin Itens</div>' } },
           { path: 'perdas', name: 'admin-lost-reports', component: { template: '<div>Admin Perdas</div>' } },
           { path: 'predios', name: 'admin-buildings', component: { template: '<div>Admin Prédios</div>' } },
@@ -227,5 +231,72 @@ describe('LayoutNavigation (Etapa 13.2 — Responsividade e navegação por pape
     expect(drawer.text()).toContain('Prédios')
     expect(drawer.text()).not.toContain('Administradores')
     expect(drawer.text()).toContain('Voltar ao catálogo')
+  })
+
+  it('U16-01 — AdminShell e AppDrawer exibem Dashboard para ADMIN e SUPERADMIN com título na topbar', async () => {
+    const auth = useAuthStore()
+    auth.token = 'token-admin'
+    auth.user = makeUser({ role: 'ADMIN' })
+
+    const router = createTestRouter()
+    await router.push('/admin/dashboard')
+    await router.isReady()
+
+    const wrapper = mount(AppHost, {
+      attachTo: document.body,
+      global: { plugins: [vuetify, router] },
+    })
+    mountedWrappers.push(wrapper)
+    await flushPromises()
+    await nextTick()
+
+    const drawer = wrapper.findComponent({ name: 'VNavigationDrawer' })
+    const dashboardLink = drawer.findAll('a').find((a) => a.attributes('href') === '/admin/dashboard')
+    expect(dashboardLink).toBeDefined()
+    expect(drawer.text()).toContain('Dashboard')
+    expect(drawer.text()).not.toContain('Administradores')
+    expect(wrapper.text()).toContain('Dashboard Administrativo')
+
+    auth.user = makeUser({ role: 'SUPERADMIN' })
+    await flushPromises()
+    expect(drawer.text()).toContain('Dashboard')
+    expect(drawer.text()).toContain('Administradores')
+  })
+
+  it('D16-05 — router real autoriza ADMIN/SUPERADMIN em /admin/dashboard, bloqueia USER e visitante e preserva redirect de /admin', async () => {
+    vi.spyOn(adminLostReportService, 'list').mockResolvedValue({
+      data: [],
+      pagination: { total: 0, page: 1, per_page: 1, total_pages: 0 },
+    })
+    vi.spyOn(adminItemService, 'list').mockResolvedValue({
+      data: [],
+      pagination: { total: 0, page: 1, per_page: 1, total_pages: 0 },
+    })
+
+    const auth = useAuthStore()
+
+    // Visitante é redirecionado para login
+    await realRouter.push('/admin/dashboard')
+    expect(realRouter.currentRoute.value.name).toBe('login')
+
+    // USER autenticado recebe forbidden (403)
+    auth.token = 'jwt-user'
+    auth.user = makeUser({ role: 'USER' })
+    await realRouter.push('/admin/dashboard')
+    expect(realRouter.currentRoute.value.name).toBe('forbidden')
+
+    // ADMIN e SUPERADMIN acessam normalmente
+    auth.token = 'jwt-admin'
+    auth.user = makeUser({ role: 'ADMIN' })
+    await realRouter.push('/admin/dashboard')
+    expect(realRouter.currentRoute.value.name).toBe('admin-dashboard')
+
+    auth.user = makeUser({ role: 'SUPERADMIN' })
+    await realRouter.push('/admin/dashboard')
+    expect(realRouter.currentRoute.value.name).toBe('admin-dashboard')
+
+    // Redirecionamento padrão de /admin continua apontando para admin-items
+    await realRouter.push('/admin')
+    expect(realRouter.currentRoute.value.name).toBe('admin-items')
   })
 })
