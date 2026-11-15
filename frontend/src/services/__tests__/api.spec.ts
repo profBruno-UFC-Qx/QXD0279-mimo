@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import * as apiModule from '../api'
 import { api } from '../api'
 import { authService } from '../auth.service'
+import { itemService } from '../item.service'
+import { buildingService } from '../building.service'
+import { categoryService } from '../category.service'
 import { useAuthStore } from '@/stores/authStore'
+import { useBuildingsStore } from '@/stores/buildingsStore'
+import { useCategoriesStore } from '@/stores/categoriesStore'
+import { usePagination } from '@/composables/usePagination'
 import router from '@/router'
 import type { User } from '@/types'
 
@@ -339,5 +346,141 @@ describe('api interceptor (Etapa 02.1 — Isolamento de HTTP 401 por sessão)', 
     expect(auth.user?.id).toBe(1)
     expect(localStorage.getItem('achadex.token')).toBe('reused-jwt-token')
     expect(pushSpy).not.toHaveBeenCalled()
+  })
+
+  describe('Configuração de baseURL e proteção de contrato HTTP (Etapa 17.1)', () => {
+    const getResolver = () =>
+      (apiModule as unknown as { resolveApiBaseUrl?: (val: unknown) => string }).resolveApiBaseUrl
+
+    it('API-01 — VITE_API_URL ausente usa /api/v1 por padrão na instância e no resolvedor', () => {
+      const resolveApiBaseUrl = getResolver()
+      expect(resolveApiBaseUrl).toBeTypeOf('function')
+      expect(resolveApiBaseUrl!(undefined)).toBe('/api/v1')
+      expect(resolveApiBaseUrl!(null)).toBe('/api/v1')
+      expect(api.defaults.baseURL).toBe('/api/v1')
+    })
+
+    it('API-02 — VITE_API_URL vazia ou apenas espaços usa /api/v1', () => {
+      const resolveApiBaseUrl = getResolver()
+      expect(resolveApiBaseUrl).toBeTypeOf('function')
+      expect(resolveApiBaseUrl!('')).toBe('/api/v1')
+      expect(resolveApiBaseUrl!('   ')).toBe('/api/v1')
+    })
+
+    it('API-03 — VITE_API_URL=/api/v1 é preservada sem barras finais duplicadas', () => {
+      const resolveApiBaseUrl = getResolver()
+      expect(resolveApiBaseUrl).toBeTypeOf('function')
+      expect(resolveApiBaseUrl!('/api/v1')).toBe('/api/v1')
+      expect(resolveApiBaseUrl!('/api/v1/')).toBe('/api/v1')
+    })
+
+    it('API-04 — URL explícita válida é respeitada', () => {
+      const resolveApiBaseUrl = getResolver()
+      expect(resolveApiBaseUrl).toBeTypeOf('function')
+      expect(resolveApiBaseUrl!('http://localhost:3000/api/v1')).toBe('http://localhost:3000/api/v1')
+      expect(resolveApiBaseUrl!('https://api.achadex.ufc.br/api/v1/')).toBe('https://api.achadex.ufc.br/api/v1')
+    })
+
+    it('API-05 — configuração inválida falha explicitamente sem redirecionar silenciosamente', () => {
+      const resolveApiBaseUrl = getResolver()
+      expect(resolveApiBaseUrl).toBeTypeOf('function')
+      expect(() => resolveApiBaseUrl!('api/v1')).toThrow()
+      expect(() => resolveApiBaseUrl!('/')).toThrow()
+      expect(() => resolveApiBaseUrl!('//evil.example.com/api/v1')).toThrow()
+      expect(() => resolveApiBaseUrl!('ftp://localhost:3000/api/v1')).toThrow()
+      expect(() => resolveApiBaseUrl!('http://')).toThrow()
+      expect(() => resolveApiBaseUrl!(123)).toThrow()
+    })
+
+    it('API-06, API-07, API-08, API-09 & API-10 — services de catálogo e auth atingem /api/v1/*', async () => {
+      const queue = installDeferredAdapter()
+
+      const pItems = itemService.list({ page: 1, per_page: 12 })
+      const pBuildings = buildingService.list()
+      const pCategories = categoryService.list()
+      const pLogin = authService.login({ email: 'a@ufc.br', password: '123' })
+      const pRegister = authService.register({
+        name: 'Teste',
+        email: 't@ufc.br',
+        phone: '88999990000',
+        password: '123',
+      })
+
+      await flushMicrotasks()
+      expect(queue).toHaveLength(5)
+
+      expect(api.getUri(queue[0].config)).toBe('/api/v1/items?page=1&per_page=12')
+      expect(api.getUri(queue[1].config)).toBe('/api/v1/buildings')
+      expect(api.getUri(queue[2].config)).toBe('/api/v1/categories')
+      expect(api.getUri(queue[3].config)).toBe('/api/v1/auth/login')
+      expect(api.getUri(queue[4].config)).toBe('/api/v1/auth/register')
+
+      queue[0].resolve(
+        makeOkResponse(
+          { data: [], pagination: { total: 0, page: 1, per_page: 12, total_pages: 0 } },
+          queue[0].config,
+        ),
+      )
+      queue[1].resolve(makeOkResponse({ success: true, data: [] }, queue[1].config))
+      queue[2].resolve(makeOkResponse({ success: true, data: [] }, queue[2].config))
+      queue[3].resolve(
+        makeOkResponse({ success: true, data: { token: 'jwt', user: makeUser() } }, queue[3].config),
+      )
+      queue[4].resolve(makeOkResponse({ success: true, data: makeUser() }, queue[4].config))
+
+      await Promise.all([pItems, pBuildings, pCategories, pLogin, pRegister])
+    })
+
+    it('API-11 & API-12 — envelope {success, data} e respostas HTTP 204 continuam funcionando', async () => {
+      const queue = installDeferredAdapter()
+
+      const reqEnvelope = api.get('/buildings')
+      const reqNoContent = api.delete('/buildings/1')
+      await flushMicrotasks()
+
+      queue[0].resolve(makeOkResponse({ success: true, data: [{ id: 1, name: 'Bloco 1' }] }, queue[0].config))
+      queue[1].resolve({
+        status: 204,
+        statusText: 'No Content',
+        headers: new AxiosHeaders(),
+        config: queue[1].config,
+        data: '',
+      })
+
+      const res1 = await reqEnvelope
+      const res2 = await reqNoContent
+      expect(res1.data).toEqual([{ id: 1, name: 'Bloco 1' }])
+      expect(res2.status).toBe(204)
+    })
+
+    it('API-14 — resposta HTML 200 não corrompe stores de catálogo nem paginação de itens', async () => {
+      const htmlBody = '<!doctype html><html><head><title>Achadex</title></head><body><div id="app"></div></body></html>'
+      const queue = installDeferredAdapter()
+
+      const buildingsStore = useBuildingsStore()
+      const categoriesStore = useCategoriesStore()
+      const pagination = usePagination(itemService.list)
+
+      const pBuildings = buildingsStore.ensureLoaded(true)
+      const pCategories = categoriesStore.ensureLoaded(true)
+      const pItems = pagination.load()
+
+      await flushMicrotasks()
+      expect(queue).toHaveLength(3)
+
+      queue[0].resolve(makeOkResponse(htmlBody, queue[0].config))
+      queue[1].resolve(makeOkResponse(htmlBody, queue[1].config))
+      queue[2].resolve(makeOkResponse(htmlBody, queue[2].config))
+
+      await Promise.all([pBuildings, pCategories, pItems])
+
+      expect(buildingsStore.error).toBe(true)
+      expect(buildingsStore.items).toEqual([])
+      expect(categoriesStore.error).toBe(true)
+      expect(categoriesStore.items).toEqual([])
+      expect(pagination.error.value).toBe(true)
+      expect(Array.isArray(pagination.items.value)).toBe(true)
+      expect(pagination.items.value).toEqual([])
+    })
   })
 })
