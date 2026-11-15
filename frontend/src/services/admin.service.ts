@@ -1,12 +1,10 @@
 import { api } from './api'
-import type { User, UserRole } from '../types'
+import type { User } from '../types'
 
 export interface CreateAdminPayload {
   name: string
   email: string
-  password: string
-  phone?: string | null
-  role: UserRole
+  initialPassword: string
 }
 
 export const adminService = {
@@ -19,7 +17,12 @@ export const adminService = {
     return data
   },
   async create(payload: CreateAdminPayload): Promise<User> {
-    const { data } = await api.post<User>('/admins', payload)
+    const sanitizedPayload: CreateAdminPayload = {
+      name: payload.name,
+      email: payload.email,
+      initialPassword: payload.initialPassword,
+    }
+    const { data } = await api.post<User>('/admins', sanitizedPayload)
     return data
   },
   async remove(id: number): Promise<void> {
