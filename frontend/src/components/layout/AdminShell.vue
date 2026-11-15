@@ -17,6 +17,7 @@ watch(mdAndUp, (isDesktop) => {
 const sectionTitle = computed(() => {
   const name = route.name as string
   const titles: Record<string, string> = {
+    'admin-dashboard': 'Dashboard Administrativo',
     'admin-items': 'Gerenciamento de Itens',
     'admin-item-new': 'Novo Item',
     'admin-item-detail': 'Detalhes do Item',

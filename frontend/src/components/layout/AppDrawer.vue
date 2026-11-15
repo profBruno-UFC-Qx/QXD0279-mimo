@@ -17,6 +17,7 @@ withDefaults(
 
 const adminNavItems = computed(() => {
   const items = [
+    { title: 'Dashboard', icon: 'mdi-view-dashboard-outline', to: '/admin/dashboard' },
     { title: 'Itens', icon: 'mdi-package-variant-closed', to: '/admin/itens' },
     { title: 'Perdas', icon: 'mdi-alert-box', to: '/admin/perdas' },
     { title: 'Prédios', icon: 'mdi-domain', to: '/admin/predios' },
