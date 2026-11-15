@@ -1,6 +1,6 @@
 import type { Category } from './category'
 import type { Building } from './building'
-import type { Item } from './item'
+import type { Item, ItemStatus } from './item'
 
 export type LostReportStatus = 'OPEN' | 'RESOLVED' | 'CANCELLED'
 
@@ -8,26 +8,59 @@ export interface SuggestionItem extends Item {
   matchScore?: number
 }
 
-export interface LostReport {
+export interface PublicSuggestedItem {
   id: number
-  userId: number
   title: string
   description: string | null
   categoryId: number
-  category?: Category
+  buildingId: number
+  foundLocation: string | null
+  foundDate: string
+  status: ItemStatus
+  category?: Pick<Category, 'id' | 'name'>
+  building?: Pick<Building, 'id' | 'name'>
+  photos?: Array<{ id: number; url: string }>
+}
+
+export interface CreateLostReportResult {
+  lostReport: LostReport
+  suggestions: PublicSuggestedItem[]
+}
+
+export interface LostReportMineQuery {
+  status?: LostReportStatus
+}
+
+export interface AdminLostReportQuery {
+  status?: LostReportStatus
+  categoryId?: number
+  buildingId?: number
+  page?: number
+  per_page?: number
+}
+
+/** Espelha PublicLostReportDto do backend; campos opcionais preservam telas legadas não migradas. */
+export interface LostReport {
+  id: number
+  userId: number
+  categoryId: number
   buildingId: number | null
-  building?: Building | null
-  lostDate: string
+  confirmedItemId: number | null
+  description: string
+  lossDate: string
   status: LostReportStatus
   createdAt: string
-  updatedAt: string
+  title?: string
+  lostDate?: string
+  updatedAt?: string
+  category?: Category
+  building?: Building | null
   suggestions?: SuggestionItem[]
 }
 
 export interface LostReportPayload {
-  title: string
-  description?: string | null
+  description: string
   categoryId: number
   buildingId?: number | null
-  lostDate: string
+  lossDate: string
 }

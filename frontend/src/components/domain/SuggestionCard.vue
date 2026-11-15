@@ -1,48 +1,141 @@
 <script setup lang="ts">
-import type { Item } from '@/types'
+import { computed } from 'vue'
+import type { PublicCatalogItem, PublicSuggestedItem } from '@/types'
+import { formatDate } from '@/utils/format'
+import { getSafePrimaryPhotoUrl } from '@/utils/suggestions'
 import StatusChip from './StatusChip.vue'
 
-withDefaults(defineProps<{
-  item: Item
-  score?: number
-  state: 'waiting' | 'confirmed' | 'discarded'
-}>(), { score: undefined })
+const props = withDefaults(
+  defineProps<{
+    item: PublicCatalogItem | PublicSuggestedItem
+    mode?: 'preview' | 'confirm' | 'interactive'
+    state?: 'waiting' | 'confirmed' | 'discarded'
+    score?: number
+    confirming?: boolean
+    disabled?: boolean
+  }>(),
+  {
+    mode: 'preview',
+    state: 'waiting',
+    score: undefined,
+    confirming: false,
+    disabled: false,
+  },
+)
 
 const emit = defineEmits<{ confirm: []; discard: [] }>()
+
+const primaryPhotoUrl = computed(() => getSafePrimaryPhotoUrl(props.item.photos))
+const isInteractive = computed(() => props.mode === 'interactive')
+const isConfirmMode = computed(() => props.mode === 'confirm')
+const descriptionText = computed(() =>
+  typeof props.item.description === 'string' && props.item.description.trim() !== ''
+    ? props.item.description
+    : null,
+)
+const foundLocationText = computed(() =>
+  typeof props.item.foundLocation === 'string' && props.item.foundLocation.trim() !== ''
+    ? props.item.foundLocation
+    : 'Local não informado',
+)
 </script>
 
 <template>
-  <v-card class="suggestion-card" :class="{ 'suggestion-card--discarded': state === 'discarded' }">
-    <div class="d-flex flex-column flex-sm-row">
-      <v-img
-        v-if="item.photos?.[0]?.url || item.photos?.[0]?.photoUrl"
-        :src="item.photos?.[0]?.url ?? item.photos?.[0]?.photoUrl"
-        :alt="`Foto de ${item.title}`"
-        width="150"
-        max-width="150"
-        height="150"
-        cover
-      />
-      <div v-else class="d-flex align-center justify-center bg-surface-muted" style="width: 150px; height: 150px">
-        <v-icon icon="mdi-image" size="40" color="outline" />
+  <v-card
+    class="suggestion-card h-100 rounded-lg border"
+    :class="{ 'suggestion-card--discarded': isInteractive && state === 'discarded' }"
+    variant="flat"
+  >
+    <div class="d-flex flex-column flex-sm-row h-100">
+      <div class="suggestion-card__media flex-shrink-0">
+        <v-img
+          v-if="primaryPhotoUrl"
+          :src="primaryPhotoUrl"
+          :alt="`Foto de ${item.title}`"
+          eager
+          width="100%"
+          height="100%"
+          cover
+        />
+        <div
+          v-else
+          class="d-flex flex-column align-center justify-center bg-surface-muted h-100 pa-3 text-center"
+          role="img"
+          :aria-label="`Sem foto de ${item.title}`"
+        >
+          <v-icon icon="mdi-image-outline" size="40" color="outline" />
+          <span class="text-caption text-medium-emphasis mt-1">Sem foto</span>
+        </div>
       </div>
-      <div class="pa-4 flex-grow-1">
+
+      <div class="pa-4 d-flex flex-column flex-grow-1">
         <div class="d-flex flex-wrap ga-2 mb-2">
           <StatusChip :status="item.status" kind="item" />
-          <v-chip v-if="state === 'confirmed'" color="success" size="small" variant="tonal">CONFIRMADO</v-chip>
-          <v-chip v-else-if="state === 'discarded'" color="outline" size="small" variant="tonal">DESCARTADA</v-chip>
+          <v-chip v-if="isInteractive && state === 'confirmed'" color="success" size="small" variant="tonal">
+            CONFIRMADO
+          </v-chip>
+          <v-chip v-else-if="isInteractive && state === 'discarded'" color="outline" size="small" variant="tonal">
+            DESCARTADA
+          </v-chip>
         </div>
-        <h3 class="text-h6 mb-1">{{ item.title }}</h3>
-        <p class="text-body-2 text-medium-emphasis">
-          {{ item.category?.name ?? 'Categoria não informada' }} · {{ item.building?.name ?? 'Prédio não informado' }}
+
+        <h3 class="text-subtitle-1 font-weight-bold mb-1">{{ item.title }}</h3>
+
+        <p v-if="descriptionText" class="text-body-2 text-medium-emphasis mb-2">
+          {{ descriptionText }}
         </p>
-        <p v-if="score !== undefined" class="text-body-2">Compatibilidade: {{ score }}%</p>
-        <v-alert v-if="state === 'confirmed'" type="info" variant="tonal" density="compact" class="mt-3">
+
+        <div class="text-body-2 text-medium-emphasis d-flex flex-column ga-1 mb-3">
+          <div>Categoria: {{ item.category?.name ?? 'Categoria não informada' }}</div>
+          <div>Prédio: {{ item.building?.name ?? 'Prédio não informado' }}</div>
+          <div>Local: {{ foundLocationText }}</div>
+          <div>Encontrado em: {{ formatDate(item.foundDate) }}</div>
+        </div>
+
+        <p v-if="isInteractive && score !== undefined" class="text-body-2 mb-2">
+          Compatibilidade: {{ score }}%
+        </p>
+
+        <v-alert
+          v-if="isInteractive && state === 'confirmed'"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="mb-3"
+        >
           Leve um documento ao balcão do prédio.
         </v-alert>
-        <div v-if="state === 'waiting'" class="d-flex flex-wrap ga-2 mt-3">
-          <v-btn color="primary" @click="emit('confirm')">✓ É este!</v-btn>
-          <v-btn variant="tonal" @click="emit('discard')">✕ Não é meu</v-btn>
+
+        <div class="d-flex flex-wrap ga-2 mt-auto">
+          <v-btn
+            variant="tonal"
+            color="primary"
+            size="small"
+            class="text-none"
+            :to="{ name: 'item-detail', params: { id: item.id } }"
+          >
+            Ver detalhes do item
+          </v-btn>
+          <template v-if="isConfirmMode">
+            <v-btn
+              color="primary"
+              size="small"
+              class="text-none"
+              :loading="confirming"
+              :disabled="disabled || confirming"
+              @click="emit('confirm')"
+            >
+              ✓ É este!
+            </v-btn>
+          </template>
+          <template v-else-if="isInteractive && state === 'waiting'">
+            <v-btn color="primary" size="small" class="text-none" @click="emit('confirm')">
+              ✓ É este!
+            </v-btn>
+            <v-btn variant="tonal" size="small" class="text-none" @click="emit('discard')">
+              ✕ Não é meu
+            </v-btn>
+          </template>
         </div>
       </div>
     </div>
@@ -50,5 +143,20 @@ const emit = defineEmits<{ confirm: []; discard: [] }>()
 </template>
 
 <style scoped>
-.suggestion-card--discarded { opacity: 0.55; }
+.suggestion-card__media {
+  width: 100%;
+  height: 180px;
+}
+
+@media (min-width: 600px) {
+  .suggestion-card__media {
+    width: 160px;
+    height: auto;
+    min-height: 180px;
+  }
+}
+
+.suggestion-card--discarded {
+  opacity: 0.55;
+}
 </style>

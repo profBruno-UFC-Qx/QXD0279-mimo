@@ -1,21 +1,31 @@
 import { api } from './api'
-import type { LostReport, LostReportPayload, Page, PageQuery } from '../types'
+import type {
+  CreateLostReportResult,
+  LostReport,
+  LostReportMineQuery,
+  LostReportPayload,
+  Page,
+  PageQuery,
+} from '../types'
 
 export const lostReportService = {
   async list(query?: PageQuery): Promise<Page<LostReport>> {
     const { data } = await api.get<Page<LostReport>>('/lost-reports', { params: query })
     return data
   },
-  async mine(query?: PageQuery): Promise<Page<LostReport>> {
-    const { data } = await api.get<Page<LostReport>>('/lost-reports/mine', { params: query })
+  async mine(query?: LostReportMineQuery): Promise<LostReport[]> {
+    const { data } = await api.get<LostReport[]>('/lost-reports/mine', { params: query })
+    if (!Array.isArray(data)) {
+      throw new Error('Resposta inválida ao carregar perdas.')
+    }
     return data
   },
   async getById(id: number): Promise<LostReport> {
     const { data } = await api.get<LostReport>(`/lost-reports/${id}`)
     return data
   },
-  async create(payload: LostReportPayload): Promise<LostReport> {
-    const { data } = await api.post<LostReport>('/lost-reports', payload)
+  async create(payload: LostReportPayload): Promise<CreateLostReportResult> {
+    const { data } = await api.post<CreateLostReportResult>('/lost-reports', payload)
     return data
   },
   async update(id: number, payload: Partial<LostReportPayload>): Promise<LostReport> {
@@ -26,7 +36,10 @@ export const lostReportService = {
     const { data } = await api.post<LostReport>(`/lost-reports/${id}/cancel`)
     return data
   },
-  async confirmSuggestion(reportId: number, itemId: number): Promise<void> {
-    await api.post(`/lost-reports/${reportId}/confirm`, { itemId })
+  async confirmSuggestion(reportId: number, itemId: number): Promise<LostReport> {
+    const { data } = await api.post<LostReport>(
+      `/lost-reports/${reportId}/suggestions/${itemId}/confirm`,
+    )
+    return data
   },
 }
