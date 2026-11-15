@@ -156,12 +156,12 @@ export async function cancelOwnLostReportIfOpen(
   return result.affected ?? 0;
 }
 
-let confirmSuggestionTxQueue: Promise<void> = Promise.resolve();
+let lostReportTxQueue: Promise<void> = Promise.resolve();
 
-function serializeConfirmTransaction<T>(work: () => Promise<T>): Promise<T> {
-  // O driver SQLite do TypeORM compartilha uma única conexão; enfileirar transações de confirmação evita colisão de BEGIN TRANSACTION sob carga concorrente.
-  const run = confirmSuggestionTxQueue.then(work, work);
-  confirmSuggestionTxQueue = run.then(
+function serializeLostReportTransaction<T>(work: () => Promise<T>): Promise<T> {
+  // O driver SQLite do TypeORM compartilha uma única conexão; enfileirar transações de mutação evita colisão de BEGIN TRANSACTION sob carga concorrente.
+  const run = lostReportTxQueue.then(work, work);
+  lostReportTxQueue = run.then(
     () => undefined,
     () => undefined,
   );
@@ -173,7 +173,7 @@ export async function confirmLostReportSuggestionRepo(
   userId: number,
   itemId: number,
 ): Promise<'updated' | 'not_found' | 'not_open' | 'already_confirmed' | 'item_not_found'> {
-  return await serializeConfirmTransaction(() =>
+  return await serializeLostReportTransaction(() =>
     AppDataSource.transaction(async (manager) => {
       const reportRepo = manager.getRepository(LostReport);
       const itemRepo = manager.getRepository(Item);
@@ -281,28 +281,37 @@ export async function findAdminLostReportById(reportId: number): Promise<LostRep
 export async function resolveLostReportRepo(
   reportId: number,
 ): Promise<'resolved' | 'not_found' | 'not_open'> {
-  return await AppDataSource.transaction(async (manager) => {
-    const reportRepo = manager.getRepository(LostReport);
-    const notificationRepo = manager.getRepository(Notification);
+  return await serializeLostReportTransaction(() =>
+    AppDataSource.transaction(async (manager) => {
+      const reportRepo = manager.getRepository(LostReport);
+      const notificationRepo = manager.getRepository(Notification);
 
-    const report = await reportRepo.findOne({ where: { id: reportId } });
-    if (!report) {
-      return 'not_found';
-    }
-    if (report.status !== LostReportStatus.OPEN) {
-      return 'not_open';
-    }
+      const updateResult = await manager
+        .createQueryBuilder()
+        .update(LostReport)
+        .set({ status: LostReportStatus.RESOLVED })
+        .where('id = :reportId', { reportId })
+        .andWhere('status = :openStatus', { openStatus: LostReportStatus.OPEN })
+        .execute();
 
-    report.status = LostReportStatus.RESOLVED;
-    await reportRepo.save(report);
+      if ((updateResult.affected ?? 0) !== 1) {
+        const existing = await reportRepo.findOne({ where: { id: reportId } });
+        return existing ? 'not_open' : 'not_found';
+      }
 
-    const notification = notificationRepo.create({
-      userId: report.userId,
-      type: NotificationType.REPORT_RESOLVED,
-      linkUrl: `/lost-reports/${report.id}`,
-    });
-    await notificationRepo.save(notification);
+      const resolved = await reportRepo.findOne({ where: { id: reportId } });
+      if (!resolved) {
+        return 'not_found';
+      }
 
-    return 'resolved';
-  });
+      const notification = notificationRepo.create({
+        userId: resolved.userId,
+        type: NotificationType.REPORT_RESOLVED,
+        linkUrl: `/lost-reports/${resolved.id}`,
+      });
+      await notificationRepo.save(notification);
+
+      return 'resolved';
+    }),
+  );
 }
