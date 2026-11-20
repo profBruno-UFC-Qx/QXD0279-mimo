@@ -14,6 +14,7 @@ import ErrorAlert from '@/components/common/ErrorAlert.vue'
 import StatusChip from '@/components/common/StatusChip.vue'
 import ItemPhotoGallery from '@/components/domain/ItemPhotoGallery.vue'
 import PossibleOwnerList from '@/components/domain/PossibleOwnerList.vue'
+import HandoverDialog from '@/components/domain/HandoverDialog.vue'
 import { formatDate } from '@/utils/format'
 import {
   extractLostReportErrorMessage,
@@ -21,7 +22,7 @@ import {
   isPositiveSafeId,
   parsePositiveReportId,
 } from '@/utils/lostReport'
-import { isItemEditable } from '@/utils/adminItems'
+import { isItemDeliverable, isItemEditable } from '@/utils/adminItems'
 
 const DISPOSITION_LABELS: Record<DispositionType, string> = {
   SOLD: 'Venda',
@@ -43,6 +44,7 @@ const loadError = ref<string | null>(null)
 const notFound = ref(false)
 const deleting = ref(false)
 const deleteError = ref<string | null>(null)
+const handoverDialogOpen = ref(false)
 
 const possibleOwners = ref<LostReport[]>([])
 const ownersLoading = ref(false)
@@ -62,6 +64,7 @@ let resolveRequestId = 0
 const hasAdminAccess = computed(() => auth.isAuthenticated && auth.isAdmin)
 const itemId = computed(() => parsePositiveReportId(String(route.params.id ?? '')))
 const isEditable = computed(() => details.value !== null && isItemEditable(details.value.item.status))
+const canDeliver = computed(() => details.value !== null && isItemDeliverable(details.value.item.status))
 const categoryName = computed(() =>
   details.value ? categoryLabel(details.value.item.categoryId) : '-',
 )
@@ -95,13 +98,16 @@ function resetOwnersState() {
   resetReportDialog()
 }
 
-async function loadDetails() {
+async function loadDetails(options: { keepContent?: boolean } = {}) {
   const id = itemId.value
-  details.value = null
+  if (!options.keepContent) {
+    details.value = null
+    handoverDialogOpen.value = false
+    resetOwnersState()
+  }
   loadError.value = null
   notFound.value = false
   deleteError.value = null
-  resetOwnersState()
 
   if (id === null) {
     notFound.value = true
@@ -341,6 +347,14 @@ function openEdit() {
   void router.push({ name: 'admin-item-edit', params: { id: details.value.item.id } })
 }
 
+function handleHandoverCreated() {
+  void loadDetails()
+}
+
+function handleHandoverConflict() {
+  void loadDetails({ keepContent: true })
+}
+
 async function requestDelete() {
   if (!details.value || !isEditable.value || deleting.value) return
 
@@ -405,6 +419,16 @@ onMounted(() => {
             @click="goBack"
           >
             Voltar
+          </v-btn>
+          <v-btn
+            v-if="details && canDeliver"
+            color="primary"
+            class="text-none"
+            prepend-icon="mdi-handshake-outline"
+            :disabled="deleting"
+            @click="handoverDialogOpen = true"
+          >
+            Registrar entrega
           </v-btn>
           <v-btn
             v-if="details"
@@ -551,6 +575,14 @@ onMounted(() => {
         </v-col>
       </v-row>
     </LoadingOverlay>
+
+    <HandoverDialog
+      v-if="details"
+      v-model="handoverDialogOpen"
+      :item="details.item"
+      @created="handleHandoverCreated"
+      @conflict="handleHandoverConflict"
+    />
 
     <v-dialog v-model="reportDialogOpen" max-width="560" persistent>
       <v-card class="rounded-lg pa-2">
