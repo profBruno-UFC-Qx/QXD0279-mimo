@@ -13,9 +13,19 @@ export interface DispositionRule {
   updatedAt: string
 }
 
-export interface DispositionRulePayload {
+export interface CreateDispositionRulePayload {
   days: number
   destination: DispositionType
+}
+
+export interface UpdateDispositionRulePayload {
+  days?: number
+  destination?: DispositionType
+  active?: boolean
+  locked?: boolean
+}
+
+export interface DispositionRuleQuery {
   active?: boolean
 }
 
@@ -34,4 +44,12 @@ export interface DispositionPayload {
   itemId: number
   destination: DispositionType
   receiverDocument: string
+}
+
+export interface DispositionQuery {
+  destination?: DispositionType
+  from?: string
+  to?: string
+  page?: number
+  per_page?: number
 }

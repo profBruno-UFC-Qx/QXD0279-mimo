@@ -95,10 +95,11 @@ export async function createDisposition(adminId: number, input: unknown): Promis
     throw new HttpError(409, 'O item não está elegível para destinação.');
   }
 
-  const [dispositions] = await listAdminDispositionsRepo({ destination }, 1, 1);
-  // Buscar a destinação recém criada
-  const created = await listAdminDispositionsRepo({}, 1, 1);
-  return created[0][0];
+  const created = await findDispositionById(result);
+  if (!created) {
+    throw new HttpError(500, 'Erro ao recuperar a destinação criada.');
+  }
+  return created;
 }
 
 export async function listAdminDispositions(

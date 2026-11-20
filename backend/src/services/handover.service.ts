@@ -86,12 +86,11 @@ export async function createHandover(adminId: number, input: unknown): Promise<H
     throw new HttpError(409, 'O item não está disponível ou elegível para entrega.');
   }
 
-  // Retornar a última entrega criada para o item
-  const [handovers] = await listAdminHandoversRepo({ itemId }, 1, 1);
-  if (handovers.length === 0) {
+  const created = await findHandoverById(result);
+  if (!created) {
     throw new HttpError(500, 'Erro ao recuperar entrega criada.');
   }
-  return handovers[0];
+  return created;
 }
 
 export async function listOwnHandovers(userId: number): Promise<Handover[]> {

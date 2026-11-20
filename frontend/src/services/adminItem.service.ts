@@ -1,24 +1,32 @@
 import { api } from './api'
-import type { Item, ItemPayload, ItemQuery, Page } from '../types'
+import type {
+  AdminItemDetails,
+  AdminItemQuery,
+  CreateAdminItemPayload,
+  Item,
+  LostReport,
+  Page,
+  UpdateAdminItemPayload,
+} from '../types'
 
 export const adminItemService = {
-  async list(query?: ItemQuery): Promise<Page<Item>> {
+  async list(query?: AdminItemQuery): Promise<Page<Item>> {
     const { data } = await api.get<Page<Item>>('/admin/items', { params: query })
     return data
   },
-  async getById(id: number): Promise<Item> {
-    const { data } = await api.get<Item>(`/admin/items/${id}`)
+  async getById(id: number): Promise<AdminItemDetails> {
+    const { data } = await api.get<AdminItemDetails>(`/admin/items/${id}`)
     return data
   },
-  async getPossibleOwners(id: number): Promise<any[]> {
-    const { data } = await api.get<any[]>(`/admin/items/${id}/possible-owners`)
+  async getPossibleOwners(id: number): Promise<LostReport[]> {
+    const { data } = await api.get<LostReport[]>(`/admin/items/${id}/possible-owners`)
     return data
   },
-  async create(payload: ItemPayload): Promise<Item> {
+  async create(payload: CreateAdminItemPayload): Promise<Item> {
     const { data } = await api.post<Item>('/admin/items', payload)
     return data
   },
-  async update(id: number, payload: Partial<ItemPayload>): Promise<Item> {
+  async update(id: number, payload: UpdateAdminItemPayload): Promise<Item> {
     const { data } = await api.patch<Item>(`/admin/items/${id}`, payload)
     return data
   },

@@ -63,14 +63,30 @@ export interface Item {
   updatedAt: string
 }
 
-export interface ItemPayload {
+export interface CreateAdminItemPayload {
   title: string
   description?: string | null
   categoryId: number
   buildingId: number
   foundLocation?: string | null
   foundDate: string
-  photoUrls?: string[]
+  photos: string[]
+}
+
+export interface UpdateAdminItemPayload {
+  title?: string
+  description?: string | null
+  categoryId?: number
+  buildingId?: number
+  foundLocation?: string | null
+  foundDate?: string
+  photosToAdd?: string[]
+  photosToRemove?: number[]
+}
+
+export interface AdminItemDetails {
+  item: Item
+  photos: ItemPhoto[]
 }
 
 export interface ItemQuery extends PageQuery {
@@ -78,4 +94,13 @@ export interface ItemQuery extends PageQuery {
   buildingId?: number
   search?: string
   status?: ItemStatus
+}
+
+export interface AdminItemQuery {
+  categoryId?: number
+  buildingId?: number
+  search?: string
+  status?: ItemStatus
+  page?: number
+  per_page?: number
 }

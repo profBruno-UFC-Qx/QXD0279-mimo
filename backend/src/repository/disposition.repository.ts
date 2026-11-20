@@ -12,7 +12,7 @@ export interface CreateDispositionData {
 
 export async function createDispositionRepo(
   data: CreateDispositionData,
-): Promise<'success' | 'item_not_found' | 'item_not_eligible'> {
+): Promise<number | 'item_not_found' | 'item_not_eligible'> {
   return await AppDataSource.transaction(async (manager) => {
     const itemRepo = manager.getRepository(Item);
     const dispositionRepo = manager.getRepository(Disposition);
@@ -56,7 +56,7 @@ export async function createDispositionRepo(
     });
     await dispositionRepo.save(disposition);
 
-    return 'success';
+    return disposition.id;
   });
 }
 

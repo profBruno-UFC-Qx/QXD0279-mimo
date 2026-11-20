@@ -5,17 +5,27 @@ export interface Handover {
   id: number
   itemId: number
   item?: Item
-  withdrawnByName: string
-  withdrawnByCpf: string
+  withdrawnName: string
+  withdrawnCpf: string
   withdrawnUserId: number | null
   withdrawnUser?: User | null
   adminId: number
   admin?: User
-  createdAt: string
+  handedAt: string
 }
 
 export interface HandoverPayload {
-  withdrawnByName: string
-  withdrawnByCpf: string
+  itemId: number
+  withdrawnName: string
+  withdrawnCpf: string
   withdrawnUserId?: number | null
+}
+
+export interface AdminHandoverQuery {
+  itemId?: number
+  adminId?: number
+  from?: string
+  to?: string
+  page?: number
+  per_page?: number
 }

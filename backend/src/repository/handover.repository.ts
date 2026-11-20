@@ -14,7 +14,7 @@ export interface CreateHandoverData {
 
 export async function createHandoverRepo(
   data: CreateHandoverData,
-): Promise<'success' | 'item_not_found' | 'item_not_available_or_eligible' | 'user_not_found'> {
+): Promise<number | 'item_not_found' | 'item_not_available_or_eligible' | 'user_not_found'> {
   return await AppDataSource.transaction(async (manager) => {
     const itemRepo = manager.getRepository(Item);
     const handoverRepo = manager.getRepository(Handover);
@@ -48,7 +48,7 @@ export async function createHandoverRepo(
     });
     await handoverRepo.save(handover);
 
-    return 'success';
+    return handover.id;
   });
 }
 
