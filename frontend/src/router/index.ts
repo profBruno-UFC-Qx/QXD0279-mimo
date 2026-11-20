@@ -139,6 +139,11 @@ const router = createRouter({
           component: () => import('@/views/admin/AdminItemDetailView.vue'),
         },
         {
+          path: 'itens/:id/editar',
+          name: 'admin-item-edit',
+          component: () => import('@/views/admin/AdminItemFormView.vue'),
+        },
+        {
           path: 'perdas',
           name: 'admin-lost-reports',
           component: () => import('@/views/admin/AdminLostReportsView.vue'),

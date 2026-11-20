@@ -30,6 +30,7 @@ coverage
 # arqs
 frontend/PlanoImplementação.md
 .env
+backend/data/uploads/
 
 # E2E & visual review artifacts
 artifacts/

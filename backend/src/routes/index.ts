@@ -14,10 +14,13 @@ import { catalogItemRouter } from '../controllers/item.controller.js';
 import { lostReportRouter } from '../controllers/lost-report.controller.js';
 import { notificationRouter } from '../controllers/notification.controller.js';
 import { userRouter } from '../controllers/user.controller.js';
+import { mediaRouter, uploadRouter } from '../controllers/upload.controller.js';
 
 export const apiRouter = Router();
 
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/uploads', uploadRouter);
+apiRouter.use('/media', mediaRouter);
 apiRouter.use('/users', userRouter);
 apiRouter.use('/items', catalogItemRouter);
 apiRouter.use('/admin/items', adminItemRouter);
