@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminDialog from '@/components/common/AdminDialog.vue'
 import { computed, ref, watch } from 'vue'
 import type { DispositionType, Item } from '@/types'
 import { dispositionService } from '@/services/disposition.service'
@@ -179,99 +180,95 @@ watch(
 </script>
 
 <template>
-  <v-dialog v-model="open" max-width="560" persistent>
-    <v-card class="rounded-lg pa-2">
-      <v-card-title class="text-h6 font-weight-bold text-primary px-4 pt-4">
-        Executar destinação
-      </v-card-title>
+  <AdminDialog v-model="open" max-width="560" persistent>
+    <template #title>
+      Executar destinação
+    </template>
 
-      <v-card-text class="px-4 py-3">
-        <v-alert v-if="!item" type="warning" variant="tonal" class="rounded-lg">
-          Nenhum item selecionado para destinação.
+    <v-alert v-if="!item" type="warning" variant="tonal" class="rounded-lg">
+      Nenhum item selecionado para destinação.
+    </v-alert>
+
+    <template v-else>
+      <v-card variant="tonal" class="px-4 py-3 mb-4 rounded-lg">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <div>
+            <div class="text-subtitle-1 font-weight-bold">
+              {{ item.title }}
+            </div>
+            <div class="text-body-2 text-medium-emphasis">Item #{{ item.id }}</div>
+          </div>
+          <StatusChip :status="item.status" />
+        </div>
+        <div class="text-body-2 text-medium-emphasis mt-2">
+          Destino planejado: <strong>{{ plannedLabel }}</strong>
+        </div>
+      </v-card>
+
+      <v-alert
+        v-if="!canDispose && !conflictState"
+        type="warning"
+        variant="tonal"
+        class="mb-4 rounded-lg"
+      >
+        Este item não está elegível para destinação.
+      </v-alert>
+
+      <v-form ref="formRef" @submit.prevent="submit">
+        <v-select
+          v-model="destination"
+          :items="DISPOSITION_OPTIONS"
+          item-title="title"
+          item-value="value"
+          label="Destino da destinação *"
+          variant="outlined"
+          density="comfortable"
+          :error-messages="destinationError ? [destinationError] : []"
+          :disabled="submitting || !canDispose"
+          class="mb-2"
+        />
+
+        <v-alert
+          v-if="destinationDiffers"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="mb-3 rounded-lg"
+        >
+          O destino selecionado ({{ selectedLabel }}) difere do planejado
+          ({{ plannedLabel }}).
         </v-alert>
 
-        <template v-else>
-          <v-card variant="tonal" class="px-4 py-3 mb-4 rounded-lg">
-            <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-              <div>
-                <div class="text-subtitle-1 font-weight-bold">
-                  {{ item.title }}
-                </div>
-                <div class="text-body-2 text-medium-emphasis">Item #{{ item.id }}</div>
-              </div>
-              <StatusChip :status="item.status" />
-            </div>
-            <div class="text-body-2 text-medium-emphasis mt-2">
-              Destino planejado: <strong>{{ plannedLabel }}</strong>
-            </div>
-          </v-card>
+        <v-text-field
+          v-model="receiverDocument"
+          label="CPF ou CNPJ do destinatário *"
+          variant="outlined"
+          density="comfortable"
+          placeholder="000.000.000-00 ou 00.000.000/0000-00"
+          :rules="documentRules"
+          :disabled="submitting || !canDispose"
+        />
 
-          <v-alert
-            v-if="!canDispose && !conflictState"
-            type="warning"
-            variant="tonal"
-            class="mb-4 rounded-lg"
-          >
-            Este item não está elegível para destinação.
-          </v-alert>
+        <v-alert v-if="submitError" type="error" variant="tonal" class="mt-4 rounded-lg">
+          {{ submitError }}
+        </v-alert>
+      </v-form>
+    </template>
 
-          <v-form ref="formRef" @submit.prevent="submit">
-            <v-select
-              v-model="destination"
-              :items="DISPOSITION_OPTIONS"
-              item-title="title"
-              item-value="value"
-              label="Destino da destinação *"
-              variant="outlined"
-              density="comfortable"
-              :error-messages="destinationError ? [destinationError] : []"
-              :disabled="submitting || !canDispose"
-              class="mb-2"
-            />
-
-            <v-alert
-              v-if="destinationDiffers"
-              type="info"
-              variant="tonal"
-              density="compact"
-              class="mb-3 rounded-lg"
-            >
-              O destino selecionado ({{ selectedLabel }}) difere do planejado
-              ({{ plannedLabel }}).
-            </v-alert>
-
-            <v-text-field
-              v-model="receiverDocument"
-              label="CPF ou CNPJ do destinatário *"
-              variant="outlined"
-              density="comfortable"
-              placeholder="000.000.000-00 ou 00.000.000/0000-00"
-              :rules="documentRules"
-              :disabled="submitting || !canDispose"
-            />
-
-            <v-alert v-if="submitError" type="error" variant="tonal" class="mt-4 rounded-lg">
-              {{ submitError }}
-            </v-alert>
-          </v-form>
-        </template>
-      </v-card-text>
-
-      <v-card-actions class="px-4 pb-4 pt-2">
-        <v-spacer />
-        <v-btn variant="text" class="text-none" :disabled="submitting" @click="close">
-          Cancelar
-        </v-btn>
-        <v-btn
-          v-if="canDispose"
-          color="primary"
-          class="text-none"
-          :loading="submitting"
-          @click="submit"
-        >
-          Executar destinação
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <v-spacer />
+      <v-btn variant="text" class="text-none" :disabled="submitting" @click="close">
+        Cancelar
+      </v-btn>
+      <v-btn
+        v-if="canDispose"
+        color="primary"
+        class="text-none"
+        :loading="submitting"
+        @click="submit"
+      >
+        Executar destinação
+      </v-btn>
+    </template>
+  </AdminDialog>
 </template>

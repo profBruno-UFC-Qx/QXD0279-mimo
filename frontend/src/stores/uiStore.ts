@@ -82,6 +82,12 @@ export const useUiStore = defineStore('ui', () => {
     })
   }
 
+  function closeConfirmation(resolve: ((value: boolean) => void) | null) {
+    if (!resolve || confirmDialog.value.resolve !== resolve) return
+    confirmDialog.value.show = false
+    confirmDialog.value.open = false
+  }
+
   return {
     snackbar,
     snackbarQueue,
@@ -91,5 +97,6 @@ export const useUiStore = defineStore('ui', () => {
     notifyError,
     dismissSnackbar,
     confirm,
+    closeConfirmation,
   }
 })

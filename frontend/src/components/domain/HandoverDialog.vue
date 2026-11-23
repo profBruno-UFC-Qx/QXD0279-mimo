@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminDialog from '@/components/common/AdminDialog.vue'
 import { computed, ref, watch } from 'vue'
 import type { Handover, Item } from '@/types'
 import { handoverService } from '@/services/handover.service'
@@ -155,92 +156,88 @@ watch(
 </script>
 
 <template>
-  <v-dialog v-model="open" max-width="560" persistent>
-    <v-card class="rounded-lg pa-2">
-      <v-card-title class="text-h6 font-weight-bold text-primary px-4 pt-4">
-        Registrar entrega
-      </v-card-title>
+  <AdminDialog v-model="open" max-width="560" persistent>
+    <template #title>
+      Registrar entrega
+    </template>
 
-      <v-card-text class="px-4 py-3">
-        <v-alert v-if="!item" type="warning" variant="tonal" class="rounded-lg">
-          Nenhum item selecionado para entrega.
+    <v-alert v-if="!item" type="warning" variant="tonal" class="rounded-lg">
+      Nenhum item selecionado para entrega.
+    </v-alert>
+
+    <template v-else>
+      <v-card variant="tonal" class="px-4 py-3 mb-4 rounded-lg">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <div>
+            <div class="text-subtitle-1 font-weight-bold">{{ item.title }}</div>
+            <div class="text-body-2 text-medium-emphasis">Item #{{ item.id }}</div>
+          </div>
+          <StatusChip :status="item.status" />
+        </div>
+      </v-card>
+
+      <v-alert
+        v-if="!canDeliver"
+        type="warning"
+        variant="tonal"
+        class="mb-4 rounded-lg"
+      >
+        Este item não está disponível para entrega.
+      </v-alert>
+
+      <v-form ref="formRef" @submit.prevent="submit">
+        <v-text-field
+          v-model="withdrawnName"
+          label="Nome completo do retirante *"
+          variant="outlined"
+          density="comfortable"
+          :rules="nameRules"
+          :disabled="submitting || !canDeliver"
+          class="mb-2"
+        />
+
+        <CpfField
+          v-model="withdrawnCpf"
+          label="CPF do retirante"
+          required
+          :disabled="submitting || !canDeliver"
+        />
+
+        <v-text-field
+          v-model="withdrawnUserIdInput"
+          label="ID da conta do usuário (opcional)"
+          variant="outlined"
+          density="comfortable"
+          inputmode="numeric"
+          :error-messages="userIdError ?? []"
+          :disabled="submitting || !canDeliver"
+          class="mt-2"
+        />
+        <p class="text-caption text-medium-emphasis">
+          Associe uma conta para que a retirada apareça no histórico do usuário.
+        </p>
+
+        <v-alert v-if="submitError" type="error" variant="tonal" class="mt-4 rounded-lg">
+          {{ submitError }}
         </v-alert>
+      </v-form>
+    </template>
 
-        <template v-else>
-          <v-card variant="tonal" class="px-4 py-3 mb-4 rounded-lg">
-            <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-              <div>
-                <div class="text-subtitle-1 font-weight-bold">{{ item.title }}</div>
-                <div class="text-body-2 text-medium-emphasis">Item #{{ item.id }}</div>
-              </div>
-              <StatusChip :status="item.status" />
-            </div>
-          </v-card>
-
-          <v-alert
-            v-if="!canDeliver"
-            type="warning"
-            variant="tonal"
-            class="mb-4 rounded-lg"
-          >
-            Este item não está disponível para entrega.
-          </v-alert>
-
-          <v-form ref="formRef" @submit.prevent="submit">
-            <v-text-field
-              v-model="withdrawnName"
-              label="Nome completo do retirante *"
-              variant="outlined"
-              density="comfortable"
-              :rules="nameRules"
-              :disabled="submitting || !canDeliver"
-              class="mb-2"
-            />
-
-            <CpfField
-              v-model="withdrawnCpf"
-              label="CPF do retirante"
-              required
-              :disabled="submitting || !canDeliver"
-            />
-
-            <v-text-field
-              v-model="withdrawnUserIdInput"
-              label="ID da conta do usuário (opcional)"
-              variant="outlined"
-              density="comfortable"
-              inputmode="numeric"
-              :error-messages="userIdError ?? []"
-              :disabled="submitting || !canDeliver"
-              class="mt-2"
-            />
-            <p class="text-caption text-medium-emphasis">
-              Associe uma conta para que a retirada apareça no histórico do usuário.
-            </p>
-
-            <v-alert v-if="submitError" type="error" variant="tonal" class="mt-4 rounded-lg">
-              {{ submitError }}
-            </v-alert>
-          </v-form>
-        </template>
-      </v-card-text>
-
-      <v-card-actions class="px-4 pb-4 pt-2">
-        <v-spacer />
-        <v-btn variant="text" class="text-none" :disabled="submitting" @click="close">
-          Cancelar
-        </v-btn>
-        <v-btn
-          v-if="canDeliver"
-          color="primary"
-          class="text-none"
-          :loading="submitting"
-          :disabled="!item"
-          @click="submit"
-        >
-          Registrar entrega
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <v-spacer />
+      <v-btn variant="text" class="text-none" :disabled="submitting" @click="close">
+        Cancelar
+      </v-btn>
+      <v-btn
+        v-if="canDeliver"
+        color="primary"
+        class="text-none"
+        :loading="submitting"
+        :disabled="!item"
+        @click="submit"
+      >
+        Registrar entrega
+      </v-btn>
+    </template>
+  </AdminDialog>
 </template>

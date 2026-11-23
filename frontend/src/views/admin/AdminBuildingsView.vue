@@ -1,727 +1,43 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import ActionAlert from '@/components/common/ActionAlert.vue'
+import AdminSearchField from '@/components/form/AdminSearchField.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import ErrorAlert from '@/components/common/ErrorAlert.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
-import { useAuthStore } from '@/stores/authStore'
-import { useUiStore } from '@/stores/uiStore'
-import { useBuildingsStore } from '@/stores/buildingsStore'
-import { buildingService } from '@/services/building.service'
-import { extractLostReportErrorMessage, getErrorStatus, isPositiveSafeId } from '@/utils/lostReport'
-import {
-  buildBuildingCreatePayload,
-  buildBuildingPatchPayload,
-  isValidBuilding,
-  isValidBuildingList,
-  sortBuildingsByName,
-  validateBuildingForm,
-  type BuildingFormDraft,
-  type BuildingValidationErrors,
-} from '@/utils/adminBuildings'
-import type { Building } from '@/types'
-
-interface SessionSnapshot {
-  token: string | null
-  userId: number | null
-  role: string | null
-  generation: number
-}
-
-interface RequestSnapshot extends SessionSnapshot {
-  requestId: number
-  mutationEpoch?: number
-}
-
-const emptyDraft = (): BuildingFormDraft => ({
-  name: '',
-  address: '',
-  pickupPoint: '',
-  serviceHours: '',
-})
-
-const auth = useAuthStore()
-const ui = useUiStore()
-const buildingsStore = useBuildingsStore()
-
-const buildings = ref<Building[]>([])
-const loadingList = ref(false)
-const listError = ref<string | null>(null)
-const searchQuery = ref('')
-
-const editorOpen = ref(false)
-const editorMode = ref<'create' | 'edit'>('create')
-const editingBuildingId = ref<number | null>(null)
-const editingOriginal = ref<Building | null>(null)
-const loadingDetail = ref(false)
-const detailError = ref<string | null>(null)
-const formDraft = ref<BuildingFormDraft>(emptyDraft())
-const formErrors = ref<BuildingValidationErrors>({})
-
-const submitting = ref(false)
-const submitError = ref<string | null>(null)
-const showReloadActionOnSubmitError = ref(false)
-
-const deletingBuildingId = ref<number | null>(null)
-const confirmingDelete = ref(false)
-const deleteError = ref<string | null>(null)
-const showVerifyDeleteError = ref(false)
-
-let latestListReqId = 0
-let listMutationEpoch = 0
-let latestDetailReqId = 0
-let latestSubmitReqId = 0
-let activeSubmitOwnerId: number | null = null
-let latestDeleteReqId = 0
-let activeDeleteOwnerId: number | null = null
-let latestConfirmId = 0
-let activeDeleteConfirmationId: number | null = null
-let latestSessionWatchId = 0
-let activeConfirmResolver: ((value: boolean) => void) | null = null
-let unmounted = false
-
-const hasAdminAccess = computed(() => auth.isAuthenticated && auth.isAdmin)
-
-const filteredBuildings = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return buildings.value
-  return buildings.value.filter(
-    (b) => b.name.toLowerCase().includes(q) || b.address.toLowerCase().includes(q),
-  )
-})
-
-function captureSession(): SessionSnapshot {
-  return {
-    token: auth.token,
-    userId: auth.user?.id ?? null,
-    role: auth.user?.role ?? null,
-    generation: auth.sessionGeneration,
-  }
-}
-
-function isSameAdminSession(snapshot: SessionSnapshot): boolean {
-  return (
-    !unmounted &&
-    hasAdminAccess.value &&
-    auth.token === snapshot.token &&
-    (auth.user?.id ?? null) === snapshot.userId &&
-    (auth.user?.role ?? null) === snapshot.role &&
-    auth.sessionGeneration === snapshot.generation
-  )
-}
-
-function isCurrentListRequest(snapshot: RequestSnapshot): boolean {
-  return (
-    snapshot.requestId === latestListReqId &&
-    snapshot.mutationEpoch === listMutationEpoch &&
-    isSameAdminSession(snapshot)
-  )
-}
-
-function ownsListRequest(snapshot: RequestSnapshot): boolean {
-  return !unmounted && snapshot.requestId === latestListReqId && isSameAdminSession(snapshot)
-}
-
-function isCurrentDetailRequest(snapshot: RequestSnapshot, buildingId: number): boolean {
-  return (
-    snapshot.requestId === latestDetailReqId &&
-    editorOpen.value &&
-    editorMode.value === 'edit' &&
-    editingBuildingId.value === buildingId &&
-    isSameAdminSession(snapshot)
-  )
-}
-
-function releaseSubmitOwnership(snapshot: RequestSnapshot) {
-  if (!unmounted && isSameAdminSession(snapshot) && activeSubmitOwnerId === snapshot.requestId) {
-    submitting.value = false
-    activeSubmitOwnerId = null
-  }
-}
-
-function releaseDeleteOwnership(snapshot: RequestSnapshot) {
-  if (!unmounted && isSameAdminSession(snapshot) && activeDeleteOwnerId === snapshot.requestId) {
-    deletingBuildingId.value = null
-    activeDeleteOwnerId = null
-  }
-}
-
-function dismissOwnedConfirmDialog() {
-  const resolver = activeConfirmResolver
-  activeConfirmResolver = null
-  activeDeleteConfirmationId = null
-  confirmingDelete.value = false
-  if (resolver === null) return
-
-  if (ui.confirmDialog.resolve === resolver) {
-    ui.confirmDialog.show = false
-    ui.confirmDialog.open = false
-  }
-  resolver(false)
-}
-
-function resetEditorState() {
-  ++latestDetailReqId
-  editorOpen.value = false
-  editorMode.value = 'create'
-  editingBuildingId.value = null
-  editingOriginal.value = null
-  loadingDetail.value = false
-  detailError.value = null
-  formDraft.value = emptyDraft()
-  formErrors.value = {}
-  submitError.value = null
-  showReloadActionOnSubmitError.value = false
-}
-
-function resetAllAdminState() {
-  dismissOwnedConfirmDialog()
-  ++latestListReqId
-  ++listMutationEpoch
-  ++latestSubmitReqId
-  ++latestDeleteReqId
-  ++latestConfirmId
-  activeSubmitOwnerId = null
-  activeDeleteOwnerId = null
-
-  buildings.value = []
-  loadingList.value = false
-  listError.value = null
-  searchQuery.value = ''
-
-  submitting.value = false
-  deletingBuildingId.value = null
-  deleteError.value = null
-  showVerifyDeleteError.value = false
-
-  resetEditorState()
-}
-
-async function loadBuildings() {
-  if (unmounted || !hasAdminAccess.value) {
-    resetAllAdminState()
-    return
-  }
-
-  const snapshot: RequestSnapshot = {
-    ...captureSession(),
-    requestId: ++latestListReqId,
-    mutationEpoch: listMutationEpoch,
-  }
-
-  loadingList.value = true
-  listError.value = null
-
-  try {
-    const res = await buildingService.list()
-    if (!isCurrentListRequest(snapshot)) return
-
-    if (!isValidBuildingList(res)) {
-      buildings.value = []
-      listError.value = 'Não foi possível validar os prédios recebidos do servidor.'
-      return
-    }
-
-    buildings.value = res
-    buildingsStore.syncCatalog(res)
-  } catch (err: unknown) {
-    if (!isCurrentListRequest(snapshot)) return
-    const status = getErrorStatus(err)
-    buildings.value = []
-    if (status === 403) {
-      listError.value = 'Sua sessão não possui permissão administrativa para gerenciar prédios.'
-      return
-    }
-    listError.value = extractLostReportErrorMessage(
-      err,
-      'Não foi possível carregar os prédios cadastrados. Tente novamente.',
-    )
-  } finally {
-    if (ownsListRequest(snapshot)) {
-      loadingList.value = false
-    }
-  }
-}
-
-function applyConfirmedBuildingMutation(nextList: Building[]) {
-  ++latestListReqId
-  ++listMutationEpoch
-  loadingList.value = false
-  buildings.value = nextList
-  buildingsStore.syncCatalog(nextList)
-}
-
-function openCreate() {
-  if (
-    unmounted ||
-    !hasAdminAccess.value ||
-    submitting.value ||
-    confirmingDelete.value ||
-    activeDeleteConfirmationId !== null
-  ) {
-    return
-  }
-  resetEditorState()
-  editorMode.value = 'create'
-  editorOpen.value = true
-}
-
-async function loadBuildingForEdit(buildingId: number) {
-  if (unmounted || !hasAdminAccess.value || !isPositiveSafeId(buildingId)) return
-
-  const snapshot: RequestSnapshot = {
-    ...captureSession(),
-    requestId: ++latestDetailReqId,
-  }
-
-  loadingDetail.value = true
-  detailError.value = null
-
-  try {
-    const fresh = await buildingService.getById(buildingId)
-    if (!isCurrentDetailRequest(snapshot, buildingId)) return
-
-    if (!isValidBuilding(fresh, buildingId)) {
-      detailError.value = 'Não foi possível validar os dados atuais deste prédio.'
-      return
-    }
-
-    editingOriginal.value = fresh
-    formDraft.value = {
-      name: fresh.name,
-      address: fresh.address,
-      pickupPoint: fresh.pickupPoint,
-      serviceHours: fresh.serviceHours,
-    }
-    formErrors.value = {}
-  } catch (err: unknown) {
-    if (!isCurrentDetailRequest(snapshot, buildingId)) return
-    const status = getErrorStatus(err)
-    if (status === 404) {
-      detailError.value = 'Este prédio não existe mais no servidor.'
-      return
-    }
-    detailError.value = extractLostReportErrorMessage(
-      err,
-      'Não foi possível carregar os dados atuais do prédio.',
-    )
-  } finally {
-    if (!unmounted && snapshot.requestId === latestDetailReqId && isSameAdminSession(snapshot)) {
-      loadingDetail.value = false
-    }
-  }
-}
-
-function openEdit(building: Building) {
-  if (
-    unmounted ||
-    !hasAdminAccess.value ||
-    submitting.value ||
-    confirmingDelete.value ||
-    activeDeleteConfirmationId !== null ||
-    deletingBuildingId.value !== null ||
-    !isPositiveSafeId(building.id)
-  ) {
-    return
-  }
-
-  resetEditorState()
-  editorMode.value = 'edit'
-  editingBuildingId.value = building.id
-  editorOpen.value = true
-  void loadBuildingForEdit(building.id)
-}
-
-function closeEditor() {
-  if (submitting.value) return
-  resetEditorState()
-}
-
-async function reloadFromModalError() {
-  if (unmounted || !hasAdminAccess.value) return
-  resetEditorState()
-  await loadBuildings()
-}
-
-async function submitBuilding() {
-  if (
-    unmounted ||
-    !hasAdminAccess.value ||
-    submitting.value ||
-    loadingDetail.value ||
-    !editorOpen.value
-  ) {
-    return
-  }
-
-  const validation = validateBuildingForm(formDraft.value)
-  formErrors.value = validation.errors
-  if (!validation.valid || !validation.payload) {
-    return
-  }
-
-  if (editorMode.value === 'create') {
-    const payload = buildBuildingCreatePayload(formDraft.value)
-    if (!payload) return
-    await executeCreateBuilding(payload)
-    return
-  }
-
-  const targetId = editingBuildingId.value
-  const original = editingOriginal.value
-  if (!isPositiveSafeId(targetId) || !original) return
-
-  const patch = buildBuildingPatchPayload(original, formDraft.value)
-  if (!patch) return
-
-  // PATCH vazio é rejeitado pelo backend (400); fechar sem enviar requisição nem sucesso fictício.
-  if (Object.keys(patch).length === 0) {
-    closeEditor()
-    return
-  }
-
-  await executeUpdateBuilding(targetId, patch)
-}
-
-function isDefinitiveClientRejection(status: number | null | undefined): boolean {
-  return status === 400 || status === 401 || status === 403 || status === 409
-}
-
-function invalidateCatalogIfUncertain(status: number | null | undefined, revalidateIfObserved = true) {
-  if (!isDefinitiveClientRejection(status)) {
-    buildingsStore.invalidateCatalog({ revalidateIfObserved })
-  }
-}
-
-async function executeCreateBuilding(payload: NonNullable<ReturnType<typeof buildBuildingCreatePayload>>) {
-  const snapshot: RequestSnapshot = {
-    ...captureSession(),
-    requestId: ++latestSubmitReqId,
-  }
-
-  activeSubmitOwnerId = snapshot.requestId
-  submitting.value = true
-  submitError.value = null
-  showReloadActionOnSubmitError.value = false
-  buildingsStore.beginWrite()
-  let writeEnded = false
-  const closeWrite = () => {
-    if (writeEnded) return
-    writeEnded = true
-    buildingsStore.endWrite()
-  }
-
-  try {
-    const created = await buildingService.create(payload)
-    closeWrite()
-    if (unmounted || !isSameAdminSession(snapshot) || snapshot.requestId !== latestSubmitReqId) {
-      buildingsStore.invalidateCatalog({ revalidateIfObserved: true })
-      return
-    }
-
-    if (!isValidBuilding(created)) {
-      buildingsStore.invalidateCatalog({ revalidateIfObserved: true })
-      submitError.value = 'Resposta inválida ao cadastrar o prédio. Atualize a listagem antes de tentar novamente.'
-      showReloadActionOnSubmitError.value = true
-      return
-    }
-
-    const merged = sortBuildingsByName([
-      ...buildings.value.filter((item) => item.id !== created.id),
-      created,
-    ])
-    applyConfirmedBuildingMutation(merged)
-
-    releaseSubmitOwnership(snapshot)
-    resetEditorState()
-    ui.notifySuccess('Prédio cadastrado com sucesso.')
-    await loadBuildings()
-  } catch (err: unknown) {
-    closeWrite()
-    const status = getErrorStatus(err)
-    invalidateCatalogIfUncertain(status)
-    if (unmounted || !isSameAdminSession(snapshot) || snapshot.requestId !== latestSubmitReqId) {
-      return
-    }
-
-    if (status === 401) return
-    if (status === 403) {
-      submitError.value = 'Sua sessão não possui permissão administrativa para cadastrar prédios.'
-      return
-    }
-    if (status === 409) {
-      submitError.value = extractLostReportErrorMessage(
-        err,
-        'Já existe um prédio cadastrado com esse nome.',
-      )
-      return
-    }
-    if (status === 400) {
-      submitError.value = extractLostReportErrorMessage(
-        err,
-        'Dados inválidos para o cadastro do prédio.',
-      )
-      return
-    }
-
-    submitError.value =
-      'Não foi possível confirmar o cadastro do prédio. Atualize a listagem para verificar o estado atual.'
-    showReloadActionOnSubmitError.value = true
-  } finally {
-    closeWrite()
-    releaseSubmitOwnership(snapshot)
-  }
-}
-
-async function executeUpdateBuilding(
-  buildingId: number,
-  patch: NonNullable<ReturnType<typeof buildBuildingPatchPayload>>,
-) {
-  const snapshot: RequestSnapshot = {
-    ...captureSession(),
-    requestId: ++latestSubmitReqId,
-  }
-
-  activeSubmitOwnerId = snapshot.requestId
-  submitting.value = true
-  submitError.value = null
-  showReloadActionOnSubmitError.value = false
-  buildingsStore.beginWrite()
-  let writeEnded = false
-  const closeWrite = () => {
-    if (writeEnded) return
-    writeEnded = true
-    buildingsStore.endWrite()
-  }
-
-  try {
-    const updated = await buildingService.update(buildingId, patch)
-    closeWrite()
-    if (unmounted || !isSameAdminSession(snapshot) || snapshot.requestId !== latestSubmitReqId) {
-      buildingsStore.invalidateCatalog({ revalidateIfObserved: true })
-      return
-    }
-
-    if (!isValidBuilding(updated, buildingId)) {
-      buildingsStore.invalidateCatalog({ revalidateIfObserved: true })
-      submitError.value =
-        'Resposta inválida ao atualizar o prédio. Atualize a listagem antes de tentar novamente.'
-      showReloadActionOnSubmitError.value = true
-      return
-    }
-
-    const replaced = sortBuildingsByName(
-      buildings.value.map((item) => (item.id === updated.id ? updated : item)),
-    )
-    applyConfirmedBuildingMutation(replaced)
-
-    releaseSubmitOwnership(snapshot)
-    resetEditorState()
-    ui.notifySuccess('Prédio atualizado com sucesso.')
-    await loadBuildings()
-  } catch (err: unknown) {
-    closeWrite()
-    const status = getErrorStatus(err)
-    invalidateCatalogIfUncertain(status)
-    if (unmounted || !isSameAdminSession(snapshot) || snapshot.requestId !== latestSubmitReqId) {
-      return
-    }
-
-    if (status === 401) return
-    if (status === 403) {
-      submitError.value = 'Sua sessão não possui permissão administrativa para editar prédios.'
-      return
-    }
-    if (status === 404) {
-      submitError.value = 'Este prédio não existe mais no servidor. Recarregue a listagem.'
-      showReloadActionOnSubmitError.value = true
-      return
-    }
-    if (status === 409) {
-      submitError.value = extractLostReportErrorMessage(
-        err,
-        'Já existe um prédio cadastrado com esse nome.',
-      )
-      return
-    }
-    if (status === 400) {
-      submitError.value = extractLostReportErrorMessage(
-        err,
-        'Dados inválidos para atualização do prédio.',
-      )
-      return
-    }
-
-    submitError.value =
-      'Não foi possível confirmar a atualização do prédio. Atualize a listagem para verificar o estado atual.'
-    showReloadActionOnSubmitError.value = true
-  } finally {
-    closeWrite()
-    releaseSubmitOwnership(snapshot)
-  }
-}
-
-async function requestDeleteBuilding(building: Building) {
-  if (
-    unmounted ||
-    !hasAdminAccess.value ||
-    confirmingDelete.value ||
-    activeDeleteConfirmationId !== null ||
-    deletingBuildingId.value !== null ||
-    submitting.value ||
-    ui.confirmDialog.show ||
-    ui.confirmDialog.open ||
-    !isPositiveSafeId(building.id)
-  ) {
-    return
-  }
-
-  deleteError.value = null
-  showVerifyDeleteError.value = false
-
-  const sessionAtPrompt = captureSession()
-  const confirmId = ++latestConfirmId
-  activeDeleteConfirmationId = confirmId
-  confirmingDelete.value = true
-
-  let confirmed = false
-  let ownResolver: ((confirmed: boolean) => void) | null = null
-  try {
-    const promptPromise = ui.confirm({
-      title: 'Excluir prédio?',
-      message: `Deseja realmente excluir "${building.name}"? A exclusão não será permitida caso existam itens encontrados ou relatos de perdas vinculados.`,
-      danger: true,
-      confirmText: 'Excluir prédio',
-      cancelText: 'Cancelar',
-    })
-    ownResolver = ui.confirmDialog.resolve
-    if (activeDeleteConfirmationId === confirmId) {
-      activeConfirmResolver = ownResolver
-    }
-    confirmed = await promptPromise
-  } finally {
-    if (ownResolver && ui.confirmDialog.resolve === ownResolver) {
-      ui.confirmDialog.show = false
-      ui.confirmDialog.open = false
-    }
-    if (activeDeleteConfirmationId === confirmId) {
-      activeDeleteConfirmationId = null
-      confirmingDelete.value = false
-      activeConfirmResolver = null
-    }
-  }
-
-  if (
-    !confirmed ||
-    unmounted ||
-    confirmId !== latestConfirmId ||
-    !isSameAdminSession(sessionAtPrompt)
-  ) {
-    return
-  }
-
-  const snapshot: RequestSnapshot = {
-    ...sessionAtPrompt,
-    requestId: ++latestDeleteReqId,
-  }
-
-  activeDeleteOwnerId = snapshot.requestId
-  deletingBuildingId.value = building.id
-  buildingsStore.beginWrite()
-  let writeEnded = false
-  const closeWrite = () => {
-    if (writeEnded) return
-    writeEnded = true
-    buildingsStore.endWrite()
-  }
-
-  try {
-    await buildingService.remove(building.id)
-    closeWrite()
-    if (unmounted || !isSameAdminSession(snapshot) || snapshot.requestId !== latestDeleteReqId) {
-      buildingsStore.invalidateCatalog({ revalidateIfObserved: true })
-      return
-    }
-
-    const nextList = buildings.value.filter((item) => item.id !== building.id)
-    applyConfirmedBuildingMutation(nextList)
-    ui.notifySuccess('Prédio excluído com sucesso.')
-    await loadBuildings()
-  } catch (err: unknown) {
-    closeWrite()
-    const status = getErrorStatus(err)
-    const ownsDeleteCatch = !unmounted && isSameAdminSession(snapshot) && snapshot.requestId === latestDeleteReqId
-    invalidateCatalogIfUncertain(status, !(status === 404 && ownsDeleteCatch))
-    if (!ownsDeleteCatch) {
-      return
-    }
-
-    if (status === 401) return
-    if (status === 403) {
-      deleteError.value = 'Sua sessão não possui permissão administrativa para excluir prédios.'
-      return
-    }
-    if (status === 409) {
-      deleteError.value =
-        'Não é possível excluir este prédio porque ele possui itens ou relatos de perdas vinculados.'
-      return
-    }
-    if (status === 404) {
-      deleteError.value = 'Este prédio já foi removido anteriormente.'
-      await loadBuildings()
-      return
-    }
-
-    deleteError.value =
-      'Não foi possível confirmar a exclusão do prédio. Verifique o estado atual antes de tentar novamente.'
-    showVerifyDeleteError.value = true
-  } finally {
-    closeWrite()
-    releaseDeleteOwnership(snapshot)
-  }
-}
-
-watch(
-  () => [auth.sessionGeneration, auth.token, auth.user?.id, auth.user?.role],
-  async () => {
-    const watchId = ++latestSessionWatchId
-    const generationAtChange = auth.sessionGeneration
-    const tokenAtChange = auth.token
-    resetAllAdminState()
-
-    await nextTick()
-    if (
-      unmounted ||
-      watchId !== latestSessionWatchId ||
-      auth.sessionGeneration !== generationAtChange ||
-      auth.token !== tokenAtChange ||
-      !hasAdminAccess.value
-    ) {
-      return
-    }
-
-    void loadBuildings()
-  },
-  { flush: 'sync' },
-)
-
-onMounted(() => {
-  if (!hasAdminAccess.value) return
-  void loadBuildings()
-})
-
-onBeforeUnmount(() => {
-  unmounted = true
-  ++latestListReqId
-  ++listMutationEpoch
-  ++latestDetailReqId
-  ++latestSubmitReqId
-  ++latestDeleteReqId
-  ++latestConfirmId
-  activeSubmitOwnerId = null
-  activeDeleteOwnerId = null
-  dismissOwnedConfirmDialog()
-})
+import AdminBuildingsList from '@/components/domain/AdminBuildingsList.vue'
+import AdminBuildingFormDialog from '@/components/form/AdminBuildingFormDialog.vue'
+import { useAdminBuildings } from '@/composables/admin/useAdminBuildings'
+
+const {
+  hasAdminAccess,
+  loadingList,
+  loadBuildings,
+  confirmingDelete,
+  openCreate,
+  buildings,
+  searchQuery,
+  deleteError,
+  showVerifyDeleteError,
+  listError,
+  filteredBuildings,
+  submitting,
+  deletingBuildingId,
+  openEdit,
+  requestDeleteBuilding,
+  editorOpen,
+  formDraft,
+  editorMode,
+  loadingDetail,
+  detailError,
+  editingBuildingId,
+  submitError,
+  showReloadActionOnSubmitError,
+  formErrors,
+  closeEditor,
+  loadBuildingForEdit,
+  reloadFromModalError,
+  submitBuilding,
+} = useAdminBuildings()
 </script>
 
 <template>
@@ -732,17 +48,11 @@ onBeforeUnmount(() => {
     >
       <template #actions>
         <div class="d-flex flex-wrap ga-2">
-          <v-btn
-            variant="outlined"
-            color="primary"
-            class="text-none"
-            prepend-icon="mdi-refresh"
+          <RefreshButton
             :disabled="!hasAdminAccess"
             :loading="loadingList"
-            @click="loadBuildings()"
-          >
-            Atualizar
-          </v-btn>
+            @refresh="loadBuildings()"
+          />
           <v-btn
             color="primary"
             class="text-none"
@@ -756,39 +66,20 @@ onBeforeUnmount(() => {
       </template>
     </PageHeader>
 
-    <v-text-field
+    <AdminSearchField
       v-if="buildings.length > 0"
       v-model="searchQuery"
       label="Buscar por nome ou endereço"
-      prepend-inner-icon="mdi-magnify"
-      variant="outlined"
-      density="compact"
-      clearable
-      hide-details
-      class="mb-4"
     />
 
-    <v-alert
+    <ActionAlert
       v-if="deleteError"
-      type="warning"
-      variant="tonal"
-      class="mb-4 rounded-lg"
+      :action="showVerifyDeleteError ? 'Verificar estado atual' : undefined"
+      :action-disabled="!hasAdminAccess || loadingList"
+      @action="loadBuildings()"
     >
-      <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-        <span>{{ deleteError }}</span>
-        <v-btn
-          v-if="showVerifyDeleteError"
-          size="small"
-          variant="outlined"
-          color="warning"
-          class="text-none"
-          :disabled="!hasAdminAccess || loadingList"
-          @click="loadBuildings()"
-        >
-          Verificar estado atual
-        </v-btn>
-      </div>
-    </v-alert>
+      {{ deleteError }}
+    </ActionAlert>
 
     <ErrorAlert
       v-if="listError"
@@ -796,205 +87,35 @@ onBeforeUnmount(() => {
       @retry="loadBuildings()"
     />
 
-    <LoadingOverlay :loading="loadingList" text="Carregando prédios...">
-      <template v-if="!listError">
-        <v-row v-if="filteredBuildings.length > 0">
-          <v-col
-            v-for="building in filteredBuildings"
-            :key="building.id"
-            cols="12"
-            md="6"
-          >
-            <v-card variant="flat" class="h-100 d-flex flex-column rounded-lg border pa-5">
-              <div class="flex-grow-1">
-                <div class="text-h6 font-weight-bold text-primary d-flex align-center ga-2 mb-1">
-                  <v-icon icon="mdi-domain" size="20" color="primary" />
-                  <span>{{ building.name }}</span>
-                </div>
-                <p class="d-flex align-start ga-2 text-body-2 text-medium-emphasis mb-3">
-                  <v-icon icon="mdi-map-marker-outline" size="18" class="mt-0.5 flex-shrink-0" />
-                  <span>{{ building.address }}</span>
-                </p>
-                <v-divider class="my-3" />
-                <div class="d-flex align-center ga-2 text-body-2 mb-2">
-                  <v-icon icon="mdi-package-variant-closed" size="18" color="primary" />
-                  <span><strong>Ponto de retirada:</strong> {{ building.pickupPoint }}</span>
-                </div>
-                <div class="d-flex align-center ga-2 text-body-2">
-                  <v-icon icon="mdi-clock-outline" size="18" color="primary" />
-                  <span><strong>Atendimento:</strong> {{ building.serviceHours }}</span>
-                </div>
-              </div>
+    <AdminBuildingsList
+      :loading-list="loadingList"
+      :list-error="listError"
+      :filtered-buildings="filteredBuildings"
+      :has-admin-access="hasAdminAccess"
+      :submitting="submitting"
+      :confirming-delete="confirmingDelete"
+      :deleting-building-id="deletingBuildingId"
+      :buildings="buildings"
+      @open-edit="openEdit"
+      @request-delete-building="requestDeleteBuilding"
+    />
 
-              <v-divider class="my-4" />
-
-              <div class="d-flex justify-end flex-wrap ga-2">
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="text-none"
-                  prepend-icon="mdi-pencil-outline"
-                  :disabled="!hasAdminAccess || submitting || confirmingDelete || deletingBuildingId === building.id"
-                  @click="openEdit(building)"
-                >
-                  Editar
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="tonal"
-                  color="error"
-                  class="text-none"
-                  prepend-icon="mdi-delete-outline"
-                  :disabled="!hasAdminAccess || submitting || confirmingDelete || deletingBuildingId !== null"
-                  :loading="deletingBuildingId === building.id"
-                  @click="requestDeleteBuilding(building)"
-                >
-                  Excluir
-                </v-btn>
-              </div>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <EmptyState
-          v-else-if="!loadingList"
-          icon="mdi-domain"
-          :title="buildings.length === 0 ? 'Nenhum prédio cadastrado' : 'Nenhum prédio encontrado'"
-          :description="
-            buildings.length === 0
-              ? 'Cadastre o primeiro prédio para disponibilizar pontos de retirada.'
-              : 'Nenhum prédio corresponde à busca informada.'
-          "
-        />
-      </template>
-    </LoadingOverlay>
-
-    <v-dialog v-model="editorOpen" max-width="600" persistent>
-      <v-card class="rounded-lg pa-2">
-        <v-card-title class="text-h6 font-weight-bold text-primary px-4 pt-4">
-          {{ editorMode === 'create' ? 'Novo prédio' : 'Editar prédio' }}
-        </v-card-title>
-
-        <v-card-text class="px-4 py-3">
-          <LoadingOverlay :loading="loadingDetail" text="Carregando dados do prédio...">
-            <div v-if="detailError" class="py-2">
-              <v-alert type="error" variant="tonal" class="mb-3 rounded-lg">
-                {{ detailError }}
-              </v-alert>
-              <div class="d-flex flex-wrap ga-2">
-                <v-btn
-                  v-if="editingBuildingId !== null"
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  class="text-none"
-                  @click="loadBuildingForEdit(editingBuildingId)"
-                >
-                  Tentar novamente
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="text-none"
-                  @click="reloadFromModalError"
-                >
-                  Recarregar listagem
-                </v-btn>
-              </div>
-            </div>
-
-            <v-form v-else @submit.prevent="submitBuilding">
-              <v-alert
-                v-if="submitError"
-                type="error"
-                variant="tonal"
-                class="mb-4 rounded-lg"
-              >
-                <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-                  <span>{{ submitError }}</span>
-                  <v-btn
-                    v-if="showReloadActionOnSubmitError"
-                    size="small"
-                    variant="outlined"
-                    color="error"
-                    class="text-none"
-                    @click="reloadFromModalError"
-                  >
-                    Recarregar listagem
-                  </v-btn>
-                </div>
-              </v-alert>
-
-              <v-text-field
-                v-model="formDraft.name"
-                data-test="building-name"
-                label="Nome do prédio *"
-                variant="outlined"
-                density="comfortable"
-                :error-messages="formErrors.name"
-                :disabled="submitting || !hasAdminAccess"
-                class="mb-3"
-              />
-
-              <v-text-field
-                v-model="formDraft.address"
-                data-test="building-address"
-                label="Endereço *"
-                variant="outlined"
-                density="comfortable"
-                :error-messages="formErrors.address"
-                :disabled="submitting || !hasAdminAccess"
-                class="mb-3"
-              />
-
-              <v-text-field
-                v-model="formDraft.pickupPoint"
-                data-test="building-pickup-point"
-                label="Ponto de retirada *"
-                variant="outlined"
-                density="comfortable"
-                :error-messages="formErrors.pickupPoint"
-                :disabled="submitting || !hasAdminAccess"
-                class="mb-3"
-              />
-
-              <v-text-field
-                v-model="formDraft.serviceHours"
-                data-test="building-service-hours"
-                label="Horário de atendimento *"
-                variant="outlined"
-                density="comfortable"
-                :error-messages="formErrors.serviceHours"
-                :disabled="submitting || !hasAdminAccess"
-              />
-            </v-form>
-          </LoadingOverlay>
-        </v-card-text>
-
-        <v-card-actions class="px-4 pb-4 pt-2">
-          <v-spacer />
-          <v-btn
-            variant="text"
-            class="text-none"
-            :disabled="submitting"
-            @click="closeEditor"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            v-if="!detailError"
-            color="primary"
-            class="text-none"
-            :disabled="!hasAdminAccess || submitting || loadingDetail"
-            :loading="submitting"
-            @click="submitBuilding"
-          >
-            {{ editorMode === 'create' ? 'Cadastrar prédio' : 'Salvar alterações' }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <AdminBuildingFormDialog
+      v-model:editor-open="editorOpen"
+      v-model:form-draft="formDraft"
+      :editor-mode="editorMode"
+      :loading-detail="loadingDetail"
+      :detail-error="detailError"
+      :editing-building-id="editingBuildingId"
+      :submit-error="submitError"
+      :show-reload-action-on-submit-error="showReloadActionOnSubmitError"
+      :form-errors="formErrors"
+      :submitting="submitting"
+      :has-admin-access="hasAdminAccess"
+      @close-editor="closeEditor"
+      @load-building-for-edit="loadBuildingForEdit"
+      @reload-from-modal-error="reloadFromModalError"
+      @submit-building="submitBuilding"
+    />
   </div>
 </template>

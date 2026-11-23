@@ -4,6 +4,8 @@ interface UploadResponse {
   urls: string[]
 }
 
+export class IncompletePhotoUploadError extends Error {}
+
 export const uploadService = {
   async uploadPhotos(files: File[]): Promise<string[]> {
     const form = new FormData()
@@ -14,6 +16,9 @@ export const uploadService = {
     })
     if (!Array.isArray(data.urls)) {
       throw new Error('Resposta de upload inválida.')
+    }
+    if (data.urls.length !== files.length) {
+      throw new IncompletePhotoUploadError('Resposta de upload não contém uma URL por foto.')
     }
     return data.urls
   },
