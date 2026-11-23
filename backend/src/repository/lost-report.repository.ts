@@ -7,6 +7,7 @@ import { Item } from '../models/item.js';
 import { User } from '../models/user.js';
 import { Notification } from '../models/notification.js';
 import { ItemStatus, LostReportStatus, UserRole, NotificationType } from '../models/enums.js';
+import { getItemMatchScore } from '../shared/item-match.js';
 
 export interface InsertLostReportData {
   userId: number;
@@ -51,10 +52,13 @@ export async function insertLostReport(
 
 export async function findMatchingPublicItems(
   categoryId: number,
+  buildingId: number | null,
+  lossDate: string | Date,
+  description: string,
   entityManager?: EntityManager,
 ): Promise<Item[]> {
   const repo = entityManager ? entityManager.getRepository(Item) : AppDataSource.getRepository(Item);
-  return await repo
+  const items = await repo
     .createQueryBuilder('item')
     .leftJoinAndSelect('item.category', 'category')
     .leftJoinAndSelect('item.building', 'building')
@@ -66,6 +70,26 @@ export async function findMatchingPublicItems(
     .orderBy('item.foundDate', 'DESC')
     .addOrderBy('item.id', 'DESC')
     .getMany();
+
+  const report = { buildingId, lossDate, description };
+  return items
+    .map((item) => ({
+      item,
+      score: getItemMatchScore(item, report),
+    }))
+    .sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+
+      const aDate = a.item.foundDate instanceof Date
+        ? a.item.foundDate.getTime()
+        : new Date(a.item.foundDate).getTime();
+      const bDate = b.item.foundDate instanceof Date
+        ? b.item.foundDate.getTime()
+        : new Date(b.item.foundDate).getTime();
+      if (aDate !== bDate) return bDate - aDate;
+      return b.item.id - a.item.id;
+    })
+    .map(({ item }) => item);
 }
 
 export async function findLostReportsByUserId(

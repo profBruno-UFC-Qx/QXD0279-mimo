@@ -69,7 +69,7 @@ onUnmounted(() => {
       :disabled="photos.length >= max"
     />
     <div class="text-caption text-medium-emphasis mb-3">
-      💡 A primeira foto é a capa do item.
+      A primeira foto é a capa do item.
     </div>
 
     <div v-if="previews.length > 0" class="d-flex flex-wrap gap-3">

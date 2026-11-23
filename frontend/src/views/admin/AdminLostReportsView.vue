@@ -909,20 +909,6 @@ onBeforeUnmount(() => {
                 >
                   Ver detalhes
                 </v-btn>
-
-                <v-btn
-                  v-if="report.status === 'OPEN'"
-                  size="small"
-                  color="success"
-                  variant="tonal"
-                  class="text-none"
-                  prepend-icon="mdi-check-circle-outline"
-                  :disabled="resolving || confirmingReportId !== null || !hasAdminAccess"
-                  :loading="resolving && resolvingReportId === report.id"
-                  @click="requestResolveReport(report)"
-                >
-                  Resolver perda
-                </v-btn>
               </div>
             </v-card>
           </v-col>
@@ -997,18 +983,6 @@ onBeforeUnmount(() => {
 
         <v-card-actions class="px-4 pb-4 pt-2 ga-2">
           <v-spacer />
-          <v-btn
-            v-if="detailReport && detailReport.status === 'OPEN' && hasAdminAccess"
-            color="success"
-            variant="tonal"
-            class="text-none"
-            prepend-icon="mdi-check-circle-outline"
-            :disabled="resolving || confirmingReportId !== null"
-            :loading="resolving && resolvingReportId === detailReport.id"
-            @click="requestResolveReport(detailReport)"
-          >
-            Resolver perda
-          </v-btn>
           <v-btn
             variant="outlined"
             color="primary"

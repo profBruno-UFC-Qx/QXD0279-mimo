@@ -1,16 +1,35 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import type { LostReport } from '@/types'
+import { useBuildingsStore } from '@/stores/buildingsStore'
+import { useCategoriesStore } from '@/stores/categoriesStore'
 import { formatDate } from '@/utils/format'
 import StatusChip from './StatusChip.vue'
 
 const props = defineProps<{ lostReport: LostReport }>()
 
-const buildingLabel = computed(() =>
-  props.lostReport.buildingId !== null
-    ? `Prédio #${props.lostReport.buildingId}`
-    : 'Qualquer prédio',
-)
+const categoriesStore = useCategoriesStore()
+const buildingsStore = useBuildingsStore()
+
+const categoryLabel = computed(() => {
+  const name =
+    props.lostReport.category?.name ??
+    categoriesStore.items.find((category) => category.id === props.lostReport.categoryId)?.name
+  return name ?? `Categoria #${props.lostReport.categoryId}`
+})
+
+const buildingLabel = computed(() => {
+  if (props.lostReport.buildingId === null) return 'Qualquer prédio'
+  const name =
+    props.lostReport.building?.name ??
+    buildingsStore.items.find((building) => building.id === props.lostReport.buildingId)?.name
+  return name ?? `Prédio #${props.lostReport.buildingId}`
+})
+
+onMounted(() => {
+  void categoriesStore.ensureLoaded()
+  void buildingsStore.ensureLoaded()
+})
 </script>
 
 <template>
@@ -18,7 +37,7 @@ const buildingLabel = computed(() =>
     <v-card-text class="d-flex flex-column flex-grow-1 pa-5">
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-3">
         <v-chip size="small" variant="outlined" color="grey-darken-1" rounded="sm">
-          Categoria #{{ lostReport.categoryId }}
+          {{ categoryLabel }}
         </v-chip>
         <StatusChip :status="lostReport.status" kind="lostReport" />
       </div>

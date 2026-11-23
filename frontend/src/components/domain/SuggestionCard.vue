@@ -42,118 +42,139 @@ const foundLocationText = computed(() =>
 
 <template>
   <v-card
-    class="suggestion-card h-100 rounded-lg border"
+    class="suggestion-card h-100 d-flex flex-column rounded-lg border"
     :class="{ 'suggestion-card--discarded': isInteractive && state === 'discarded' }"
     variant="flat"
   >
-    <div class="d-flex flex-column flex-sm-row h-100">
-      <div class="suggestion-card__media flex-shrink-0">
-        <v-img
-          v-if="primaryPhotoUrl"
-          :src="primaryPhotoUrl"
-          :alt="`Foto de ${item.title}`"
-          eager
-          width="100%"
-          height="100%"
-          cover
-        />
-        <div
-          v-else
-          class="d-flex flex-column align-center justify-center bg-surface-muted h-100 pa-3 text-center"
-          role="img"
-          :aria-label="`Sem foto de ${item.title}`"
-        >
-          <v-icon icon="mdi-image-outline" size="40" color="outline" />
-          <span class="text-caption text-medium-emphasis mt-1">Sem foto</span>
-        </div>
-      </div>
-
-      <div class="pa-4 d-flex flex-column flex-grow-1">
-        <div class="d-flex flex-wrap ga-2 mb-2">
-          <StatusChip :status="item.status" kind="item" />
-          <v-chip v-if="isInteractive && state === 'confirmed'" color="success" size="small" variant="tonal">
-            CONFIRMADO
-          </v-chip>
-          <v-chip v-else-if="isInteractive && state === 'discarded'" color="outline" size="small" variant="tonal">
-            DESCARTADA
-          </v-chip>
-        </div>
-
-        <h3 class="text-subtitle-1 font-weight-bold mb-1">{{ item.title }}</h3>
-
-        <p v-if="descriptionText" class="text-body-2 text-medium-emphasis mb-2">
-          {{ descriptionText }}
-        </p>
-
-        <div class="text-body-2 text-medium-emphasis d-flex flex-column ga-1 mb-3">
-          <div>Categoria: {{ item.category?.name ?? 'Categoria não informada' }}</div>
-          <div>Prédio: {{ item.building?.name ?? 'Prédio não informado' }}</div>
-          <div>Local: {{ foundLocationText }}</div>
-          <div>Encontrado em: {{ formatDate(item.foundDate) }}</div>
-        </div>
-
-        <p v-if="isInteractive && score !== undefined" class="text-body-2 mb-2">
-          Compatibilidade: {{ score }}%
-        </p>
-
-        <v-alert
-          v-if="isInteractive && state === 'confirmed'"
-          type="info"
-          variant="tonal"
-          density="compact"
-          class="mb-3"
-        >
-          Leve um documento ao balcão do prédio.
-        </v-alert>
-
-        <div class="d-flex flex-wrap ga-2 mt-auto">
-          <v-btn
-            variant="tonal"
-            color="primary"
-            size="small"
-            class="text-none"
-            :to="{ name: 'item-detail', params: { id: item.id } }"
-          >
-            Ver detalhes do item
-          </v-btn>
-          <template v-if="isConfirmMode">
-            <v-btn
-              color="primary"
-              size="small"
-              class="text-none"
-              :loading="confirming"
-              :disabled="disabled || confirming"
-              @click="emit('confirm')"
-            >
-              ✓ É este!
-            </v-btn>
-          </template>
-          <template v-else-if="isInteractive && state === 'waiting'">
-            <v-btn color="primary" size="small" class="text-none" @click="emit('confirm')">
-              ✓ É este!
-            </v-btn>
-            <v-btn variant="tonal" size="small" class="text-none" @click="emit('discard')">
-              ✕ Não é meu
-            </v-btn>
-          </template>
-        </div>
-      </div>
+    <v-img
+      v-if="primaryPhotoUrl"
+      :src="primaryPhotoUrl"
+      :alt="`Foto de ${item.title}`"
+      eager
+      height="190"
+      cover
+    />
+    <div
+      v-else
+      class="suggestion-card__placeholder d-flex align-center justify-center bg-surface-muted"
+    >
+      <v-icon
+        icon="mdi-image-outline"
+        size="48"
+        color="outline"
+        role="img"
+        :aria-label="`Sem foto de ${item.title}`"
+      />
     </div>
+
+    <v-card-text class="d-flex flex-column flex-grow-1">
+      <div class="d-flex flex-wrap ga-2 mb-3">
+        <v-chip
+          v-if="item.category?.name"
+          size="small"
+          variant="outlined"
+          color="grey-darken-1"
+          rounded="sm"
+        >
+          {{ item.category.name }}
+        </v-chip>
+        <StatusChip :status="item.status" kind="item" />
+        <v-chip v-if="isInteractive && state === 'confirmed'" color="success" size="small" variant="tonal">
+          CONFIRMADO
+        </v-chip>
+        <v-chip v-else-if="isInteractive && state === 'discarded'" color="outline" size="small" variant="tonal">
+          DESCARTADA
+        </v-chip>
+      </div>
+
+      <h2 class="text-subtitle-1 font-weight-bold suggestion-title mb-2">{{ item.title }}</h2>
+
+      <p v-if="descriptionText" class="text-body-2 text-medium-emphasis suggestion-description mb-3">
+        {{ descriptionText }}
+      </p>
+
+      <div class="mt-auto text-body-2 text-medium-emphasis">
+        <div class="d-flex align-center ga-2 mb-1">
+          <v-icon icon="mdi-map-marker-outline" size="small" />
+          <span>{{ item.building?.name ?? 'Prédio não informado' }}</span>
+        </div>
+        <div class="d-flex align-center ga-2 mb-1">
+          <v-icon icon="mdi-map-marker-radius-outline" size="small" />
+          <span>{{ foundLocationText }}</span>
+        </div>
+        <div class="d-flex align-center ga-2">
+          <v-icon icon="mdi-calendar-outline" size="small" />
+          <span>Encontrado em {{ formatDate(item.foundDate) }}</span>
+        </div>
+        <div v-if="isInteractive && score !== undefined" class="mt-1">
+          Compatibilidade: {{ score }}%
+        </div>
+      </div>
+
+      <v-alert
+        v-if="isInteractive && state === 'confirmed'"
+        type="info"
+        variant="tonal"
+        density="compact"
+        class="mt-3"
+      >
+        Leve um documento ao balcão do prédio.
+      </v-alert>
+    </v-card-text>
+
+    <v-card-actions class="px-4 pb-4 pt-0 flex-wrap ga-2">
+      <v-btn
+        variant="tonal"
+        color="primary"
+        size="small"
+        class="text-none"
+        :to="{ name: 'item-detail', params: { id: item.id } }"
+      >
+        Ver detalhes do item
+      </v-btn>
+      <template v-if="isConfirmMode">
+        <v-btn
+          color="primary"
+          size="small"
+          class="text-none"
+          :loading="confirming"
+          :disabled="disabled || confirming"
+          @click="emit('confirm')"
+        >
+          ✓ É este!
+        </v-btn>
+      </template>
+      <template v-else-if="isInteractive && state === 'waiting'">
+        <v-btn color="primary" size="small" class="text-none" @click="emit('confirm')">
+          ✓ É este!
+        </v-btn>
+        <v-btn variant="tonal" size="small" class="text-none" @click="emit('discard')">
+          ✕ Não é meu
+        </v-btn>
+      </template>
+    </v-card-actions>
   </v-card>
 </template>
 
 <style scoped>
-.suggestion-card__media {
-  width: 100%;
-  height: 180px;
+.suggestion-card__placeholder {
+  height: 190px;
 }
 
-@media (min-width: 600px) {
-  .suggestion-card__media {
-    width: 160px;
-    height: auto;
-    min-height: 180px;
-  }
+.suggestion-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+}
+
+.suggestion-description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
 }
 
 .suggestion-card--discarded {

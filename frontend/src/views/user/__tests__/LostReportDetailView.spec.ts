@@ -16,6 +16,7 @@ import { categoryService } from '@/services/category.service'
 import { buildingService } from '@/services/building.service'
 import { useAuthStore } from '@/stores/authStore'
 import { useCategoriesStore } from '@/stores/categoriesStore'
+import { useBuildingsStore } from '@/stores/buildingsStore'
 import { useUiStore } from '@/stores/uiStore'
 import { formatDateTime } from '@/utils/format'
 import type { Building, Category, LostReport, Page, PublicCatalogItem, User } from '@/types'
@@ -213,6 +214,22 @@ describe('LostReportDetailView (Etapa 04 — Detalhes da perda)', () => {
     expect(text).toContain('Item confirmado: #25')
     expect(wrapper.findComponent({ name: 'StatusChip' }).exists()).toBe(true)
     expect(wrapper.findComponent({ name: 'ErrorAlert' }).exists()).toBe(false)
+  })
+
+  it('D04b — exibe os nomes cadastrados de categoria e prédio no detalhe quando o catálogo está disponível', async () => {
+    setAuthenticatedSession()
+    useCategoriesStore().syncCatalog(defaultCategories)
+    useBuildingsStore().syncCatalog(defaultBuildings)
+    vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ categoryId: 5, buildingId: 2 }))
+
+    const { wrapper } = await mountDetail('/minhas-perdas/12')
+    await flushPromises()
+
+    const text = wrapper.text()
+    expect(text).toContain(defaultCategories.find((c) => c.id === 5)!.name)
+    expect(text).toContain('Bloco I')
+    expect(text).not.toContain('Categoria #5')
+    expect(text).not.toContain('Prédio #2')
   })
 
   it('não exibe confirmação falsa quando confirmedItemId é null e não expõe confirmação de sugestão', async () => {
@@ -1042,8 +1059,8 @@ describe('LostReportDetailView (Etapa 05 — Edição de perda própria)', () =>
 
   it('E14 — quando falha carregamento de categorias/prédios, preserva IDs originais, permite retry e permite editar descrição sem enviar campos comprometidos', async () => {
     setAuthenticatedSession()
-    vi.spyOn(categoryService, 'list').mockRejectedValueOnce(new Error('Falha categorias')).mockResolvedValue(defaultCategories)
-    vi.spyOn(buildingService, 'list').mockRejectedValueOnce(new Error('Falha prédios')).mockResolvedValue(defaultBuildings)
+    vi.spyOn(categoryService, 'list').mockRejectedValueOnce(new Error('Falha categorias')).mockRejectedValueOnce(new Error('Falha categorias')).mockResolvedValue(defaultCategories)
+    vi.spyOn(buildingService, 'list').mockRejectedValueOnce(new Error('Falha prédios')).mockRejectedValueOnce(new Error('Falha prédios')).mockResolvedValue(defaultBuildings)
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ categoryId: 5, buildingId: 2 }))
     const updateSpy = vi
       .spyOn(lostReportService, 'update')
@@ -4280,6 +4297,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     const listBuildingsSpy = vi
       .spyOn(buildingService, 'list')
       .mockRejectedValueOnce(makeBackendError('Falha prédios', 503))
+      .mockRejectedValueOnce(makeBackendError('Falha prédios', 503))
       .mockResolvedValueOnce(defaultBuildings)
     const updateSpy = vi.spyOn(lostReportService, 'update')
 
@@ -4296,7 +4314,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     await findButton(wrapper, 'Recarregar opções')!.trigger('click')
     await flushPromises()
 
-    expect(listBuildingsSpy).toHaveBeenCalledTimes(2)
+    expect(listBuildingsSpy).toHaveBeenCalledTimes(3)
     expect(updateSpy).not.toHaveBeenCalled()
     expect(wrapper.findComponent(BuildingSelect).findComponent({ name: 'VSelect' }).props('items')).toEqual(defaultBuildings)
     expect(wrapper.findComponent(BuildingSelect).props('modelValue')).toBe(2)
@@ -4312,6 +4330,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     vi.spyOn(buildingService, 'list').mockResolvedValue(defaultBuildings)
     const listCategoriesSpy = vi
       .spyOn(categoryService, 'list')
+      .mockRejectedValueOnce(makeBackendError('Falha categorias', 503))
       .mockRejectedValueOnce(makeBackendError('Falha categorias', 503))
       .mockResolvedValueOnce(defaultCategories)
     const updateSpy = vi.spyOn(lostReportService, 'update')
@@ -4329,7 +4348,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     await findButton(wrapper, 'Recarregar opções')!.trigger('click')
     await flushPromises()
 
-    expect(listCategoriesSpy).toHaveBeenCalledTimes(2)
+    expect(listCategoriesSpy).toHaveBeenCalledTimes(3)
     expect(updateSpy).not.toHaveBeenCalled()
     expect(wrapper.findComponent(CategorySelect).findComponent({ name: 'VSelect' }).props('items')).toEqual(defaultCategories)
     expect(wrapper.findComponent(CategorySelect).props('modelValue')).toBe(5)

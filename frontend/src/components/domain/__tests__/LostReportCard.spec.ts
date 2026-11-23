@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import LostReportCard from '../LostReportCard.vue'
 import { vuetify } from '@/theme'
 import { formatDate } from '@/utils/format'
+import { useCategoriesStore } from '@/stores/categoriesStore'
+import { useBuildingsStore } from '@/stores/buildingsStore'
 import type { LostReport } from '@/types'
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -37,6 +40,10 @@ function mountCard(lostReport: LostReport, slots?: { actions?: string }) {
 }
 
 describe('LostReportCard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('L08 — exibe descrição, Categoria #N, Prédio #N, data formatada e status em português sem depender de title/category.name/building.name', () => {
     const wrapper = mountCard(
       makeReport({
@@ -61,6 +68,62 @@ describe('LostReportCard', () => {
 
     expect(wrapper.text()).toContain('Qualquer prédio')
     expect(wrapper.text()).not.toContain('Prédio #null')
+  })
+
+  it('exibe os nomes cadastrados de categoria e prédio quando o catálogo está disponível', () => {
+    useCategoriesStore().syncCatalog([
+      { id: 3, name: 'Documentos', createdAt: '2026-01-01T00:00:00.000Z' },
+    ])
+    useBuildingsStore().syncCatalog([
+      {
+        id: 5,
+        name: 'Bloco I',
+        address: 'Campus',
+        pickupPoint: 'Recepção',
+        serviceHours: '08h-17h',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ])
+
+    const text = mountCard(makeReport({ categoryId: 3, buildingId: 5 })).text()
+
+    expect(text).toContain('Documentos')
+    expect(text).toContain('Bloco I')
+    expect(text).not.toContain('Categoria #3')
+    expect(text).not.toContain('Prédio #5')
+  })
+
+  it('prefere os nomes retornados pelo relato aos do catálogo', () => {
+    useCategoriesStore().syncCatalog([
+      { id: 3, name: 'Documentos', createdAt: '2026-01-01T00:00:00.000Z' },
+    ])
+    useBuildingsStore().syncCatalog([
+      {
+        id: 5,
+        name: 'Bloco I',
+        address: 'Campus',
+        pickupPoint: 'Recepção',
+        serviceHours: '08h-17h',
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    ])
+
+    const text = mountCard(
+      makeReport({
+        category: { id: 3, name: 'Eletrônicos', createdAt: '2026-01-01T00:00:00.000Z' },
+        building: {
+          id: 5,
+          name: 'Biblioteca',
+          address: 'Campus',
+          pickupPoint: 'Balcão',
+          serviceHours: '08h-20h',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      }),
+    ).text()
+
+    expect(text).toContain('Eletrônicos')
+    expect(text).toContain('Biblioteca')
   })
 
   it('L10 — formata lossDate YYYY-MM-DD como DD/MM/YYYY sem deslocamento de fuso horário', () => {

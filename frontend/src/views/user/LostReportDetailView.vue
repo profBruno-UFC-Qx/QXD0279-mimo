@@ -136,12 +136,27 @@ const pageTitle = computed(() => {
   if (parsedRouteId.value === null) return 'Detalhes da perda'
   return editing.value ? `Editar perda #${parsedRouteId.value}` : `Detalhes da perda #${parsedRouteId.value}`
 })
+const categoryLabel = computed(() => {
+  if (!report.value) return ''
+  const name =
+    report.value.category?.name ??
+    categoriesStore.items.find((category) => category.id === report.value!.categoryId)?.name
+  return name ?? `Categoria #${report.value.categoryId}`
+})
 const buildingLabel = computed(() => {
   if (!report.value) return ''
-  return report.value.buildingId !== null
-    ? `Prédio #${report.value.buildingId}`
-    : 'Qualquer prédio'
+  if (report.value.buildingId === null) return 'Qualquer prédio'
+  const name =
+    report.value.building?.name ??
+    buildingsStore.items.find((building) => building.id === report.value!.buildingId)?.name
+  return name ?? `Prédio #${report.value.buildingId}`
 })
+
+function loadCatalogLabels() {
+  if (unmounted) return
+  void categoriesStore.ensureLoaded()
+  void buildingsStore.ensureLoaded()
+}
 
 const categoriesFailed = computed(
   () => categoriesAttempted.value && !categoriesStore.loading && (categoriesStore.error || !categoriesStore.loaded),
@@ -529,6 +544,7 @@ async function loadReport() {
       return
     }
     report.value = data
+    loadCatalogLabels()
     if (isEligibleForSuggestions(data)) {
       void loadSuggestions(data, 1, DEFAULT_SUGGESTIONS_PER_PAGE)
     } else {
@@ -573,6 +589,7 @@ async function reloadOwnReport(
     }
     const previousCategoryId = report.value?.categoryId
     report.value = fresh
+    loadCatalogLabels()
     if (fresh.status !== 'OPEN') {
       editing.value = false
       saveError.value = null
@@ -1211,7 +1228,7 @@ onBeforeUnmount(() => {
 
           <v-col cols="12" sm="6">
             <div class="text-caption text-medium-emphasis mb-1">Categoria</div>
-            <div class="text-body-1 font-weight-medium">Categoria #{{ report.categoryId }}</div>
+            <div class="text-body-1 font-weight-medium">{{ categoryLabel }}</div>
           </v-col>
 
           <v-col cols="12" sm="6">
@@ -1310,6 +1327,7 @@ onBeforeUnmount(() => {
             cols="12"
             sm="6"
             md="4"
+            lg="3"
           >
             <SuggestionCard
               :item="item"

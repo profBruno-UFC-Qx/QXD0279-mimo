@@ -210,7 +210,13 @@ export async function createLostReport(
     );
 
     // Consulta de sugestões compatíveis (RF12)
-    const matchingItems = await findMatchingPublicItems(validated.categoryId, manager);
+    const matchingItems = await findMatchingPublicItems(
+      validated.categoryId,
+      validated.buildingId,
+      validated.lossDate,
+      validated.description,
+      manager,
+    );
 
     return {
       lostReport: formatPublicLostReport(savedReport, validated.lossDate),
@@ -462,4 +468,3 @@ export async function confirmLostReportSuggestion(
   }
   return formatPublicLostReport(updated);
 }
-

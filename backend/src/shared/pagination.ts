@@ -1,8 +1,8 @@
 export interface PaginationMeta {
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
+  total: number; // Total de itens de todas as páginas
+  page: number;  // Página atual
+  per_page: number; // Número de itens por página
+  total_pages: number; // Total de páginas
 }
 
 export interface Paginated<T> {

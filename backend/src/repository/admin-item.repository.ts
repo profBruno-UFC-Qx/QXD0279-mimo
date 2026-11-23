@@ -14,6 +14,7 @@ import {
   type FindOptionsWhere,
   type Repository,
 } from 'typeorm';
+import { getItemMatchScore } from '../shared/item-match.js';
 
 export interface CreateAdminItemData {
   title: string;
@@ -210,26 +211,39 @@ export class AdminItemRepository {
 
   private findCompatibleOpenLostReports(
     repository: Repository<LostReport>,
-    item: { categoryId: number; buildingId: number; foundDate: Date | string },
+    item: {
+      categoryId: number;
+      buildingId: number;
+      foundDate: Date | string;
+      title?: string;
+      description?: string | null;
+      foundLocation?: string | null;
+    },
   ): Promise<LostReport[]> {
-    const foundDate = item.foundDate instanceof Date
-      ? [
-          item.foundDate.getFullYear(),
-          String(item.foundDate.getMonth() + 1).padStart(2, '0'),
-          String(item.foundDate.getDate()).padStart(2, '0'),
-        ].join('-')
-      : item.foundDate.slice(0, 10);
-
     return repository
       .createQueryBuilder('report')
       .where('report.categoryId = :categoryId', { categoryId: item.categoryId })
       .andWhere('report.status = :status', { status: LostReportStatus.OPEN })
-      .andWhere('(report.buildingId = :buildingId OR report.buildingId IS NULL)', {
-        buildingId: item.buildingId,
-      })
-      .andWhere('report.lossDate <= :foundDate', { foundDate })
       .orderBy('report.lossDate', 'DESC')
       .addOrderBy('report.id', 'ASC')
-      .getMany();
+      .getMany()
+      .then((reports) =>
+        reports
+          .map((report) => ({
+            report,
+            score: getItemMatchScore(
+              {
+                title: item.title ?? '',
+                description: item.description ?? null,
+                buildingId: item.buildingId,
+                foundLocation: item.foundLocation ?? null,
+                foundDate: item.foundDate,
+              },
+              report,
+            ),
+          }))
+          .sort((a, b) => b.score - a.score)
+          .map(({ report }) => report),
+      );
   }
 }
