@@ -34,7 +34,7 @@ defineEmits<{
           <v-btn
             type="reset"
             variant="outlined"
-            color="grey"
+            color="outline"
             class="text-none px-4"
             prepend-icon="mdi-filter-remove-outline"
           >

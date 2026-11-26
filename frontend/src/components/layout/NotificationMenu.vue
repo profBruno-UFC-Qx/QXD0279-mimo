@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
         <span class="text-subtitle-1 font-weight-bold">Notificações</span>
         <v-chip
           size="x-small"
-          :color="hasBadge ? 'primary' : 'default'"
+          :color="hasBadge ? 'primary' : 'on-surface'"
           variant="tonal"
         >
           {{ headerCountLabel }}
@@ -221,7 +221,7 @@ onBeforeUnmount(() => {
           >
             <template #prepend>
               <v-icon
-                :color="entry.read ? 'grey' : 'primary'"
+                :color="entry.read ? 'surface-muted' : 'primary'"
                 :icon="entry.presentation.icon"
                 class="mr-3"
               />

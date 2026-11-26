@@ -73,7 +73,7 @@ const foundLocationText = computed(() =>
           v-if="item.category?.name"
           size="small"
           variant="outlined"
-          color="grey-darken-1"
+          color="on-surface"
           rounded="sm"
         >
           {{ item.category.name }}

@@ -1,13 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useTheme } from 'vuetify'
 import { useAuthStore } from '@/stores/authStore'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
+const theme = useTheme()
 const isLoginRoute = computed(() => route.path === '/entrar')
+const isDark = computed(() => theme.global.name.value === 'achadexDark')
+
+const toggleTheme = () => {
+  const newTheme = isDark.value ? 'achadexLight' : 'achadexDark'
+  theme.global.name.value = newTheme
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('achadex.theme', newTheme)
+  }
+}
 
 const emit = defineEmits<{
   (e: 'toggle-drawer'): void
@@ -36,7 +47,7 @@ const emit = defineEmits<{
         variant="text"
         to="/"
         exact
-        class="text-none font-weight-medium px-4 text-grey-darken-3 mr-2"
+        class="text-none font-weight-medium px-4 text-medium-emphasis mr-2"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-format-list-bulleted"
       >
@@ -46,7 +57,7 @@ const emit = defineEmits<{
         variant="text"
         to="/predios"
         exact
-        class="text-none font-weight-medium px-4 text-grey-darken-3 mr-2"
+        class="text-none font-weight-medium px-4 text-medium-emphasis mr-2"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-domain"
       >
@@ -57,7 +68,7 @@ const emit = defineEmits<{
         variant="text"
         to="/minhas-perdas"
         exact
-        class="text-none font-weight-medium px-4 text-grey-darken-3"
+        class="text-none font-weight-medium px-4 text-medium-emphasis"
         active-class="text-primary font-weight-bold"
         prepend-icon="mdi-alert-box-outline"
       >
@@ -69,6 +80,16 @@ const emit = defineEmits<{
 
     <!-- A direita: deslogado (Entrar / Criar conta) ou logado (Sino + UserMenu) -->
     <div class="d-flex align-center">
+      <v-btn
+        icon
+        variant="text"
+        class="mr-2"
+        :aria-label="isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'"
+        @click="toggleTheme"
+      >
+        <v-icon :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
+      </v-btn>
+
       <template v-if="!auth.isLoggedIn">
         <v-btn
           :variant="isLoginRoute ? 'tonal' : 'text'"

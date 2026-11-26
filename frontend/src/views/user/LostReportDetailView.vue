@@ -188,7 +188,7 @@ const {
       <UserLostReportStateCard
         v-else-if="notFound"
         icon="mdi-file-search-outline"
-        icon-color="grey-darken-1"
+        icon-color="on-surface"
         title="Relato de perda não encontrado."
         description="O relato solicitado não foi encontrado ou não está disponível."
       />

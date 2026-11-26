@@ -62,7 +62,7 @@ onMounted(() => { void loadItem() })
           <StatusChip :status="details.item.status" kind="item" />
           <v-chip
             v-if="details.item.category?.name"
-            color="grey-darken-1"
+            color="on-surface"
             variant="outlined"
             size="small"
             rounded="sm"

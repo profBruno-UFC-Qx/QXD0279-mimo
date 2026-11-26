@@ -1,5 +1,5 @@
 import { createVuetify, type ThemeDefinition } from 'vuetify'
-import { palette } from './colors'
+import { palette, darkPalette } from './colors'
 import { typography } from './typography'
 import { shapes } from './shapes'
 
@@ -8,6 +8,7 @@ const achadexLight: ThemeDefinition = {
   colors: {
     'primary': palette.primary,
     'on-primary': palette.onPrimary,
+    'on-surface': palette.onSurface,
     'secondary': palette.secondary,
     'accent': palette.accent,
     'success': palette.success,
@@ -24,8 +25,33 @@ const achadexLight: ThemeDefinition = {
   },
 }
 
+const achadexDark: ThemeDefinition = {
+  dark: true,
+  colors: {
+    'primary': darkPalette.primary,
+    'on-primary': darkPalette.onPrimary,
+    'on-surface': darkPalette.onSurface,
+    'secondary': darkPalette.secondary,
+    'accent': darkPalette.accent,
+    'success': darkPalette.success,
+    'warning': darkPalette.warning,
+    'error': darkPalette.error,
+    'info': darkPalette.info,
+    'background': darkPalette.background,
+    'surface': darkPalette.surface,
+    'surface-muted': darkPalette.surfaceMuted,
+    'outline': darkPalette.outline,
+  },
+  variables: {
+    'font-body': typography.fontFamily,
+  },
+}
+
+const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('achadex.theme') : null
+const defaultTheme = savedTheme || 'achadexLight'
+
 export const vuetify = createVuetify({
-  theme: { defaultTheme: 'achadexLight', themes: { achadexLight } },
+  theme: { defaultTheme, themes: { achadexLight, achadexDark } },
   defaults: {
     VBtn: { rounded: shapes.borderRadius, elevation: 0 },
     VTextField: { variant: 'outlined', density: 'comfortable' },

@@ -43,7 +43,7 @@ const sectionTitle = computed(() => {
         aria-label="Abrir menu administrativo"
         @click="drawerOpen = !drawerOpen"
       />
-      <v-app-bar-title class="text-subtitle-1 font-weight-bold text-grey-darken-3">
+      <v-app-bar-title class="text-subtitle-1 font-weight-bold">
         {{ sectionTitle }}
       </v-app-bar-title>
       <v-spacer />

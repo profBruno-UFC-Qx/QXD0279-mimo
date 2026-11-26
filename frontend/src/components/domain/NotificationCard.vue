@@ -21,13 +21,13 @@ const emit = defineEmits<{
     <div class="d-flex align-start justify-space-between flex-wrap ga-3">
       <div class="d-flex align-start ga-3 flex-grow-1">
         <v-avatar
-          :color="entry.read ? 'grey-lighten-3' : 'primary'"
-          :variant="entry.read ? 'flat' : 'tonal'"
+          :color="entry.read ? 'surface-muted' : 'primary'"
+          variant="tonal"
           size="40"
         >
           <v-icon
             :icon="entry.presentation.icon"
-            :color="entry.read ? 'grey-darken-1' : 'primary'"
+            :color="entry.read ? undefined : 'primary'"
             size="20"
           />
         </v-avatar>
@@ -39,7 +39,7 @@ const emit = defineEmits<{
             </span>
             <v-chip
               size="x-small"
-              :color="entry.read ? 'default' : 'primary'"
+              :color="entry.read ? 'on-surface' : 'primary'"
               :variant="entry.read ? 'tonal' : 'flat'"
             >
               {{ entry.read ? 'Lida' : 'Não lida' }}

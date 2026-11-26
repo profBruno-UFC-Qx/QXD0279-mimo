@@ -123,7 +123,7 @@ const {
         class="pa-6 rounded-lg border text-center"
         variant="flat"
       >
-        <v-icon icon="mdi-filter-off-outline" size="36" color="grey-darken-1" class="mb-2" />
+        <v-icon icon="mdi-filter-off-outline" size="36" class="mb-2 text-medium-emphasis" />
         <div class="text-body-1 font-weight-medium">{{ emptyFilterTitle }}</div>
       </v-card>
 

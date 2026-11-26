@@ -24,7 +24,7 @@ defineProps<{ item: Item | PublicCatalogItem }>()
           v-if="item.category?.name"
           size="small"
           variant="outlined"
-          color="grey-darken-1"
+          color="outline"
           rounded="sm"
         >
           {{ item.category.name }}

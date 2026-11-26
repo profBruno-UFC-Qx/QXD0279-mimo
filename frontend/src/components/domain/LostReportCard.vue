@@ -36,7 +36,7 @@ onMounted(() => {
   <v-card class="h-100 d-flex flex-column rounded-lg border" variant="flat">
     <v-card-text class="d-flex flex-column flex-grow-1 pa-5">
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-3">
-        <v-chip size="small" variant="outlined" color="grey-darken-1" rounded="sm">
+        <v-chip size="small" variant="outlined" color="on-surface" rounded="sm">
           {{ categoryLabel }}
         </v-chip>
         <StatusChip :status="lostReport.status" kind="lostReport" />
