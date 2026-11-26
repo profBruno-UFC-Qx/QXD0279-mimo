@@ -6,6 +6,7 @@ import PhotoUploader from '@/components/form/PhotoUploader.vue'
 import type { AdminItemDetails, ItemPhoto } from '@/types'
 import type { ValidationRule } from '@/utils/rules'
 import { MAX_PHOTOS } from '@/utils/adminItemForm'
+import { getTodayIsoDate, isFutureCalendarDate } from '@/utils/lostReport'
 import { ref } from 'vue'
 
 defineProps<{
@@ -49,6 +50,10 @@ const descriptionRules: ValidationRule[] = [
 
 const locationRules: ValidationRule[] = [
   (value) => typeof value !== 'string' || value.length <= 200 || 'O local deve ter no máximo 200 caracteres.',
+]
+
+const foundDateRules: ValidationRule[] = [
+  (value) => typeof value !== 'string' || !isFutureCalendarDate(value) || 'A data do achado não pode ser futura.',
 ]
 
 const formRef = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
@@ -132,6 +137,8 @@ defineExpose({
             <DatePickerField
               v-model="foundDate"
               label="Data do achado"
+              :max-date="getTodayIsoDate()"
+              :rules="foundDateRules"
               required
               :disabled="isLoading || !isEditable"
             />

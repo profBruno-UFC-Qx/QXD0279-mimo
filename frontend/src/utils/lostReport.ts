@@ -39,6 +39,18 @@ export function isValidCalendarDate(value: unknown): value is string {
   )
 }
 
+export function getTodayIsoDate(): string {
+  const now = new Date()
+  const year = String(now.getFullYear()).padStart(4, '0')
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function isFutureCalendarDate(value: unknown): boolean {
+  return isValidCalendarDate(value) && value > getTodayIsoDate()
+}
+
 export function buildLostReportPatchPayload(
   original: LostReport,
   draft: EditableLostReportFields,
@@ -64,7 +76,11 @@ export function buildLostReportPatchPayload(
   ) {
     payload.buildingId = draft.buildingId
   }
-  if (isValidCalendarDate(draft.lossDate) && draft.lossDate !== original.lossDate) {
+  if (
+    isValidCalendarDate(draft.lossDate) &&
+    !isFutureCalendarDate(draft.lossDate) &&
+    draft.lossDate !== original.lossDate
+  ) {
     payload.lossDate = draft.lossDate
   }
 
@@ -107,7 +123,7 @@ export function buildLostReportCreatePayload(draft: NewLostReportDraft): LostRep
   if (draft.buildingId !== null && !isPositiveSafeId(draft.buildingId)) return null
   const description = draft.description.trim()
   if (description.length < 10 || description.length > 2000) return null
-  if (!isValidCalendarDate(draft.lossDate)) return null
+  if (!isValidCalendarDate(draft.lossDate) || isFutureCalendarDate(draft.lossDate)) return null
   return {
     categoryId: draft.categoryId,
     buildingId: draft.buildingId,

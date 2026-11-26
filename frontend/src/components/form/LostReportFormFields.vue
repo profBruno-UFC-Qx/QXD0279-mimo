@@ -2,6 +2,7 @@
 import CategorySelect from '@/components/form/CategorySelect.vue'
 import BuildingSelect from '@/components/form/BuildingSelect.vue'
 import DatePickerField from '@/components/form/DatePickerField.vue'
+import { getTodayIsoDate } from '@/utils/lostReport'
 
 defineProps<{
   categoryDisabled: boolean
@@ -66,6 +67,7 @@ const lossDate = defineModel<string | null>('lossDate', { required: true })
       <DatePickerField
         v-model="lossDate"
         label="Data da perda"
+        :max-date="getTodayIsoDate()"
         :required="true"
         :clearable="false"
         :disabled="lossDateDisabled"

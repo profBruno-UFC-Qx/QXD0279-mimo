@@ -251,3 +251,45 @@ test('B16 - operacoes rejeitadas nao alteram o estado da regra', async () => {
   assert.equal(Boolean(rows[0].active), true);
   assert.equal(Boolean(rows[0].locked), true);
 });
+
+test('ACH-009 & ACH-010 - rejeita criar ou atualizar regra com prazo (days) ou destino ja usado', async () => {
+  await app.dataSource.query('DELETE FROM disposition_rules');
+  const superadmin = await app.createUser(UserRole.SUPERADMIN);
+  const token = app.tokenFor(superadmin);
+
+  const first = await app.request<any>('POST', '/api/disposition-rules', token, {
+    days: 30,
+    destination: DispositionType.DONATED,
+  });
+  assert.equal(first.status, 201);
+
+  const dupDays = await app.request('POST', '/api/disposition-rules', token, {
+    days: 30,
+    destination: DispositionType.DISCARDED,
+  });
+  assert.equal(dupDays.status, 409);
+
+  const dupDest = await app.request('POST', '/api/disposition-rules', token, {
+    days: 45,
+    destination: DispositionType.DONATED,
+  });
+  assert.equal(dupDest.status, 409);
+
+  const second = await app.request<any>('POST', '/api/disposition-rules', token, {
+    days: 60,
+    destination: DispositionType.SOLD,
+  });
+  assert.equal(second.status, 201);
+
+  const patchDupDays = await app.request('PATCH', `/api/disposition-rules/${second.body.data.id}`, token, {
+    days: 30,
+  });
+  assert.equal(patchDupDays.status, 409);
+
+  const patchDupDest = await app.request('PATCH', `/api/disposition-rules/${second.body.data.id}`, token, {
+    destination: DispositionType.DONATED,
+  });
+  assert.equal(patchDupDest.status, 409);
+
+  await app.dataSource.query('DELETE FROM disposition_rules');
+});

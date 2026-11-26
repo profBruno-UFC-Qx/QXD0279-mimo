@@ -3,6 +3,7 @@ import { HttpError } from '../middlewares/http-error.js';
 import { LostReportStatus, type ItemStatus } from '../models/enums.js';
 import type { LostReport } from '../models/lost-report.js';
 import type { Item } from '../models/item.js';
+import { paginate, type Paginated } from '../shared/pagination.js';
 import {
   findCategoryById,
   findBuildingById,
@@ -51,6 +52,14 @@ export interface PublicSuggestedItemDto {
 export interface CreateLostReportResult {
   lostReport: PublicLostReportDto;
   suggestions: PublicSuggestedItemDto[];
+}
+
+function getTodayIsoDate(): string {
+  const now = new Date();
+  const year = String(now.getFullYear()).padStart(4, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function validateLostReportInput(input: unknown): ValidatedLostReportInput {
@@ -124,6 +133,9 @@ export function validateLostReportInput(input: unknown): ValidatedLostReportInpu
   }
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) {
     throw new HttpError(400, 'O campo lossDate representa uma data inexistente no calendário.');
+  }
+  if (lossDate > getTodayIsoDate()) {
+    throw new HttpError(400, 'O campo lossDate não pode ser uma data futura.');
   }
 
   return {
@@ -350,6 +362,9 @@ function validateLostReportUpdateInput(input: unknown): ValidatedLostReportUpdat
     if (dt.getUTCFullYear() !== y || dt.getUTCMonth() + 1 !== m || dt.getUTCDate() !== d) {
       throw new HttpError(400, 'lossDate representa uma data inexistente no calendário.');
     }
+    if (lDate > getTodayIsoDate()) {
+      throw new HttpError(400, 'O campo lossDate não pode ser uma data futura.');
+    }
     result.lossDate = lDate;
     hasField = true;
   }
@@ -461,10 +476,69 @@ export async function confirmLostReportSuggestion(
   if (res === 'item_not_found') {
     throw new HttpError(404, 'O item sugerido não foi encontrado.');
   }
+  if (res === 'item_already_confirmed') {
+    throw new HttpError(409, 'Este item já foi confirmado em outro relato de perda.');
+  }
 
   const updated = await findLostReportByIdAndUserId(reportId, userId);
   if (!updated) {
     throw new HttpError(404, 'Relato de perda não encontrado.');
   }
   return formatPublicLostReport(updated);
+}
+
+function parsePositivePageParam(raw: unknown, field: string, fallback: number): number {
+  if (raw === undefined || raw === null || raw === '') {
+    return fallback;
+  }
+  if (typeof raw !== 'string' && typeof raw !== 'number') {
+    throw new HttpError(400, `O parâmetro ${field} deve ser um inteiro positivo.`);
+  }
+  const str = String(raw).trim();
+  if (!/^[1-9]\d*$/.test(str)) {
+    throw new HttpError(400, `O parâmetro ${field} deve ser um inteiro positivo.`);
+  }
+  const parsed = Number(str);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== str) {
+    throw new HttpError(400, `O parâmetro ${field} deve ser um inteiro positivo seguro.`);
+  }
+  return parsed;
+}
+
+export async function listLostReportSuggestions(
+  userId: number,
+  rawId: unknown,
+  query: Record<string, unknown>,
+): Promise<Paginated<PublicSuggestedItemDto>> {
+  const reportId = parseReportId(rawId);
+  const page = parsePositivePageParam(query.page, 'page', 1);
+  const perPage = parsePositivePageParam(query.per_page, 'per_page', 12);
+  if (perPage > 100) {
+    throw new HttpError(400, 'O parâmetro per_page deve ser no máximo 100.');
+  }
+
+  const report = await findLostReportByIdAndUserId(reportId, userId);
+  if (!report) {
+    throw new HttpError(404, 'Relato de perda não encontrado.');
+  }
+
+  if (report.status !== LostReportStatus.OPEN || report.confirmedItemId !== null) {
+    return paginate([], 0, { page, per_page: perPage });
+  }
+
+  const allMatching = await findMatchingPublicItems(
+    report.categoryId,
+    report.buildingId,
+    report.lossDate,
+    report.description,
+    undefined,
+    { onlyRelevant: true },
+  );
+
+  const start = (page - 1) * perPage;
+  const sliced = allMatching.slice(start, start + perPage);
+  return paginate(sliced.map(formatPublicSuggestedItem), allMatching.length, {
+    page,
+    per_page: perPage,
+  });
 }

@@ -55,6 +55,14 @@ function requirePositiveId(value: unknown, field: string): number {
   return value;
 }
 
+function getTodayIsoDate(): string {
+  const now = new Date();
+  const year = String(now.getFullYear()).padStart(4, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function parseDate(value: unknown, field: string): Date {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new HttpError(400, `O campo ${field} deve usar o formato YYYY-MM-DD.`);
@@ -71,6 +79,9 @@ function parseDate(value: unknown, field: string): Date {
     date.getDate() !== day
   ) {
     throw new HttpError(400, `O campo ${field} deve conter uma data válida.`);
+  }
+  if (value > getTodayIsoDate()) {
+    throw new HttpError(400, `O campo ${field} não pode ser uma data futura.`);
   }
   return date;
 }

@@ -8,6 +8,7 @@ import {
   updateOwnLostReport,
   cancelOwnLostReport,
   confirmLostReportSuggestion,
+  listLostReportSuggestions,
 } from '../services/lost-report.service.js';
 import type { ApiResponse } from '../shared/api-response.js';
 
@@ -97,6 +98,30 @@ lostReportRouter.post(
     const response: ApiResponse<typeof report> = {
       success: true,
       data: report,
+    };
+    res.status(200).json(response);
+  },
+);
+
+lostReportRouter.get(
+  '/:id/suggestions',
+  /* #swagger.tags = ['Lost Reports'] */
+  /* #swagger.summary = 'Listar sugestões ranqueadas para uma perda própria' */
+  /* #swagger.security = [{ "bearerAuth": [] }] */
+  /* #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer' } */
+  /* #swagger.parameters['page'] = { in: 'query', type: 'integer', default: 1 } */
+  /* #swagger.parameters['per_page'] = { in: 'query', type: 'integer', default: 12, minimum: 1, maximum: 100 } */
+  /* #swagger.responses[200] = { description: 'Sugestões paginadas e ranqueadas', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[400] = { description: 'Parâmetro inválido', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[401] = { description: 'Não autenticado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  /* #swagger.responses[404] = { description: 'Relato de perda não encontrado', schema: { $ref: '#/definitions/ApiResponse' } } */
+  authenticate,
+  async (req: Request, res: Response) => {
+    const userId = res.locals.auth.userId as number;
+    const result = await listLostReportSuggestions(userId, req.params.id, req.query as Record<string, unknown>);
+    const response: ApiResponse<typeof result> = {
+      success: true,
+      data: result,
     };
     res.status(200).json(response);
   },

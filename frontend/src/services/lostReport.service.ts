@@ -6,6 +6,7 @@ import type {
   LostReportPayload,
   Page,
   PageQuery,
+  PublicCatalogItem,
 } from '../types'
 
 export const lostReportService = {
@@ -39,6 +40,16 @@ export const lostReportService = {
   async confirmSuggestion(reportId: number, itemId: number): Promise<LostReport> {
     const { data } = await api.post<LostReport>(
       `/lost-reports/${reportId}/suggestions/${itemId}/confirm`,
+    )
+    return data
+  },
+  async getSuggestions(
+    reportId: number,
+    query?: { page?: number; per_page?: number },
+  ): Promise<Page<PublicCatalogItem>> {
+    const { data } = await api.get<Page<PublicCatalogItem>>(
+      `/lost-reports/${reportId}/suggestions`,
+      { params: query },
     )
     return data
   },

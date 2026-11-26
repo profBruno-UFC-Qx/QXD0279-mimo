@@ -126,3 +126,47 @@ test('JE03 - regra de maior prazo cumprido prevalece em caso de sobreposição',
   assert.equal(updated?.status, ItemStatus.ELIGIBLE);
   assert.equal(updated?.plannedDestination, DispositionType.DONATED);
 });
+
+test('ACH-011 - itens ja ELIGIBLE tem plannedDestination atualizada conforme a regra de maior prazo cumprido', async () => {
+  await createRule(30, DispositionType.DONATED);
+  await createRule(60, DispositionType.SOLD);
+  await createRule(90, DispositionType.DISCARDED);
+
+  const date70 = new Date();
+  date70.setDate(date70.getDate() - 70);
+  const date95 = new Date();
+  date95.setDate(date95.getDate() - 95);
+
+  const itemRepo = app.dataSource.getRepository(Item);
+  const item70 = await itemRepo.save(
+    itemRepo.create({
+      title: 'Item 70 dias',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: date70.toISOString().slice(0, 10),
+      status: ItemStatus.ELIGIBLE,
+      plannedDestination: DispositionType.DONATED,
+      createdBy: adminUser.id,
+    }),
+  );
+  const item95 = await itemRepo.save(
+    itemRepo.create({
+      title: 'Item 95 dias',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: date95.toISOString().slice(0, 10),
+      status: ItemStatus.ELIGIBLE,
+      plannedDestination: DispositionType.DONATED,
+      createdBy: adminUser.id,
+    }),
+  );
+
+  const res = await app.request('POST', '/api/jobs/disposition-eligibility', adminToken);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.data.updatedCount, 2);
+
+  const updated70 = await itemRepo.findOneBy({ id: item70.id });
+  const updated95 = await itemRepo.findOneBy({ id: item95.id });
+  assert.equal(updated70?.plannedDestination, DispositionType.SOLD);
+  assert.equal(updated95?.plannedDestination, DispositionType.DISCARDED);
+});

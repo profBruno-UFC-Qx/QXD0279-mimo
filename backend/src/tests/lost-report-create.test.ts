@@ -1311,3 +1311,139 @@ test('RED21b — rollback transacional real: falha controlada na fase de sugest�
     Repository.prototype.createQueryBuilder = originalCreateQueryBuilder;
   }
 });
+
+test('ACH-004 — rejeita lossDate futura (400) em POST /api/lost-reports e PATCH /api/lost-reports/:id', async () => {
+  const { token } = await createFixtureUser();
+  const category = await createFixtureCategory();
+
+  const future = new Date();
+  future.setDate(future.getDate() + 2);
+  const futureIso = `${String(future.getFullYear()).padStart(4, '0')}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+
+  const createRes = await postLostReport(
+    {
+      categoryId: category.id,
+      description: 'Bolsa pequena preta perdida no campus',
+      lossDate: futureIso,
+    },
+    `Bearer ${token}`,
+  );
+  assert.equal(createRes.status, 400);
+  assert.equal(createRes.body.success, false);
+
+  const validRes = await postLostReport(
+    {
+      categoryId: category.id,
+      description: 'Bolsa pequena preta perdida no campus',
+      lossDate: '2026-10-23',
+    },
+    `Bearer ${token}`,
+  );
+  assert.equal(validRes.status, 201);
+
+  const patchRes = await patchLostReport(
+    validRes.body.data.lostReport.id,
+    { lossDate: futureIso },
+    `Bearer ${token}`,
+  );
+  assert.equal(patchRes.status, 400);
+  assert.equal(patchRes.body.success, false);
+});
+
+test('ACH-003 & ACH-006 — sugestões priorizam item compatível, filtram irrelevantes em GET /:id/suggestions e excluem itens já confirmados em outra perda', async () => {
+  const { user: user1, token: token1 } = await createFixtureUser('u1@example.com', 'Usuário 1');
+  const { user: user2 } = await createFixtureUser('u2@example.com', 'Usuário 2');
+  const category = await createFixtureCategory('Acessórios');
+  const building = await createFixtureBuilding('Biblioteca Central');
+  const otherBuilding = await createFixtureBuilding('Reitoria');
+
+  const itemRepo = AppDataSource.getRepository(Item);
+  const reportRepo = AppDataSource.getRepository(LostReport);
+
+  const randomItem = await itemRepo.save(
+    itemRepo.create({
+      title: 'Relógio Casio',
+      description: 'Modelo clássico prateado digital encontrado na cantina.',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: new Date('2026-10-22'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: user1.id,
+    }),
+  );
+
+  const irrelevantItem = await itemRepo.save(
+    itemRepo.create({
+      title: 'Relógio Casio Antigo',
+      description: 'Modelo clássico prateado digital sem relação.',
+      categoryId: category.id,
+      buildingId: otherBuilding.id,
+      foundDate: new Date('2026-09-10'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: user1.id,
+    }),
+  );
+
+  const matchingItem = await itemRepo.save(
+    itemRepo.create({
+      title: 'Bolsa pequenina',
+      description: 'Bolsa pequena de zíper deixada na bancada.',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: new Date('2026-10-22'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: user1.id,
+    }),
+  );
+
+  const alreadyConfirmedItem = await itemRepo.save(
+    itemRepo.create({
+      title: 'Bolsa pequena já confirmada',
+      description: 'Bolsa pequena confirmada por outro usuário.',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: new Date('2026-10-22'),
+      status: ItemStatus.AVAILABLE,
+      createdBy: user1.id,
+    }),
+  );
+
+  await reportRepo.save(
+    reportRepo.create({
+      userId: user2.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Perdi bolsa pequena perto da biblioteca',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+      confirmedItemId: alreadyConfirmedItem.id,
+    }),
+  );
+
+  const createRes = await postLostReport(
+    {
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Bolsa pequena',
+      lossDate: '2026-10-23',
+    },
+    `Bearer ${token1}`,
+  );
+
+  assert.equal(createRes.status, 201);
+  const createdIds = createRes.body.data.suggestions.map((s: any) => s.id);
+  assert.equal(createdIds[0], matchingItem.id);
+  assert.ok(createdIds.includes(randomItem.id));
+  assert.ok(!createdIds.includes(alreadyConfirmedItem.id));
+
+  const suggRes = await fetch(
+    `${baseUrl}/api/lost-reports/${createRes.body.data.lostReport.id}/suggestions?page=1&per_page=12`,
+    { headers: { Authorization: `Bearer ${token1}` } },
+  );
+  assert.equal(suggRes.status, 200);
+  const suggBody = (await suggRes.json()) as ApiBody;
+  const suggIds = suggBody.data.data.map((s: any) => s.id);
+  assert.equal(suggIds[0], matchingItem.id);
+  assert.ok(!suggIds.includes(irrelevantItem.id));
+  assert.ok(!suggIds.includes(alreadyConfirmedItem.id));
+});

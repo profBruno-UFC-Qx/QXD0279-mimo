@@ -133,11 +133,12 @@ async function seed() {
 
   // 5. Criar Regras de Destinação (Disposition Rules)
   console.log('Criando regras de destinação...');
-  await dispositionRuleRepository.save([
+  const seededRules = await dispositionRuleRepository.save([
     dispositionRuleRepository.create({ days: 30, destination: DispositionType.DONATED, active: true, locked: true, createdBy: superadmin.id }),
     dispositionRuleRepository.create({ days: 60, destination: DispositionType.SOLD, active: true, locked: false, createdBy: superadmin.id }),
     dispositionRuleRepository.create({ days: 90, destination: DispositionType.DISCARDED, active: true, locked: false, createdBy: admin.id }),
   ]);
+  const rulesByDaysDesc = [...seededRules].sort((a, b) => b.days - a.days);
 
   // 6. Criar Itens Achados (Items - 120 itens com variedade de status)
   console.log('Criando 120 itens achados realistas...');
@@ -248,10 +249,20 @@ async function seed() {
     }
     const status = statuses[i % statuses.length];
     
-    // Gerar data nos últimos 120 dias
-    const daysAgo = Math.floor(Math.random() * 120);
+    // Gerar data coerente com o status e com as regras de destinação
+    const daysAgo =
+      status === ItemStatus.ELIGIBLE
+        ? 30 + Math.floor(Math.random() * 91)
+        : status === ItemStatus.AVAILABLE
+          ? Math.floor(Math.random() * 29)
+          : Math.floor(Math.random() * 120);
     const foundDate = new Date();
     foundDate.setDate(foundDate.getDate() - daysAgo);
+
+    const matchingRule =
+      status === ItemStatus.ELIGIBLE
+        ? rulesByDaysDesc.find((rule) => rule.active && daysAgo >= rule.days) ?? null
+        : null;
 
     const item = await itemRepository.save(
       itemRepository.create({
@@ -262,7 +273,7 @@ async function seed() {
         foundLocation: `Corredor principal próximo à sala ${100 + (i % 50)}`,
         foundDate,
         status,
-        plannedDestination: status === ItemStatus.ELIGIBLE ? DispositionType.DONATED : null,
+        plannedDestination: matchingRule ? matchingRule.destination : null,
         createdBy: admin.id,
       })
     );

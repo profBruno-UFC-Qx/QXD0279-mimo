@@ -46,17 +46,38 @@ function toDateKey(value: Date | string): number | null {
   return Date.UTC(Number(year), Number(month) - 1, Number(day));
 }
 
-function dateProximityScore(first: Date | string, second: Date | string): number {
-  const firstKey = toDateKey(first);
-  const secondKey = toDateKey(second);
-  if (firstKey === null || secondKey === null) return 0;
+function dateProximityScore(foundDate: Date | string, lossDate: Date | string): number {
+  const foundKey = toDateKey(foundDate);
+  const lossKey = toDateKey(lossDate);
+  if (foundKey === null || lossKey === null) return 0;
 
-  const differenceDays = Math.abs(firstKey - secondKey) / (24 * 60 * 60 * 1000);
-  if (differenceDays <= 7) return 35;
-  if (differenceDays <= 30) return 28;
-  if (differenceDays <= 60) return 18;
-  if (differenceDays <= 180) return 8;
+  const daysAfterLoss = (foundKey - lossKey) / (24 * 60 * 60 * 1000);
+  if (daysAfterLoss < -7) return 0;
+  if (daysAfterLoss <= 7) return 25;
+  if (daysAfterLoss <= 30) return 20;
+  if (daysAfterLoss <= 60) return 12;
+  if (daysAfterLoss <= 180) return 5;
   return 0;
+}
+
+function tokensMatch(reportToken: string, itemTokens: Set<string>): boolean {
+  if (itemTokens.has(reportToken)) return true;
+  if (reportToken.length < 4) return false;
+  for (const itemToken of itemTokens) {
+    if (
+      itemToken.length >= 4 &&
+      (itemToken.startsWith(reportToken) ||
+        reportToken.startsWith(itemToken) ||
+        itemToken.includes(reportToken) ||
+        reportToken.includes(itemToken) ||
+        (reportToken.length >= 5 &&
+          itemToken.length >= 5 &&
+          reportToken.slice(0, 5) === itemToken.slice(0, 5)))
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function textSimilarityScore(
@@ -68,12 +89,40 @@ function textSimilarityScore(
   if (itemTokens.size === 0 || reportTokens.size === 0) return 0;
 
   let matches = 0;
-  for (const token of itemTokens) {
-    if (reportTokens.has(token)) matches++;
+  for (const token of reportTokens) {
+    if (tokensMatch(token, itemTokens)) matches++;
   }
 
-  const diceSimilarity = (2 * matches) / (itemTokens.size + reportTokens.size);
-  return Math.round(diceSimilarity * 40);
+  const coverage = matches / reportTokens.size;
+  return Math.round(coverage * 50);
+}
+
+export function isRelevantItemMatch(
+  item: MatchableItem,
+  report: MatchableLostReport,
+): boolean {
+  const itemText = [
+    item.title,
+    item.description ?? '',
+    item.foundLocation ?? '',
+  ].join(' ');
+
+  if (textSimilarityScore(itemText, report.description) > 0) {
+    return true;
+  }
+
+  const foundKey = toDateKey(item.foundDate);
+  const lossKey = toDateKey(report.lossDate);
+  if (foundKey === null || lossKey === null) return false;
+
+  const daysAfterLoss = (foundKey - lossKey) / (24 * 60 * 60 * 1000);
+  if (daysAfterLoss < -3 || daysAfterLoss > 30) return false;
+
+  if (report.buildingId !== null && item.buildingId !== report.buildingId) {
+    return false;
+  }
+
+  return true;
 }
 
 export function getItemMatchScore(

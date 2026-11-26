@@ -7,6 +7,7 @@ import { useUiStore } from '@/stores/uiStore'
 import {
   extractLostReportErrorMessage,
   getErrorStatus,
+  isFutureCalendarDate,
   isPositiveSafeId,
   isValidCalendarDate,
   parsePositiveReportId,
@@ -188,6 +189,10 @@ export function useAdminItemForm() {
         !isValidCalendarDate(targetFoundDate)
       ) {
         submitError.value = 'Informe categoria, prédio e data do achado.'
+        return
+      }
+      if (isFutureCalendarDate(targetFoundDate)) {
+        submitError.value = 'A data do achado não pode ser futura.'
         return
       }
 

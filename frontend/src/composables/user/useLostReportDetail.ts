@@ -2,7 +2,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import type { LostReport, PublicCatalogItem } from '@/types'
 import { lostReportService } from '@/services/lostReport.service'
-import { itemService } from '@/services/item.service'
 import { useAuthStore } from '@/stores/authStore'
 import { useCategoriesStore } from '@/stores/categoriesStore'
 import { useBuildingsStore } from '@/stores/buildingsStore'
@@ -11,6 +10,7 @@ import {
   buildLostReportPatchPayload,
   extractLostReportErrorMessage,
   getErrorStatus,
+  isFutureCalendarDate,
   isPositiveSafeId,
   isValidCalendarDate,
   isValidLostReport,
@@ -204,6 +204,9 @@ export function useLostReportDetail() {
   const lossDateError = computed(() => {
     if (!isValidCalendarDate(draft.value.lossDate)) {
       return 'Informe uma data válida no formato YYYY-MM-DD.'
+    }
+    if (isFutureCalendarDate(draft.value.lossDate)) {
+      return 'A data da perda não pode ser futura.'
     }
     return null
   })
@@ -477,8 +480,7 @@ export function useLostReportDetail() {
     suggestionsOutOfRange.value = false
 
     try {
-      const result = await itemService.list({
-        categoryId: snapshot.categoryId,
+      const result = await lostReportService.getSuggestions(snapshot.reportId, {
         page,
         per_page: perPage,
       })
@@ -718,7 +720,6 @@ export function useLostReportDetail() {
     if (hasValidationError.value || !hasChanges.value) return
 
     const payload = patchPayload.value
-    const previousCategoryId = report.value.categoryId
     const snapshot = captureSession(report.value.id)
     const patchId = ++latestPatchId
     saving.value = true
@@ -739,7 +740,7 @@ export function useLostReportDetail() {
       ui.showSnackbar('Perda atualizada com sucesso.', 'success')
       if (!isEligibleForSuggestions(updated)) {
         resetSuggestionsState()
-      } else if (updated.categoryId !== previousCategoryId) {
+      } else if (Object.keys(payload).length > 0) {
         void loadSuggestions(updated, 1, suggestionsPerPage.value)
       }
     } catch (err: unknown) {
@@ -999,7 +1000,17 @@ export function useLostReportDetail() {
       if (status === 409) {
         conflictError.value = extractLostReportErrorMessage(err, DEFAULT_SUGGESTION_CONFLICT_ERROR)
         confirmationError.value = null
-        await reloadOwnReport(snapshot.reportId, () => isCurrentConfirmationPost(snapshot))
+        const reloadResult = await reloadOwnReport(
+          snapshot.reportId,
+          () => isCurrentConfirmationPost(snapshot),
+        )
+        if (
+          reloadResult.status === 'ok' &&
+          isEligibleForSuggestions(reloadResult.report) &&
+          reloadResult.report.categoryId === reloadResult.previousCategoryId
+        ) {
+          void loadSuggestions(reloadResult.report, suggestionsPage.value, suggestionsPerPage.value)
+        }
         return
       }
       confirmationError.value = extractLostReportErrorMessage(err, GENERIC_CONFIRM_SUGGESTION_ERROR)

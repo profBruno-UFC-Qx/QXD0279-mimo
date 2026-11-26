@@ -7,7 +7,7 @@ import { Item } from '../models/item.js';
 import { User } from '../models/user.js';
 import { Notification } from '../models/notification.js';
 import { ItemStatus, LostReportStatus, UserRole, NotificationType } from '../models/enums.js';
-import { getItemMatchScore } from '../shared/item-match.js';
+import { getItemMatchScore, isRelevantItemMatch } from '../shared/item-match.js';
 
 export interface InsertLostReportData {
   userId: number;
@@ -56,6 +56,7 @@ export async function findMatchingPublicItems(
   lossDate: string | Date,
   description: string,
   entityManager?: EntityManager,
+  options?: { onlyRelevant?: boolean },
 ): Promise<Item[]> {
   const repo = entityManager ? entityManager.getRepository(Item) : AppDataSource.getRepository(Item);
   const items = await repo
@@ -67,12 +68,20 @@ export async function findMatchingPublicItems(
     .andWhere('item.status IN (:...publicStatuses)', {
       publicStatuses: [ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE],
     })
+    .andWhere(
+      'NOT EXISTS (SELECT 1 FROM lost_reports lr WHERE lr.confirmed_item_id = item.id AND lr.status != :cancelledStatus)',
+      { cancelledStatus: LostReportStatus.CANCELLED },
+    )
     .orderBy('item.foundDate', 'DESC')
     .addOrderBy('item.id', 'DESC')
     .getMany();
 
   const report = { buildingId, lossDate, description };
-  return items
+  const candidateItems = options?.onlyRelevant
+    ? items.filter((item) => isRelevantItemMatch(item, report))
+    : items;
+
+  return candidateItems
     .map((item) => ({
       item,
       score: getItemMatchScore(item, report),
@@ -196,7 +205,7 @@ export async function confirmLostReportSuggestionRepo(
   reportId: number,
   userId: number,
   itemId: number,
-): Promise<'updated' | 'not_found' | 'not_open' | 'already_confirmed' | 'item_not_found'> {
+): Promise<'updated' | 'not_found' | 'not_open' | 'already_confirmed' | 'item_not_found' | 'item_already_confirmed'> {
   return await serializeLostReportTransaction(() =>
     AppDataSource.transaction(async (manager) => {
       const reportRepo = manager.getRepository(LostReport);
@@ -225,6 +234,15 @@ export async function confirmLostReportSuggestionRepo(
         .getOne();
       if (!eligibleItem) {
         return 'item_not_found';
+      }
+
+      const existingClaim = await reportRepo
+        .createQueryBuilder('lr')
+        .where('lr.confirmedItemId = :itemId', { itemId: eligibleItem.id })
+        .andWhere('lr.status != :cancelledStatus', { cancelledStatus: LostReportStatus.CANCELLED })
+        .getOne();
+      if (existingClaim) {
+        return 'item_already_confirmed';
       }
 
       const updateResult = await manager

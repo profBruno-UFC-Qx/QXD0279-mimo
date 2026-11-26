@@ -11,6 +11,7 @@ const props = withDefaults(defineProps<{
   clearable?: boolean
   disabled?: boolean
   minDate?: string
+  maxDate?: string
 }>(), { required: false, clearable: true, disabled: false })
 
 const modelValue = defineModel<string | null | undefined>()
@@ -73,6 +74,7 @@ function onDateChange(value: string | Date | null) {
     <v-date-picker
       :model-value="modelValue"
       :min="props.minDate"
+      :max="props.maxDate"
       @update:model-value="onDateChange"
       color="primary"
     />
