@@ -64,6 +64,7 @@ export async function findHandoversByUserId(userId: number): Promise<Handover[]>
 export interface AdminHandoverFilters {
   itemId?: number;
   adminId?: number;
+  cpf?: string;
   from?: string;
   to?: string;
 }
@@ -86,6 +87,12 @@ export async function listAdminHandoversRepo(
   }
   if (filters.adminId !== undefined) {
     qb.andWhere('handover.adminId = :adminId', { adminId: filters.adminId });
+  }
+  if (filters.cpf !== undefined) {
+    qb.andWhere(
+      "REPLACE(REPLACE(REPLACE(handover.withdrawnCpf, '.', ''), '-', ''), ' ', '') LIKE :cpf",
+      { cpf: `%${filters.cpf}%` },
+    );
   }
   if (filters.from !== undefined) {
     qb.andWhere('handover.handedAt >= :from', { from: `${filters.from} 00:00:00` });

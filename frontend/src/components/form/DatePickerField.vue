@@ -12,6 +12,8 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   minDate?: string
   maxDate?: string
+  density?: 'default' | 'comfortable' | 'compact'
+  hideDetails?: boolean | 'auto'
 }>(), { required: false, clearable: true, disabled: false })
 
 const modelValue = defineModel<string | null | undefined>()
@@ -67,7 +69,8 @@ function onDateChange(value: string | Date | null) {
         readonly
         prepend-inner-icon="mdi-calendar"
         variant="outlined"
-        density="comfortable"
+        :density="props.density ?? 'comfortable'"
+        :hide-details="props.hideDetails ?? false"
         @click:clear="modelValue = null"
       />
     </template>

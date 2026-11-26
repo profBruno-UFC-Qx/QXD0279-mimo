@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import DatePickerField from '@/components/form/DatePickerField.vue'
 import { type HandoverFilters } from '@/types/adminFilters'
+import { formatCpf } from '@/utils/format'
 
 defineProps<{
   hasAdminAccess: boolean
@@ -12,6 +14,15 @@ defineEmits<{
 }>()
 
 const draftFilters = defineModel<HandoverFilters>('draftFilters', { required: true })
+const cpfDisplay = computed({
+  get: () => formatCpf(draftFilters.value.cpf),
+  set: (value: string | null) => {
+    draftFilters.value = {
+      ...draftFilters.value,
+      cpf: (value ?? '').replace(/\D/g, '').slice(0, 11),
+    }
+  },
+})
 </script>
 
 <template>
@@ -39,17 +50,34 @@ const draftFilters = defineModel<HandoverFilters>('draftFilters', { required: tr
           hide-details
         />
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="2">
+        <v-text-field
+          v-model="cpfDisplay"
+          label="CPF do retirante"
+          placeholder="___.___.___-__"
+          inputmode="numeric"
+          maxlength="14"
+          prepend-inner-icon="mdi-card-account-details-outline"
+          variant="outlined"
+          density="compact"
+          hide-details
+        />
+      </v-col>
+      <v-col cols="12" sm="6" md="2">
         <DatePickerField
           :model-value="draftFilters.from"
           label="De"
+          density="compact"
+          hide-details
           @update:model-value="draftFilters = { ...draftFilters, from: $event ?? null }"
         />
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="2">
         <DatePickerField
           :model-value="draftFilters.to"
           label="Até"
+          density="compact"
+          hide-details
           @update:model-value="draftFilters = { ...draftFilters, to: $event ?? null }"
         />
       </v-col>

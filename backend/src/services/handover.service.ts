@@ -42,6 +42,23 @@ function parseDateFilter(value: unknown, field: string): string | undefined {
   return value;
 }
 
+function parseOptionalCpfFilter(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string') {
+    throw new HttpError(400, 'O filtro cpf deve ser texto.');
+  }
+  const text = value.trim();
+  if (text === '') return undefined;
+  if (!/^[\d.\-\s]+$/.test(text)) {
+    throw new HttpError(400, 'O filtro cpf contém caracteres inválidos.');
+  }
+  const digits = text.replace(/\D/g, '');
+  if (digits.length < 3 || digits.length > 11) {
+    throw new HttpError(400, 'O filtro cpf deve conter entre 3 e 11 dígitos.');
+  }
+  return digits;
+}
+
 export async function createHandover(adminId: number, input: unknown): Promise<Handover> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new HttpError(400, 'Payload da requisição deve ser um objeto JSON válido.');
@@ -102,6 +119,7 @@ export async function listAdminHandovers(
 ): Promise<Paginated<Handover>> {
   const itemId = parseOptionalPositiveId(query.itemId, 'itemId') ?? undefined;
   const adminId = parseOptionalPositiveId(query.adminId, 'adminId') ?? undefined;
+  const cpf = parseOptionalCpfFilter(query.cpf);
   const from = parseDateFilter(query.from, 'from');
   const to = parseDateFilter(query.to, 'to');
 
@@ -117,7 +135,7 @@ export async function listAdminHandovers(
   }
 
   const [handovers, total] = await listAdminHandoversRepo(
-    { itemId, adminId, from, to },
+    { itemId, adminId, cpf, from, to },
     page,
     perPage,
   );

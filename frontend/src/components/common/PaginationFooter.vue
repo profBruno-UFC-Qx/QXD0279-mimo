@@ -19,8 +19,14 @@ const emit = defineEmits<{
 }>()
 
 const pageNumbers = computed(() => {
-  const visiblePageCount = Math.min(Math.max(0, Math.floor(props.totalPages)), 5)
-  return Array.from({ length: visiblePageCount }, (_, index) => index + 1)
+  const totalPageCount = Math.max(0, Math.floor(props.totalPages))
+  if (totalPageCount === 0) return []
+
+  const currentPage = Math.min(Math.max(1, Math.floor(props.page)), totalPageCount)
+  const firstVisiblePage = Math.floor((currentPage - 1) / 5) * 5 + 1
+  const visiblePageCount = Math.min(5, totalPageCount - firstVisiblePage + 1)
+
+  return Array.from({ length: visiblePageCount }, (_, index) => firstVisiblePage + index)
 })
 </script>
 
@@ -65,9 +71,6 @@ const pageNumbers = computed(() => {
       >
         {{ pageNumber }}
       </v-btn>
-      <span v-if="page > pageNumbers.length" class="text-body-2 mx-2">
-        Página {{ page }} de {{ totalPages }}
-      </span>
       <v-btn
         icon="mdi-chevron-right"
         variant="text"

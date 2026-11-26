@@ -66,6 +66,7 @@ handoverRouter.get(
   /* #swagger.security = [{ "bearerAuth": [] }] */
   /* #swagger.parameters['itemId'] = { in: 'query', type: 'integer' } */
   /* #swagger.parameters['adminId'] = { in: 'query', type: 'integer' } */
+  /* #swagger.parameters['cpf'] = { in: 'query', type: 'string', description: 'Busca por 3 a 11 dígitos do CPF do retirante' } */
   /* #swagger.parameters['from'] = { in: 'query', type: 'string', format: 'date' } */
   /* #swagger.parameters['to'] = { in: 'query', type: 'string', format: 'date' } */
   /* #swagger.parameters['page'] = { in: 'query', type: 'integer', default: 1 } */

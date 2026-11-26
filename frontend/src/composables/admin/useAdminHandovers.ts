@@ -20,8 +20,8 @@ export function useAdminHandovers() {
   const currentPage = ref(1)
   const perPage = ref(DEFAULT_PER_PAGE)
 
-  const draftFilters = ref<HandoverFilters>({ itemId: '', adminId: '', from: null, to: null })
-  const appliedFilters = ref<HandoverFilters>({ itemId: '', adminId: '', from: null, to: null })
+  const draftFilters = ref<HandoverFilters>({ itemId: '', adminId: '', cpf: '', from: null, to: null })
+  const appliedFilters = ref<HandoverFilters>({ itemId: '', adminId: '', cpf: '', from: null, to: null })
   const filterError = ref<string | null>(null)
 
   const loading = ref(false)
@@ -41,6 +41,7 @@ export function useAdminHandovers() {
     () =>
       appliedFilters.value.itemId.trim() !== '' ||
       appliedFilters.value.adminId.trim() !== '' ||
+      appliedFilters.value.cpf.trim() !== '' ||
       appliedFilters.value.from !== null ||
       appliedFilters.value.to !== null,
   )
@@ -70,6 +71,8 @@ export function useAdminHandovers() {
     if (typeof itemId === 'number') query.itemId = itemId
     const adminId = parseOptionalId(appliedFilters.value.adminId)
     if (typeof adminId === 'number') query.adminId = adminId
+    const cpf = appliedFilters.value.cpf.replace(/\D/g, '')
+    if (cpf) query.cpf = cpf
     if (appliedFilters.value.from !== null) query.from = appliedFilters.value.from
     if (appliedFilters.value.to !== null) query.to = appliedFilters.value.to
     return query
@@ -116,8 +119,9 @@ export function useAdminHandovers() {
     if (!hasAdminAccess.value) return
     const itemId = parseOptionalId(draftFilters.value.itemId)
     const adminId = parseOptionalId(draftFilters.value.adminId)
-    if (itemId === null || adminId === null) {
-      filterError.value = 'Informe IDs inteiros positivos ou deixe os campos vazios.'
+    const cpf = draftFilters.value.cpf.replace(/\D/g, '')
+    if (itemId === null || adminId === null || (cpf.length > 0 && cpf.length < 3)) {
+      filterError.value = 'Informe IDs inteiros positivos e use pelo menos 3 dígitos do CPF.'
       return
     }
     filterError.value = null
@@ -128,8 +132,8 @@ export function useAdminHandovers() {
 
   function clearFilters() {
     if (!hasAdminAccess.value) return
-    draftFilters.value = { itemId: '', adminId: '', from: null, to: null }
-    appliedFilters.value = { itemId: '', adminId: '', from: null, to: null }
+    draftFilters.value = { itemId: '', adminId: '', cpf: '', from: null, to: null }
+    appliedFilters.value = { itemId: '', adminId: '', cpf: '', from: null, to: null }
     filterError.value = null
     currentPage.value = 1
     void loadHandovers()

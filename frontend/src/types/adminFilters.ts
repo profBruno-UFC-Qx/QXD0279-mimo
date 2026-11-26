@@ -11,6 +11,7 @@ export interface DispositionHistoryFilters {
 export interface HandoverFilters {
   itemId: string
   adminId: string
+  cpf: string
   from: string | null
   to: string | null
 }

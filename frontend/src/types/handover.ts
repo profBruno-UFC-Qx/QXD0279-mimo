@@ -24,6 +24,7 @@ export interface HandoverPayload {
 export interface AdminHandoverQuery {
   itemId?: number
   adminId?: number
+  cpf?: string
   from?: string
   to?: string
   page?: number
