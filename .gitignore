@@ -1,0 +1,38 @@
+/swagger-check.json
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+dist-ssr
+coverage
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo
+
+# arqs
+frontend/PlanoImplementação.md
+.env
+backend/data/uploads/
+
+# E2E & visual review artifacts
+artifacts/
+frontend/test-results/
+frontend/playwright-report/

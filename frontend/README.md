@@ -1,19 +1,49 @@
-# Frontend
+# Achadex
 
-Aqui devem ficar os arquivos HTML, CSS e Javascript ou Typescript
+Sistema de achados e perdidos institucional.
 
-> [!IMPORTANT]
-> Separar os arquivos em pastas é uma boa prática. 
+> **Em desenvolvimento.** O sistema ainda está sendo construído; algumas telas e funcionalidades estão incompletas.
 
- ``` 
-├── index.html
-├── css
-│   ├── dialog.css
-│   └── layout.css
-├── js
-│   ├── pagina1.js
-│   └── pagina2.js
-└── paginas
-    ├── pagina1.html
-    └── pagina2.html
- ```
+## Tecnologias
+
+- **Frontend:** Vue 3, TypeScript, Vuetify e Vite
+- **Backend:** Node.js, TypeScript, Express, TypeORM e SQLite
+
+## Executar localmente
+
+É necessário ter Node.js e npm instalados. Em dois terminais, instale as dependências e inicie cada aplicação:
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Para popular o banco com dados, execute `npm run seed` dentro da pasta `backend` (Esse comando recria os dados do banco por completo)
+
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+## Build e testes
+
+Para gerar o build e executar os testes do backend:
+
+```bash
+cd backend
+npm run build
+node --import tsx --test src/tests/*.test.ts
+```
+
+Para gerar o build e executar os testes do frontend:
+
+```bash
+cd frontend
+npm run build
+npm test
+```
