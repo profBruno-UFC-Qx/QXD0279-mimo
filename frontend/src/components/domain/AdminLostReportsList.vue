@@ -45,7 +45,7 @@ defineEmits<{
             <div>
               <div class="d-flex align-center justify-space-between mb-2">
                 <span class="text-subtitle-1 font-weight-bold text-primary">
-                  Relato #{{ report.id }}
+                  Relato de perda
                 </span>
                 <StatusChip :status="report.status" type="lost_report" />
               </div>
@@ -53,10 +53,6 @@ defineEmits<{
               <p class="text-body-1 admin-report-description mb-3">{{ report.description }}</p>
 
               <div class="text-body-2 text-medium-emphasis d-flex flex-column ga-1">
-                <div class="d-flex align-center ga-2">
-                  <v-icon icon="mdi-account-outline" size="16" />
-                  <span>Usuário #{{ report.userId }}</span>
-                </div>
                 <div class="d-flex align-center ga-2">
                   <v-icon icon="mdi-tag-outline" size="16" />
                   <span>Categoria: {{ formatCategoryLabel(report.categoryId) }}</span>
@@ -71,7 +67,7 @@ defineEmits<{
                 </div>
                 <div v-if="report.confirmedItemId !== null" class="d-flex align-center ga-2 text-success font-weight-medium">
                   <v-icon icon="mdi-check-circle-outline" size="16" />
-                  <span>Item confirmado #{{ report.confirmedItemId }}</span>
+                  <span>Item confirmado</span>
                 </div>
               </div>
             </div>

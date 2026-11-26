@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
@@ -68,9 +69,9 @@ function handleSelect(action: string) {
         <v-list-item class="px-4 mb-2">
           <div class="text-subtitle-2 font-weight-bold text-truncate">{{ auth.user?.name }}</div>
           <div class="text-caption text-medium-emphasis text-truncate mb-1">{{ auth.user?.email }}</div>
-          <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-medium">
+          <AppPill size="x-small" color="primary">
             {{ translatedRole }}
-          </v-chip>
+          </AppPill>
         </v-list-item>
         <v-divider class="mb-1" />
 

@@ -30,7 +30,6 @@ defineEmits<{
       <AdminTable v-if="handovers.length > 0">
         <thead>
           <tr>
-            <th class="text-left">Entrega</th>
             <th class="text-left">Item</th>
             <th class="text-left">Retirante</th>
             <th class="text-left">CPF</th>
@@ -41,13 +40,12 @@ defineEmits<{
         </thead>
         <tbody>
           <tr v-for="handover in handovers" :key="handover.id">
-            <td class="font-weight-medium">#{{ handover.id }}</td>
             <td>
-              {{ handover.item?.title ?? `Item #${handover.itemId}` }}
+              {{ handover.item?.title ?? 'Item indisponível' }}
             </td>
             <td>{{ handover.withdrawnName }}</td>
             <td>{{ formatCpf(handover.withdrawnCpf) || '—' }}</td>
-            <td>{{ handover.admin?.name ?? `Admin #${handover.adminId}` }}</td>
+            <td>{{ handover.admin?.name ?? 'Administrador' }}</td>
             <td>{{ formatDateTime(handover.handedAt) }}</td>
             <td class="text-right text-no-wrap">
               <v-btn

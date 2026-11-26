@@ -6,6 +6,7 @@ import { formatDateTime } from '@/utils/format'
 import { DISPOSITION_LABELS } from '@/utils/dispositions'
 import type { DispositionRule } from '@/types'
 import { type ActiveFilter } from '@/types/adminFilters'
+import AppPill from '@/components/common/AppPill.vue'
 
 defineProps<{
   loading: boolean
@@ -29,7 +30,6 @@ defineEmits<{
       <AdminTable v-if="rules.length > 0">
         <thead>
           <tr>
-            <th class="text-left">Regra</th>
             <th class="text-left">Prazo</th>
             <th class="text-left">Destino</th>
             <th class="text-left">Situação</th>
@@ -40,28 +40,25 @@ defineEmits<{
         </thead>
         <tbody>
           <tr v-for="rule in rules" :key="rule.id">
-            <td class="font-weight-medium">#{{ rule.id }}</td>
             <td>{{ rule.days }} {{ rule.days === 1 ? 'dia' : 'dias' }}</td>
             <td>{{ DISPOSITION_LABELS[rule.destination] }}</td>
             <td>
-              <v-chip
+              <AppPill
                 size="small"
-                :color="rule.active ? 'success' : 'outline'"
-                variant="tonal"
+                :color="rule.active ? 'success' : 'on-surface'"
               >
                 {{ rule.active ? 'Ativa' : 'Inativa' }}
-              </v-chip>
+              </AppPill>
             </td>
             <td>
-              <v-chip
+              <AppPill
                 v-if="rule.locked"
                 size="small"
                 color="warning"
-                variant="tonal"
-                prepend-icon="mdi-lock-outline"
+                icon="mdi-lock-outline"
               >
                 Travada
-              </v-chip>
+              </AppPill>
               <span v-else class="text-medium-emphasis">—</span>
             </td>
             <td>{{ formatDateTime(rule.createdAt) }}</td>

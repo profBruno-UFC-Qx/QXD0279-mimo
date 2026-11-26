@@ -2,6 +2,7 @@
 ou de relatos de perdas (aberto, resolvido, cancelado) utilizando exclusivamente as cores do tema.-->
 <script setup lang="ts">
 import { computed } from 'vue'
+import AppPill from './AppPill.vue'
 
 const props = defineProps<{
   status: string
@@ -37,13 +38,10 @@ const statusConfig = computed(() => {
 </script>
 
 <template>
-  <v-chip
+  <AppPill
     :color="statusConfig.color"
-    :prepend-icon="statusConfig.icon"
-    size="small"
-    class="font-weight-medium px-3"
-    variant="tonal"
+    :icon="statusConfig.icon"
   >
     {{ statusConfig.label }}
-  </v-chip>
+  </AppPill>
 </template>

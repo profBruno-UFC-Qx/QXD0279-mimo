@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import { useThemeToggle } from '@/composables/useThemeToggle'
 import AppDrawer from './AppDrawer.vue'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
@@ -9,6 +10,7 @@ import NotificationMenu from './NotificationMenu.vue'
 const route = useRoute()
 const { mdAndUp } = useDisplay()
 const drawerOpen = ref(mdAndUp.value)
+const { isDark, toggleTheme } = useThemeToggle()
 
 watch(mdAndUp, (isDesktop) => {
   drawerOpen.value = isDesktop
@@ -48,6 +50,15 @@ const sectionTitle = computed(() => {
       </v-app-bar-title>
       <v-spacer />
       <div class="d-flex align-center">
+        <v-btn
+          icon
+          variant="text"
+          class="mr-2"
+          :aria-label="isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'"
+          @click="toggleTheme"
+        >
+          <v-icon :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
+        </v-btn>
         <NotificationMenu />
         <UserMenu />
       </div>

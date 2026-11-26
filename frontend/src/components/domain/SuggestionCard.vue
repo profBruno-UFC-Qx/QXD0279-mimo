@@ -4,6 +4,7 @@ import type { PublicCatalogItem, PublicSuggestedItem } from '@/types'
 import { formatDate } from '@/utils/format'
 import { getSafePrimaryPhotoUrl } from '@/utils/suggestions'
 import StatusChip from './StatusChip.vue'
+import AppPill from '@/components/common/AppPill.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -69,22 +70,19 @@ const foundLocationText = computed(() =>
 
     <v-card-text class="d-flex flex-column flex-grow-1">
       <div class="d-flex flex-wrap ga-2 mb-3">
-        <v-chip
+        <AppPill
           v-if="item.category?.name"
-          size="small"
-          variant="outlined"
           color="on-surface"
-          rounded="sm"
         >
           {{ item.category.name }}
-        </v-chip>
+        </AppPill>
         <StatusChip :status="item.status" kind="item" />
-        <v-chip v-if="isInteractive && state === 'confirmed'" color="success" size="small" variant="tonal">
+        <AppPill v-if="isInteractive && state === 'confirmed'" color="success">
           CONFIRMADO
-        </v-chip>
-        <v-chip v-else-if="isInteractive && state === 'discarded'" color="outline" size="small" variant="tonal">
+        </AppPill>
+        <AppPill v-else-if="isInteractive && state === 'discarded'" color="on-surface">
           DESCARTADA
-        </v-chip>
+        </AppPill>
       </div>
 
       <h2 class="text-subtitle-1 font-weight-bold suggestion-title mb-2">{{ item.title }}</h2>

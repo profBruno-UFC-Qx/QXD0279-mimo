@@ -27,7 +27,7 @@ const reportDialogOpen = defineModel<boolean>('reportDialogOpen', { required: tr
 <template>
   <AdminDialog v-model="reportDialogOpen" max-width="560" persistent>
     <template #title>
-      Relato de perda {{ selectedReport ? `#${selectedReport.id}` : '' }}
+      Relato de perda
     </template>
 
     <LoadingOverlay :loading="reportLoading" text="Consultando relato...">

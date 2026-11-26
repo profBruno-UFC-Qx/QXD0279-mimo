@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Item, PublicCatalogItem } from '@/types'
 import { formatDate } from '@/utils/format'
+import AppPill from '@/components/common/AppPill.vue'
 import StatusChip from './StatusChip.vue'
 
 defineProps<{ item: Item | PublicCatalogItem }>()
@@ -20,15 +21,9 @@ defineProps<{ item: Item | PublicCatalogItem }>()
     </div>
     <v-card-text class="d-flex flex-column flex-grow-1">
       <div class="d-flex flex-wrap ga-2 mb-3">
-        <v-chip
-          v-if="item.category?.name"
-          size="small"
-          variant="outlined"
-          color="outline"
-          rounded="sm"
-        >
+        <AppPill v-if="item.category?.name">
           {{ item.category.name }}
-        </v-chip>
+        </AppPill>
         <StatusChip :status="item.status" kind="item" />
       </div>
       <h2 class="text-subtitle-1 font-weight-bold item-title mb-2">{{ item.title }}</h2>

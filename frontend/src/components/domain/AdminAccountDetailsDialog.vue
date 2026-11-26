@@ -72,7 +72,7 @@ const detailOpen = defineModel<boolean>('detailOpen', { required: true })
 
     <div v-else-if="detailAdmin" class="d-flex flex-column ga-2 text-body-2">
       <div>
-        <span class="font-weight-bold">ID:</span> #{{ detailAdmin.id }}
+        <span class="font-weight-bold">Conta administrativa</span>
       </div>
       <div>
         <span class="font-weight-bold">Nome:</span> {{ detailAdmin.name }}

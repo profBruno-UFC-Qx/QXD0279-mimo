@@ -109,7 +109,6 @@ const historyDestinationOptions = [
       <AdminTable v-if="history.length > 0">
         <thead>
           <tr>
-            <th class="text-left">Destinação</th>
             <th class="text-left">Item</th>
             <th class="text-left">Tipo</th>
             <th class="text-left">Documento</th>
@@ -120,12 +119,11 @@ const historyDestinationOptions = [
         </thead>
         <tbody>
           <tr v-for="disposition in history" :key="disposition.id">
-            <td class="font-weight-medium">#{{ disposition.id }}</td>
-            <td>{{ disposition.item?.title ?? `Item #${disposition.itemId}` }}</td>
+            <td>{{ disposition.item?.title ?? 'Item indisponível' }}</td>
             <td>{{ DISPOSITION_LABELS[disposition.destination] }}</td>
             <td>{{ disposition.receiverDocument }}</td>
             <td>
-              {{ disposition.admin?.name ?? `Admin #${disposition.adminId}` }}
+              {{ disposition.admin?.name ?? 'Administrador' }}
             </td>
             <td>{{ formatDateTime(disposition.executedAt) }}</td>
             <td class="text-right text-no-wrap">

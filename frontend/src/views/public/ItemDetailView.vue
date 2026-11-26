@@ -8,6 +8,7 @@ import StatusChip from '@/components/domain/StatusChip.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ErrorAlert from '@/components/common/ErrorAlert.vue'
 import { formatDate } from '@/utils/format'
+import AppPill from '@/components/common/AppPill.vue'
 
 const route = useRoute()
 const details = ref<PublicItemDetails | null>(null)
@@ -60,15 +61,11 @@ onMounted(() => { void loadItem() })
       <v-col cols="12" md="6">
         <div class="d-flex flex-wrap ga-2 mb-3">
           <StatusChip :status="details.item.status" kind="item" />
-          <v-chip
+          <AppPill
             v-if="details.item.category?.name"
-            color="on-surface"
-            variant="outlined"
-            size="small"
-            rounded="sm"
           >
             {{ details.item.category.name }}
-          </v-chip>
+          </AppPill>
         </div>
         <h1 class="text-h4 font-weight-bold mb-4">{{ details.item.title }}</h1>
         <dl class="item-details mb-6">

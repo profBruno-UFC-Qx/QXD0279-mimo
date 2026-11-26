@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import ErrorAlert from '@/components/common/ErrorAlert.vue'
 import PossibleOwnerList from '@/components/domain/PossibleOwnerList.vue'
@@ -26,14 +27,12 @@ defineEmits<{
             <v-icon icon="mdi-account-search-outline" size="22" color="primary" />
             <h3 class="text-h6 font-weight-bold text-primary mb-0">Possíveis donos</h3>
           </div>
-          <v-chip
+          <AppPill
             v-if="!ownersLoading && !ownersError"
-            size="small"
-            variant="tonal"
             color="primary"
           >
             {{ possibleOwners.length }}
-          </v-chip>
+          </AppPill>
         </div>
         <p class="text-body-2 text-medium-emphasis mb-4">
           Relatos de perda compatíveis com categoria, prédio e data do achado. A

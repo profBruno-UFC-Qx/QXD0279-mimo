@@ -75,7 +75,6 @@ defineEmits<{
           <tr v-for="item in eligibleItems" :key="item.id">
             <td>
               <div class="font-weight-medium">{{ item.title }}</div>
-              <div class="text-caption text-medium-emphasis">Item #{{ item.id }}</div>
             </td>
             <td>{{ categoryLabel(item.categoryId) }}</td>
             <td>{{ buildingLabel(item.buildingId) }}</td>

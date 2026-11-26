@@ -5,6 +5,7 @@ import { useBuildingsStore } from '@/stores/buildingsStore'
 import { useCategoriesStore } from '@/stores/categoriesStore'
 import { formatDate } from '@/utils/format'
 import StatusChip from './StatusChip.vue'
+import AppPill from '@/components/common/AppPill.vue'
 
 const props = defineProps<{ lostReport: LostReport }>()
 
@@ -15,7 +16,7 @@ const categoryLabel = computed(() => {
   const name =
     props.lostReport.category?.name ??
     categoriesStore.items.find((category) => category.id === props.lostReport.categoryId)?.name
-  return name ?? `Categoria #${props.lostReport.categoryId}`
+  return name ?? 'Categoria não encontrada'
 })
 
 const buildingLabel = computed(() => {
@@ -23,7 +24,7 @@ const buildingLabel = computed(() => {
   const name =
     props.lostReport.building?.name ??
     buildingsStore.items.find((building) => building.id === props.lostReport.buildingId)?.name
-  return name ?? `Prédio #${props.lostReport.buildingId}`
+  return name ?? 'Prédio não encontrado'
 })
 
 onMounted(() => {
@@ -36,9 +37,9 @@ onMounted(() => {
   <v-card class="h-100 d-flex flex-column rounded-lg border" variant="flat">
     <v-card-text class="d-flex flex-column flex-grow-1 pa-5">
       <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-3">
-        <v-chip size="small" variant="outlined" color="on-surface" rounded="sm">
+        <AppPill>
           {{ categoryLabel }}
-        </v-chip>
+        </AppPill>
         <StatusChip :status="lostReport.status" kind="lostReport" />
       </div>
 

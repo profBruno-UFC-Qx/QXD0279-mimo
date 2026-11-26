@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { formatDate } from '@/utils/format'
@@ -29,9 +30,9 @@ defineEmits<{
           <span class="text-subtitle-2 font-weight-bold text-primary">
             Administradores cadastrados
           </span>
-          <v-chip size="small" variant="tonal" color="primary">
+          <AppPill color="primary">
             {{ filteredAdmins.length }}
-          </v-chip>
+          </AppPill>
         </div>
 
         <template v-for="(admin, index) in filteredAdmins" :key="admin.id">
@@ -43,9 +44,9 @@ defineEmits<{
               <div class="d-flex align-center flex-wrap ga-2">
                 <v-icon icon="mdi-shield-account-outline" size="20" color="primary" />
                 <span class="text-body-1 font-weight-medium">{{ admin.name }}</span>
-                <v-chip size="x-small" variant="tonal" color="primary">
+                <AppPill size="x-small" color="primary">
                   {{ admin.role }}
-                </v-chip>
+                </AppPill>
               </div>
               <div class="d-flex align-center flex-wrap ga-3 text-body-2 text-medium-emphasis">
                 <span>{{ admin.email }}</span>

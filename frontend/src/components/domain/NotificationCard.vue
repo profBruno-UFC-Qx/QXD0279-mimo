@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import type { NotificationDisplayEntry } from '@/composables/user/useNotifications'
 
 defineProps<{
@@ -37,13 +38,12 @@ const emit = defineEmits<{
             <span class="text-subtitle-1 font-weight-bold">
               {{ entry.presentation.title }}
             </span>
-            <v-chip
+            <AppPill
               size="x-small"
               :color="entry.read ? 'on-surface' : 'primary'"
-              :variant="entry.read ? 'tonal' : 'flat'"
             >
               {{ entry.read ? 'Lida' : 'Não lida' }}
-            </v-chip>
+            </AppPill>
           </div>
 
           <p class="text-body-2 text-medium-emphasis mb-2">

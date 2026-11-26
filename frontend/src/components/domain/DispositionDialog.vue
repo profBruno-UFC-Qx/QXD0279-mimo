@@ -196,7 +196,6 @@ watch(
             <div class="text-subtitle-1 font-weight-bold">
               {{ item.title }}
             </div>
-            <div class="text-body-2 text-medium-emphasis">Item #{{ item.id }}</div>
           </div>
           <StatusChip :status="item.status" />
         </div>

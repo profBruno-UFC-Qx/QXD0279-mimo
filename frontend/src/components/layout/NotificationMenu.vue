@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/authStore'
@@ -142,13 +143,12 @@ onBeforeUnmount(() => {
     <v-card width="360" max-width="92vw" class="elevation-4 rounded-lg">
       <div class="d-flex align-center justify-space-between px-4 py-3">
         <span class="text-subtitle-1 font-weight-bold">Notificações</span>
-        <v-chip
+        <AppPill
           size="x-small"
           :color="hasBadge ? 'primary' : 'on-surface'"
-          variant="tonal"
         >
           {{ headerCountLabel }}
-        </v-chip>
+        </AppPill>
       </div>
 
       <div

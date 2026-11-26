@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import type { Handover } from '@/types'
 import { formatDateTime } from '@/utils/format'
 
@@ -10,16 +11,16 @@ defineProps<{
 <template>
   <v-card variant="flat" class="rounded-lg border pa-5 h-100">
     <div class="d-flex align-center justify-space-between flex-wrap ga-2 mb-2">
-      <v-chip size="small" variant="tonal" color="primary">
-        Entrega #{{ handover.id }}
-      </v-chip>
+      <AppPill color="primary">
+        Entrega registrada
+      </AppPill>
       <span class="text-body-2 text-medium-emphasis">
         {{ formatDateTime(handover.handedAt) }}
       </span>
     </div>
 
     <h2 class="text-h6 font-weight-bold text-primary mb-2">
-      {{ handover.item?.title ?? `Item #${handover.itemId}` }}
+      {{ handover.item?.title ?? 'Item indisponível' }}
     </h2>
 
     <div class="d-flex flex-column ga-2 text-body-2 text-medium-emphasis">

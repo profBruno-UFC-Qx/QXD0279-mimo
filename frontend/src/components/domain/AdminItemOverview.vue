@@ -32,7 +32,6 @@ const DISPOSITION_LABELS: Record<DispositionType, string> = {
             <h2 class="text-h5 font-weight-bold text-primary mb-1">
               {{ details.item.title }}
             </h2>
-            <span class="text-body-2 text-medium-emphasis">Item #{{ details.item.id }}</span>
           </div>
           <StatusChip :status="details.item.status" />
         </div>

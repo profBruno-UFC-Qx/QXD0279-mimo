@@ -1,24 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTheme } from 'vuetify'
 import { useAuthStore } from '@/stores/authStore'
+import { useThemeToggle } from '@/composables/useThemeToggle'
 import UserMenu from './UserMenu.vue'
 import NotificationMenu from './NotificationMenu.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
-const theme = useTheme()
 const isLoginRoute = computed(() => route.path === '/entrar')
-const isDark = computed(() => theme.global.name.value === 'achadexDark')
-
-const toggleTheme = () => {
-  const newTheme = isDark.value ? 'achadexLight' : 'achadexDark'
-  theme.global.name.value = newTheme
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('achadex.theme', newTheme)
-  }
-}
+const { isDark, toggleTheme } = useThemeToggle()
 
 const emit = defineEmits<{
   (e: 'toggle-drawer'): void

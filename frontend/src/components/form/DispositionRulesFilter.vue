@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import type { DispositionRule } from '@/types'
 import { type ActiveFilter } from '@/types/adminFilters'
 
@@ -24,8 +25,8 @@ const activeFilter = defineModel<ActiveFilter>('activeFilter', { required: true 
       <v-btn value="active" class="text-none">Ativas</v-btn>
       <v-btn value="inactive" class="text-none">Inativas</v-btn>
     </v-btn-toggle>
-    <v-chip size="small" variant="tonal" color="primary">
+    <AppPill color="primary">
       {{ rules.length }} {{ rules.length === 1 ? 'regra' : 'regras' }}
-    </v-chip>
+    </AppPill>
   </div>
 </template>

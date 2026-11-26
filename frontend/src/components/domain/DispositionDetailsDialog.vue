@@ -24,7 +24,7 @@ const detailOpen = defineModel<boolean>('detailOpen', { required: true })
 <template>
   <AdminDialog v-model="detailOpen" max-width="620" persistent>
     <template #title>
-      Detalhes da destinação {{ detail ? `#${detail.id}` : '' }}
+      Detalhes da destinação
     </template>
 
     <LoadingOverlay :loading="detailLoading" text="Carregando detalhes...">
@@ -35,13 +35,11 @@ const detailOpen = defineModel<boolean>('detailOpen', { required: true })
       <ErrorAlert v-else-if="detailError" :error="detailError" @retry="$emit('retry-details')" />
 
       <div v-else-if="detail" class="d-flex flex-column ga-3 text-body-1">
-        <div><strong>Destinação:</strong> #{{ detail.id }}</div>
         <div><strong>Data e hora:</strong> {{ formatDateTime(detail.executedAt) }}</div>
         <v-divider />
         <div>
           <strong>Item:</strong>
-          {{ detail.item?.title ?? `Item #${detail.itemId}` }}
-          <span class="text-medium-emphasis">(ID #{{ detail.itemId }})</span>
+          {{ detail.item?.title ?? 'Item indisponível' }}
         </div>
         <div v-if="detail.item?.category">
           <strong>Categoria:</strong> {{ detail.item.category.name }}
@@ -59,7 +57,7 @@ const detailOpen = defineModel<boolean>('detailOpen', { required: true })
         <v-divider />
         <div>
           <strong>Administrador:</strong>
-          {{ detail.admin?.name ?? `Admin #${detail.adminId}` }}
+          {{ detail.admin?.name ?? 'Administrador' }}
         </div>
       </div>
     </LoadingOverlay>

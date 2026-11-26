@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import LoadingOverlay from '@/components/common/LoadingOverlay.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { Category } from '@/types'
@@ -26,9 +27,9 @@ defineEmits<{
       <v-card v-if="filteredCategories.length > 0" variant="flat" class="rounded-lg border">
         <div class="d-flex align-center justify-space-between px-4 py-3 bg-surface-variant-light border-b">
           <span class="text-subtitle-2 font-weight-bold text-primary">Categorias cadastradas</span>
-          <v-chip size="small" variant="tonal" color="primary">
+          <AppPill color="primary">
             {{ filteredCategories.length }}
-          </v-chip>
+          </AppPill>
         </div>
 
         <template v-for="(category, index) in filteredCategories" :key="category.id">

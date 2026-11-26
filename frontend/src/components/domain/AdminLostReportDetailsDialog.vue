@@ -34,7 +34,7 @@ const detailDialogOpen = defineModel<boolean>('detailDialogOpen', { required: tr
   >
     <template #title>
       <span class="text-h6 font-weight-bold text-primary">
-        Detalhes do relato {{ selectedReportId ? `#${selectedReportId}` : '' }}
+        Detalhes do relato
       </span>
       <StatusChip v-if="detailReport" :status="detailReport.status" type="lost_report" />
     </template>
@@ -53,8 +53,6 @@ const detailDialogOpen = defineModel<boolean>('detailDialogOpen', { required: tr
       />
 
       <div v-else-if="detailReport" class="d-flex flex-column ga-2 text-body-1">
-        <div><strong>ID:</strong> #{{ detailReport.id }}</div>
-        <div><strong>Autor:</strong> Usuário #{{ detailReport.userId }}</div>
         <div><strong>Categoria:</strong> {{ formatCategoryLabel(detailReport.categoryId) }}</div>
         <div><strong>Prédio:</strong> {{ formatBuildingLabel(detailReport.buildingId) }}</div>
         <div><strong>Data da perda:</strong> {{ formatDate(detailReport.lossDate) }}</div>
@@ -63,7 +61,7 @@ const detailDialogOpen = defineModel<boolean>('detailDialogOpen', { required: tr
           <strong>Item confirmado:</strong>
           {{
             detailReport.confirmedItemId !== null
-              ? `Item confirmado #${detailReport.confirmedItemId}`
+              ? 'Item confirmado'
               : 'Nenhum item confirmado'
           }}
         </div>

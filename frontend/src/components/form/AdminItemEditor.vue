@@ -75,7 +75,7 @@ defineExpose({
         </v-alert>
 
         <v-row>
-          <v-col cols="12" md="8">
+          <v-col cols="12">
             <v-text-field
               v-model="title"
               label="Título *"
@@ -83,16 +83,6 @@ defineExpose({
               density="comfortable"
               :rules="titleRules"
               :disabled="isLoading || !isEditable"
-            />
-          </v-col>
-          <v-col cols="12" md="4">
-            <v-text-field
-              :model-value="details ? `Item #${details.item.id}` : 'Novo item'"
-              label="Identificação"
-              variant="outlined"
-              density="comfortable"
-              readonly
-              hide-details
             />
           </v-col>
         </v-row>

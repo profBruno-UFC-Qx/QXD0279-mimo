@@ -13,7 +13,6 @@ defineProps<{
 <template>
   <v-card class="pa-6 rounded-lg border" variant="flat">
     <div class="d-flex flex-wrap align-center justify-space-between ga-2 mb-5">
-      <span class="text-subtitle-2 text-medium-emphasis">Relato #{{ report.id }}</span>
       <StatusChip :status="report.status" kind="lostReport" />
     </div>
 
@@ -52,7 +51,7 @@ defineProps<{
         >
           <div class="text-caption font-weight-medium mb-1">Confirmação</div>
           <div class="text-body-1 font-weight-medium">
-            Item confirmado: #{{ report.confirmedItemId }}
+            Item confirmado
           </div>
           <div class="text-body-2 mt-1">
             Você confirmou um item encontrado para esta perda.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppPill from '@/components/common/AppPill.vue'
 import { ref, watch, onUnmounted } from 'vue'
 import { computed } from 'vue'
 import { required as requiredRule, type ValidationRule } from '@/utils/rules'
@@ -88,14 +89,13 @@ onUnmounted(() => {
           class="position-absolute top-0 right-0 ma-1"
           @click="removePhoto(index)"
         />
-        <v-chip
+        <AppPill
           v-if="index === 0"
-          size="x-small"
           color="primary"
           class="position-absolute bottom-0 left-0 ma-1"
         >
           Capa
-        </v-chip>
+        </AppPill>
       </div>
     </div>
   </div>
