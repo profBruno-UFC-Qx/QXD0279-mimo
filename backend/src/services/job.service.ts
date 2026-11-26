@@ -1,15 +1,28 @@
+import { In } from 'typeorm';
 import { AppDataSource } from '../data-source.js';
 import { Item } from '../models/item.js';
 import { DispositionRule } from '../models/disposition-rule.js';
 import { ItemStatus } from '../models/enums.js';
+
+function parseLocalMidnight(value: Date | string): Date {
+  if (typeof value === 'string') {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (match) {
+      const [, year, month, day] = match;
+      return new Date(Number(year), Number(month) - 1, Number(day), 0, 0, 0, 0);
+    }
+  }
+  const date = new Date(value);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
 
 export async function runDispositionEligibilityJob(): Promise<{ updatedCount: number }> {
   return await AppDataSource.transaction(async (manager) => {
     const itemRepo = manager.getRepository(Item);
     const ruleRepo = manager.getRepository(DispositionRule);
 
-    const availableItems = await itemRepo.find({
-      where: { status: ItemStatus.AVAILABLE },
+    const candidateItems = await itemRepo.find({
+      where: { status: In([ItemStatus.AVAILABLE, ItemStatus.ELIGIBLE]) },
     });
 
     const activeRules = await ruleRepo.find({
@@ -17,7 +30,7 @@ export async function runDispositionEligibilityJob(): Promise<{ updatedCount: nu
       order: { days: 'DESC' },
     });
 
-    if (availableItems.length === 0 || activeRules.length === 0) {
+    if (candidateItems.length === 0 || activeRules.length === 0) {
       return { updatedCount: 0 };
     }
 
@@ -26,9 +39,8 @@ export async function runDispositionEligibilityJob(): Promise<{ updatedCount: nu
 
     let updatedCount = 0;
 
-    for (const item of availableItems) {
-      const foundDate = new Date(item.foundDate);
-      foundDate.setHours(0, 0, 0, 0);
+    for (const item of candidateItems) {
+      const foundDate = parseLocalMidnight(item.foundDate);
 
       const diffTime = today.getTime() - foundDate.getTime();
       const daysElapsed = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
@@ -42,7 +54,10 @@ export async function runDispositionEligibilityJob(): Promise<{ updatedCount: nu
         }
       }
 
-      if (matchingRule) {
+      if (
+        matchingRule &&
+        (item.status !== ItemStatus.ELIGIBLE || item.plannedDestination !== matchingRule.destination)
+      ) {
         item.status = ItemStatus.ELIGIBLE;
         item.plannedDestination = matchingRule.destination;
         await itemRepo.save(item);

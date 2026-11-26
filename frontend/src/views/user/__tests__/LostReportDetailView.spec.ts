@@ -11,7 +11,6 @@ import BuildingSelect from '@/components/form/BuildingSelect.vue'
 import DatePickerField from '@/components/form/DatePickerField.vue'
 import { vuetify } from '@/theme'
 import { lostReportService } from '@/services/lostReport.service'
-import { itemService } from '@/services/item.service'
 import { categoryService } from '@/services/category.service'
 import { buildingService } from '@/services/building.service'
 import { useAuthStore } from '@/stores/authStore'
@@ -134,7 +133,7 @@ describe('LostReportDetailView (Etapa 04 — Detalhes da perda)', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     vi.restoreAllMocks()
-    vi.spyOn(itemService, 'list').mockResolvedValue(defaultEmptyCatalogPage())
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(defaultEmptyCatalogPage())
   })
 
   it('D01 — ao abrir /minhas-perdas/12 autenticado, chama getById(12) uma única vez e não executa mine ou escrita', async () => {
@@ -733,7 +732,7 @@ describe('LostReportDetailView (Etapa 05 — Edição de perda própria)', () =>
     localStorage.clear()
     setActivePinia(createPinia())
     vi.restoreAllMocks()
-    vi.spyOn(itemService, 'list').mockResolvedValue(defaultEmptyCatalogPage())
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(defaultEmptyCatalogPage())
   })
 
   it('E01 — exibe botão "Editar perda" apenas quando status é OPEN e nunca em RESOLVED ou CANCELLED', async () => {
@@ -1478,7 +1477,7 @@ describe('LostReportDetailView (Etapa 06 — Cancelamento confirmado de perda pr
     localStorage.clear()
     setActivePinia(createPinia())
     vi.restoreAllMocks()
-    vi.spyOn(itemService, 'list').mockResolvedValue(defaultEmptyCatalogPage())
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(defaultEmptyCatalogPage())
   })
 
   it('K01 — botão "Cancelar perda" aparece apenas quando status é OPEN e fora do modo de edição', async () => {
@@ -2396,7 +2395,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(
       makeReport({ id: 12, categoryId: 5, buildingId: 2, status: 'OPEN', confirmedItemId: null }),
     )
-    const listSpy = vi.spyOn(itemService, 'list').mockResolvedValue(
+    const listSpy = vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(
       makeCatalogPage([makeCatalogItem({ id: 25, categoryId: 5, category: { id: 5, name: 'Documentos' } })]),
     )
 
@@ -2404,7 +2403,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     await flushPromises()
 
     expect(listSpy).toHaveBeenCalledTimes(1)
-    expect(listSpy).toHaveBeenCalledWith({ categoryId: 5, page: 1, per_page: 12 })
+    expect(listSpy).toHaveBeenCalledWith(12, { page: 1, per_page: 12 })
     expect(wrapper.text()).toContain('Possíveis correspondências')
     expect(wrapper.text()).toContain('Mochila preta')
   })
@@ -2418,7 +2417,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
           resolveDetail = resolve
         }),
     )
-    const listSpy = vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([]))
+    const listSpy = vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([]))
 
     const { wrapper } = await mountDetail('/minhas-perdas/12')
     await nextTick()
@@ -2438,7 +2437,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(
       makeReport({ id: 12, categoryId: 5, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValue(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(
       makeCatalogPage([
         makeCatalogItem({
           id: 25,
@@ -2494,7 +2493,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
   it('S12 — ação "Ver detalhes do item" navega via rota nomeada item-detail com ID exato', async () => {
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, categoryId: 5 }))
-    vi.spyOn(itemService, 'list').mockResolvedValue(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(
       makeCatalogPage([makeCatalogItem({ id: 91, categoryId: 5, category: { id: 5, name: 'Documentos' } })]),
     )
 
@@ -2518,7 +2517,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
   it('S13 — catálogo vazio apresenta estado vazio sem ErrorAlert falso', async () => {
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, categoryId: 5 }))
-    vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([], { total: 0, page: 1, total_pages: 0 }))
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([], { total: 0, page: 1, total_pages: 0 }))
 
     const { wrapper } = await mountDetail('/minhas-perdas/12')
     await flushPromises()
@@ -2534,7 +2533,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       makeReport({ id: 12, categoryId: 5, description: 'Chaveiro prata visível durante carregamento' }),
     )
     let resolveCatalog!: (page: Page<PublicCatalogItem>) => void
-    vi.spyOn(itemService, 'list').mockImplementation(
+    vi.spyOn(lostReportService, 'getSuggestions').mockImplementation(
       () =>
         new Promise<Page<PublicCatalogItem>>((resolve) => {
           resolveCatalog = resolve
@@ -2571,7 +2570,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       const updateSpy = vi.spyOn(lostReportService, 'update')
       const cancelSpy = vi.spyOn(lostReportService, 'cancel')
       const listSpy = vi
-        .spyOn(itemService, 'list')
+        .spyOn(lostReportService, 'getSuggestions')
         .mockRejectedValueOnce(err)
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ title: 'Caderno recuperado' })]))
 
@@ -2625,7 +2624,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       setActivePinia(createPinia())
       setAuthenticatedSession()
       vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, categoryId: 5 }))
-      vi.spyOn(itemService, 'list').mockResolvedValue(badResponse as Page<PublicCatalogItem>)
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(badResponse as Page<PublicCatalogItem>)
 
       const { wrapper } = await mountDetail('/minhas-perdas/12')
       await flushPromises()
@@ -2655,7 +2654,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     )
 
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(makeCatalogPage(page1Items, { total: 27, page: 1, per_page: 12, total_pages: 3 }))
       .mockResolvedValueOnce(makeCatalogPage(page2Items, { total: 27, page: 2, per_page: 12, total_pages: 3 }))
       .mockResolvedValueOnce(makeCatalogPage(page3Items, { total: 27, page: 3, per_page: 12, total_pages: 3 }))
@@ -2671,19 +2670,19 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
 
     footer.vm.$emit('update:page', 2)
     await flushPromises()
-    expect(listSpy).toHaveBeenNthCalledWith(2, { categoryId: 5, page: 2, per_page: 12 })
+    expect(listSpy).toHaveBeenNthCalledWith(2, 12, { page: 2, per_page: 12 })
     expect(wrapper.findAllComponents({ name: 'SuggestionCard' })).toHaveLength(12)
     expect(wrapper.text()).toContain('Item P2 #13')
 
     footer.vm.$emit('update:page', 3)
     await flushPromises()
-    expect(listSpy).toHaveBeenNthCalledWith(3, { categoryId: 5, page: 3, per_page: 12 })
+    expect(listSpy).toHaveBeenNthCalledWith(3, 12, { page: 3, per_page: 12 })
     expect(wrapper.findAllComponents({ name: 'SuggestionCard' })).toHaveLength(3)
     expect(wrapper.text()).toContain('Item P3 #27')
 
     footer.vm.$emit('update:limit', 24)
     await flushPromises()
-    expect(listSpy).toHaveBeenNthCalledWith(4, { categoryId: 5, page: 1, per_page: 24 })
+    expect(listSpy).toHaveBeenNthCalledWith(4, 12, { page: 1, per_page: 24 })
     expect(wrapper.findAllComponents({ name: 'SuggestionCard' })).toHaveLength(24)
 
     const refreshBtn = findButton(wrapper, 'Atualizar sugestões')
@@ -2691,7 +2690,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     await refreshBtn!.trigger('click')
     await flushPromises()
 
-    expect(listSpy).toHaveBeenNthCalledWith(5, { categoryId: 5, page: 1, per_page: 24 })
+    expect(listSpy).toHaveBeenNthCalledWith(5, 12, { page: 1, per_page: 24 })
     expect(listSpy).toHaveBeenCalledTimes(5)
     expect(detailSpy).toHaveBeenCalledTimes(1)
   })
@@ -2702,7 +2701,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     const page1Items = Array.from({ length: 12 }, (_, idx) => makeCatalogItem({ id: idx + 1, title: `Item #${idx + 1}` }))
 
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(makeCatalogPage(page1Items, { total: 27, page: 1, per_page: 12, total_pages: 3 }))
       .mockResolvedValueOnce(makeCatalogPage([], { total: 5, page: 3, per_page: 12, total_pages: 1 }))
       .mockResolvedValueOnce(makeCatalogPage(page1Items.slice(0, 5), { total: 5, page: 1, per_page: 12, total_pages: 1 }))
@@ -2721,7 +2720,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     await firstPageBtn!.trigger('click')
     await flushPromises()
 
-    expect(listSpy).toHaveBeenNthCalledWith(3, { categoryId: 5, page: 1, per_page: 12 })
+    expect(listSpy).toHaveBeenNthCalledWith(3, 12, { page: 1, per_page: 12 })
     expect(wrapper.findAllComponents({ name: 'SuggestionCard' })).toHaveLength(5)
   })
 
@@ -2730,7 +2729,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, categoryId: 5 }))
 
     const resolvers: Array<(page: Page<PublicCatalogItem>) => void> = []
-    vi.spyOn(itemService, 'list').mockImplementation(
+    vi.spyOn(lostReportService, 'getSuggestions').mockImplementation(
       () =>
         new Promise<Page<PublicCatalogItem>>((resolve) => {
           resolvers.push(resolve)
@@ -2745,7 +2744,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     await flushPromises()
 
     const pendingResolvers: Array<(page: Page<PublicCatalogItem>) => void> = []
-    vi.mocked(itemService.list).mockImplementation(
+    vi.mocked(lostReportService.getSuggestions).mockImplementation(
       () =>
         new Promise<Page<PublicCatalogItem>>((resolve) => {
           pendingResolvers.push(resolve)
@@ -2793,7 +2792,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       setActivePinia(createPinia())
       setAuthenticatedSession()
       vi.spyOn(lostReportService, 'getById').mockResolvedValue(report)
-      const listSpy = vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([makeCatalogItem()]))
+      const listSpy = vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([makeCatalogItem()]))
 
       const { wrapper } = await mountDetail('/minhas-perdas/12')
       await flushPromises()
@@ -2813,7 +2812,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       const auth = setAuthenticatedSession({ id: 3 }, 'token-a')
       vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, userId: 3, categoryId: 5 }))
       let resolveCat!: (p: Page<PublicCatalogItem>) => void
-      vi.spyOn(itemService, 'list').mockImplementationOnce(
+      vi.spyOn(lostReportService, 'getSuggestions').mockImplementationOnce(
         () => new Promise<Page<PublicCatalogItem>>((resolve) => (resolveCat = resolve)),
       )
       const { wrapper } = await mountDetail('/minhas-perdas/12')
@@ -2838,7 +2837,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 9, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockImplementationOnce(() => new Promise<Page<PublicCatalogItem>>((resolve) => (resolveCatA = resolve)))
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ title: 'Item da sessão B' })]))
 
@@ -2866,7 +2865,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       const auth = setAuthenticatedSession({ id: 3 }, 'token-igual')
       let resolveGen1!: (p: Page<PublicCatalogItem>) => void
       vi.spyOn(lostReportService, 'getById').mockResolvedValue(makeReport({ id: 12, userId: 3, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockImplementationOnce(() => new Promise<Page<PublicCatalogItem>>((resolve) => (resolveGen1 = resolve)))
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ title: 'Geração 2' })]))
 
@@ -2894,7 +2893,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 13, categoryId: 8 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockImplementationOnce(() => new Promise<Page<PublicCatalogItem>>((resolve) => (resolve12 = resolve)))
         .mockImplementationOnce(() => new Promise<Page<PublicCatalogItem>>((resolve) => (resolve13 = resolve)))
 
@@ -2920,7 +2919,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
     mockCatalogs()
 
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(
         makeCatalogPage([makeCatalogItem({ id: 1, categoryId: 5, category: { id: 5, name: 'Documentos' }, title: 'Item Doc Antigo' })]),
       )
@@ -2965,7 +2964,7 @@ describe('LostReportDetailView (Etapa 08 — Possíveis correspondências)', () 
 
     expect(updateSpy).toHaveBeenCalledWith(12, { categoryId: 8 })
     expect(listSpy).toHaveBeenCalledTimes(2)
-    expect(listSpy).toHaveBeenNthCalledWith(2, { categoryId: 8, page: 1, per_page: 12 })
+    expect(listSpy).toHaveBeenNthCalledWith(2, 12, { page: 1, per_page: 12 })
     expect(wrapper.text()).toContain('Item Eletrônico Novo')
     expect(wrapper.text()).not.toContain('Item Doc Antigo')
 
@@ -2994,7 +2993,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValue(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(
       makeCatalogPage([makeCatalogItem({ id: 25, status: 'ELIGIBLE' })]),
     )
 
@@ -3013,7 +3012,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       setActivePinia(createPinia())
       setAuthenticatedSession()
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(report)
-      vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([makeCatalogItem()]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([makeCatalogItem()]))
 
       const { wrapper } = await mountDetail('/minhas-perdas/12')
       await flushPromises()
@@ -3032,7 +3031,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
   it('F07 & F08 — clicar em "É este!" abre diálogo identificando o item e desistir não envia POST', async () => {
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([makeCatalogItem({ id: 25, title: 'Mochila preta Dell' })]),
     )
     const confirmServiceSpy = vi.spyOn(lostReportService, 'confirmSuggestion')
@@ -3073,7 +3072,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
   it('F09, F10, F11 & F12 — confirmar envia POST único, atualiza confirmedItemId, oculta candidatos, mantém OPEN e não altera item ou status', async () => {
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, status: 'OPEN' }))
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([makeCatalogItem({ id: 25, title: 'Mochila preta Dell' })]),
     )
     const confirmServiceSpy = vi
@@ -3110,7 +3109,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
   it('F13, F14 & F15 — POST pendente exibe progresso sem sucesso antecipado e bloqueia duplo clique ou dois itens simultâneos', async () => {
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([
         makeCatalogItem({ id: 25, title: 'Item A' }),
         makeCatalogItem({ id: 26, title: 'Item B' }),
@@ -3162,7 +3161,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: null }))
       .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: null }))
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25, title: 'Item removido' })]))
       .mockResolvedValueOnce(makeCatalogPage([], { total: 0, page: 1, total_pages: 0 }))
     const confirmServiceSpy = vi
@@ -3191,7 +3190,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
     vi.spyOn(lostReportService, 'getById')
       .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
       .mockRejectedValueOnce(makeBackendError('Relato de perda não encontrado.', 404))
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
     vi.spyOn(lostReportService, 'confirmSuggestion').mockRejectedValueOnce(
       makeBackendError('Relato de perda não encontrado.', 404),
     )
@@ -3216,7 +3215,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: 30 }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Este relato de perda já possui um item confirmado.', 409))
@@ -3248,7 +3247,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: null }))
         .mockRejectedValueOnce(makeBackendError('SQLITE_BUSY recovery failure', 503))
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, status: 'CANCELLED', confirmedItemId: null }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Somente relatos em aberto podem ter sugestões confirmadas.', 409))
@@ -3291,7 +3290,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
         .spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5, confirmedItemId: 25 }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi.spyOn(lostReportService, 'confirmSuggestion').mockRejectedValueOnce(err)
 
       const ui = useUiStore()
@@ -3339,7 +3338,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
         makeReport({ id: 12, categoryId: 5, userId: 3, confirmedItemId: null }),
       )
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockResolvedValueOnce(payload as LostReport)
@@ -3366,7 +3365,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
     {
       const auth = setAuthenticatedSession({ id: 3 }, 'token-a')
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi.spyOn(lostReportService, 'confirmSuggestion')
 
       const ui = useUiStore()
@@ -3403,7 +3402,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 9, categoryId: 5 }))
-      vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi.spyOn(lostReportService, 'confirmSuggestion')
 
       const ui = useUiStore()
@@ -3442,7 +3441,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 13, userId: 3, categoryId: 5, confirmedItemId: null }))
-      vi.spyOn(itemService, 'list').mockResolvedValue(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(makeCatalogPage([makeCatalogItem({ id: 25 })]))
 
       let resolvePost12!: (val: LostReport) => void
       const confirmSpy = vi.spyOn(lostReportService, 'confirmSuggestion').mockImplementationOnce(
@@ -3496,7 +3495,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
     {
       setAuthenticatedSession()
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockResolvedValueOnce(
           makeCatalogPage([makeCatalogItem({ id: 25, title: 'Item P1' })], { total: 20, page: 1, total_pages: 2 }),
         )
@@ -3540,7 +3539,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
       mockCatalogs()
 
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25, categoryId: 5, title: 'Item Cat 5' })]))
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 99, categoryId: 8, category: { id: 8, name: 'Eletrônicos' }, title: 'Item Cat 8' })]))
       vi.spyOn(lostReportService, 'update').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 8 }))
@@ -3592,7 +3591,7 @@ describe('LostReportDetailView (Etapa 09 — Confirmação de item sugerido — 
     setAuthenticatedSession()
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, categoryId: 5 }))
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(
         makeCatalogPage([makeCatalogItem({ id: 1, title: 'Cat P1' })], { total: 24, page: 1, total_pages: 2 }),
       )
@@ -3631,7 +3630,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([makeCatalogItem({ id: 25, title: 'Mochila Preta' })]),
     )
 
@@ -3678,7 +3677,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([makeCatalogItem({ id: 25, title: 'Mochila Preta' })]),
     )
     vi.spyOn(lostReportService, 'confirmSuggestion').mockResolvedValueOnce(
@@ -3708,7 +3707,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
       makeCatalogPage([makeCatalogItem({ id: 25, title: 'Mochila Preta' })]),
     )
     const confirmSuggestionSpy = vi
@@ -3754,7 +3753,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'CANCELLED', confirmedItemId: null }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Relato cancelado.', 409))
@@ -3784,7 +3783,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'RESOLVED', confirmedItemId: null }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Relato resolvido.', 409))
@@ -3815,7 +3814,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: 30 }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Este relato de perda já possui um item confirmado.', 409))
@@ -3850,7 +3849,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
       .mockRejectedValueOnce(makeBackendError('SQLITE_BUSY', 503))
       .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: 30 }))
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
     const confirmSpy = vi
       .spyOn(lostReportService, 'confirmSuggestion')
       .mockRejectedValueOnce(makeBackendError('Conflito ao confirmar.', 409))
@@ -3886,7 +3885,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
       const listSpy = vi
-        .spyOn(itemService, 'list')
+        .spyOn(lostReportService, 'getSuggestions')
         .mockResolvedValueOnce(
           makeCatalogPage([
             makeCatalogItem({ id: 25, title: 'Indisponível' }),
@@ -3931,7 +3930,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockRejectedValueOnce(makeBackendError('Relato não encontrado.', 404))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       const confirmSpy = vi
         .spyOn(lostReportService, 'confirmSuggestion')
         .mockRejectedValueOnce(makeBackendError('Não encontrado.', 404))
@@ -3978,7 +3977,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
         .spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
         .mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN', confirmedItemId: null }))
-      vi.spyOn(itemService, 'list').mockResolvedValue(
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValue(
         makeCatalogPage([makeCatalogItem({ id: 25, title: 'Chave Prata' })]),
       )
       const confirmSpy = setupPostMock()
@@ -4017,7 +4016,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
         makeReport({ id: 12, userId: 3, categoryId: 5 }),
       )
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(
         makeCatalogPage([makeCatalogItem({ id: 25, title: 'Privado Logout' })]),
       )
       let resolvePost!: (val: LostReport) => void
@@ -4055,7 +4054,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 12, userId: sameJwt ? 3 : 9, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25, title: 'Item Sessão 1' })]))
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 77, title: 'Item Sessão 2' })]))
 
@@ -4120,7 +4119,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       vi.spyOn(lostReportService, 'getById')
         .mockResolvedValueOnce(makeReport({ id: 12, userId: 3, categoryId: 5 }))
         .mockResolvedValueOnce(makeReport({ id: 13, userId: 3, categoryId: 5 }))
-      vi.spyOn(itemService, 'list')
+      vi.spyOn(lostReportService, 'getSuggestions')
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25, title: 'Item 12' })]))
         .mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 88, title: 'Item 13' })]))
 
@@ -4176,7 +4175,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       setActivePinia(createPinia())
       setAuthenticatedSession({ id: 3 })
       vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, userId: 3 }))
-      vi.spyOn(itemService, 'list').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
+      vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(makeCatalogPage([makeCatalogItem({ id: 25 })]))
       let resolvePost!: (val: LostReport) => void
       vi.spyOn(lostReportService, 'confirmSuggestion').mockImplementationOnce(
         () => new Promise<LostReport>((r) => (resolvePost = r)),
@@ -4206,7 +4205,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
       makeReport({ id: 12, categoryId: 5, description: 'Descrição inicial do relato' }),
     )
     const listSpy = vi
-      .spyOn(itemService, 'list')
+      .spyOn(lostReportService, 'getSuggestions')
       .mockResolvedValueOnce(
         makeCatalogPage([makeCatalogItem({ id: 10, title: 'Página 1' })], { total: 24, page: 1, total_pages: 2 }),
       )
@@ -4323,7 +4322,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
 
   it('CS14-18 — edição não duplica alertas de falha de categorias, preserva valor original e bloqueia envio se categoria for excluída externamente', async () => {
     setAuthenticatedSession()
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(defaultEmptyCatalogPage())
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(defaultEmptyCatalogPage())
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, categoryId: 5, buildingId: 2, status: 'OPEN' }),
     )
@@ -4373,7 +4372,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
 
   it('R17-CONF-01a — cancelar perda não substitui diálogo global externo já aberto e volta a funcionar após liberação', async () => {
     setAuthenticatedSession()
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce(defaultEmptyCatalogPage())
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce(defaultEmptyCatalogPage())
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(makeReport({ id: 12, status: 'OPEN' }))
     const cancelSpy = vi
       .spyOn(lostReportService, 'cancel')
@@ -4422,7 +4421,7 @@ describe('LostReportDetailView (Etapa 09.1 — Limpeza de estado após confirma�
     vi.spyOn(lostReportService, 'getById').mockResolvedValueOnce(
       makeReport({ id: 12, categoryId: 5, status: 'OPEN', confirmedItemId: null }),
     )
-    vi.spyOn(itemService, 'list').mockResolvedValueOnce({
+    vi.spyOn(lostReportService, 'getSuggestions').mockResolvedValueOnce({
       data: [
         {
           id: 25,

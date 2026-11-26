@@ -1,6 +1,7 @@
 import { DispositionRule } from '../models/disposition-rule.js';
 import { UserRole } from '../models/enums.js';
 import { HttpError } from '../middlewares/http-error.js';
+import { runDispositionEligibilityJob } from './job.service.js';
 import {
   DispositionRuleRepository,
   type CreateDispositionRuleData,
@@ -24,7 +25,15 @@ export class DispositionRuleService {
   }
 
   async create(data: CreateDispositionRuleData, createdBy: number): Promise<DispositionRule> {
-    return this.repository.create(data, createdBy);
+    const result = await this.repository.create(data, createdBy);
+    if (result.type === 'duplicate_days') {
+      throw new HttpError(409, 'Já existe uma regra de destinação cadastrada com este prazo em dias.');
+    }
+    if (result.type === 'duplicate_destination') {
+      throw new HttpError(409, 'Já existe uma regra de destinação cadastrada para este destino.');
+    }
+    await runDispositionEligibilityJob();
+    return result.rule;
   }
 
   async update(
@@ -41,9 +50,16 @@ export class DispositionRuleService {
     if (result.type === 'locked') {
       throw new HttpError(403, 'ADMIN não pode alterar uma regra travada.');
     }
+    if (result.type === 'duplicate_days') {
+      throw new HttpError(409, 'Já existe uma regra de destinação cadastrada com este prazo em dias.');
+    }
+    if (result.type === 'duplicate_destination') {
+      throw new HttpError(409, 'Já existe uma regra de destinação cadastrada para este destino.');
+    }
     if (result.type === 'conflict') {
       throw new HttpError(409, 'A regra foi alterada simultaneamente; atualize e tente novamente.');
     }
+    await runDispositionEligibilityJob();
     return result.rule;
   }
 

@@ -169,6 +169,28 @@ export function useAdminDispositionRules() {
       return
     }
 
+    if (activeFilter.value === 'all') {
+      const duplicateDaysRule = rules.value.find(
+        (rule) =>
+          rule.days === days &&
+          (editorMode.value !== 'edit' || rule.id !== editingRuleId.value),
+      )
+      if (duplicateDaysRule) {
+        daysError.value = 'Já existe uma regra com este prazo em dias.'
+        return
+      }
+
+      const duplicateDestinationRule = rules.value.find(
+        (rule) =>
+          rule.destination === destination.value &&
+          (editorMode.value !== 'edit' || rule.id !== editingRuleId.value),
+      )
+      if (duplicateDestinationRule) {
+        destinationError.value = 'Já existe uma regra para este destino.'
+        return
+      }
+    }
+
     submitting.value = true
     const targetId = editingRuleId.value
     const original = editingOriginal.value
@@ -223,12 +245,14 @@ export function useAdminDispositionRules() {
         return
       }
       if (httpStatus === 409) {
-        formError.value =
-          'A regra foi alterada por outra sessão. Os dados atuais foram carregados; revise antes de tentar novamente.'
-        if (isPositiveSafeId(targetId)) {
+        formError.value = extractLostReportErrorMessage(
+          err,
+          'A regra foi alterada por outra sessão. Os dados atuais foram carregados; revise antes de tentar novamente.',
+        )
+        if (editorMode.value === 'edit' && isPositiveSafeId(targetId)) {
           await refreshAfterConflict(targetId)
-          await loadRules()
         }
+        await loadRules()
         return
       }
       if (httpStatus === 400) {

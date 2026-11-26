@@ -198,3 +198,24 @@ test('A12 - contratos de sucesso permanecem 201, 200 e 204 conforme a operacao',
   const removed = await app.request('DELETE', `/api/admin/items/${id}`, token);
   assert.equal(removed.status, 204);
 });
+
+test('ACH-007 - foundDate futura retorna 400 em POST e PATCH /api/admin/items', async () => {
+  const admin = await app.createUser(UserRole.ADMIN);
+  const token = app.tokenFor(admin);
+  const future = new Date();
+  future.setDate(future.getDate() + 2);
+  const futureIso = `${String(future.getFullYear()).padStart(4, '0')}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+
+  const title = uniqueTitle('Item data futura');
+  const createFuture = await app.request('POST', '/api/admin/items', token, itemBody(title, { foundDate: futureIso }));
+  assert.equal(createFuture.status, 400);
+  assert.equal(await countItemsByTitle(title), 0);
+
+  const created = await app.request<{ id: number }>('POST', '/api/admin/items', token, itemBody(title));
+  assert.equal(created.status, 201);
+
+  const patchFuture = await app.request('PATCH', `/api/admin/items/${created.body.data.id}`, token, {
+    foundDate: futureIso,
+  });
+  assert.equal(patchFuture.status, 400);
+});

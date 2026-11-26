@@ -547,3 +547,73 @@ test('B09 — regressões de 401 sem autenticação, 400 ID inválido e 409 em r
   assert.equal(resolvedRes.status, 409);
   assert.equal(await AppDataSource.getRepository(Notification).count(), 0);
 });
+
+test('ACH-006 — impede confirmar o mesmo item em perdas distintas (sequencial e concorrente) e libera após cancelamento', async () => {
+  const { user: user1, token: token1 } = await createFixtureUser('u1@ufc.br', 'User 1');
+  const { user: user2, token: token2 } = await createFixtureUser('u2@ufc.br', 'User 2');
+  const admin = await createFixtureUser('admin.ach006@ufc.br', 'Admin', UserRole.ADMIN);
+  const category = await createFixtureCategory('Acessórios');
+  const building = await createFixtureBuilding();
+
+  const item = await AppDataSource.getRepository(Item).save(
+    AppDataSource.getRepository(Item).create({
+      title: 'Bolsa Única',
+      categoryId: category.id,
+      buildingId: building.id,
+      foundDate: '2026-10-23',
+      status: ItemStatus.AVAILABLE,
+      createdBy: admin.user.id,
+    }),
+  );
+
+  const reportRepo = AppDataSource.getRepository(LostReport);
+  const report1 = await reportRepo.save(
+    reportRepo.create({
+      userId: user1.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Perdi minha bolsa preta',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+  const report2 = await reportRepo.save(
+    reportRepo.create({
+      userId: user2.id,
+      categoryId: category.id,
+      buildingId: building.id,
+      description: 'Perdi uma bolsa parecida',
+      lossDate: '2026-10-23',
+      status: LostReportStatus.OPEN,
+    }),
+  );
+
+  const [res1, res2] = await Promise.all([
+    confirmSuggestion(report1.id, item.id, token1),
+    confirmSuggestion(report2.id, item.id, token2),
+  ]);
+
+  const ok = [res1, res2].filter((r) => r.status === 200);
+  const conflict = [res1, res2].filter((r) => r.status === 409);
+  assert.equal(ok.length, 1);
+  assert.equal(conflict.length, 1);
+
+  const winnerReportId = ok[0].body.data.id as number;
+  const loserReportId = conflict[0] === res1 ? report1.id : report2.id;
+  const loserToken = loserReportId === report1.id ? token1 : token2;
+
+  const retryConflict = await confirmSuggestion(loserReportId, item.id, loserToken);
+  assert.equal(retryConflict.status, 409);
+
+  // Cancela o relato vencedor e verifica que o item volta a ser confirmável
+  const winnerToken = winnerReportId === report1.id ? token1 : token2;
+  const cancelRes = await fetch(`${baseUrl}/api/lost-reports/${winnerReportId}/cancel`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${winnerToken}` },
+  });
+  assert.equal(cancelRes.status, 200);
+
+  const afterCancelConfirm = await confirmSuggestion(loserReportId, item.id, loserToken);
+  assert.equal(afterCancelConfirm.status, 200);
+  assert.equal(afterCancelConfirm.body.data.confirmedItemId, item.id);
+});

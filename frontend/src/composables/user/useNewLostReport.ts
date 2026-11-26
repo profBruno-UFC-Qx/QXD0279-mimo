@@ -9,6 +9,7 @@ import {
   buildLostReportCreatePayload,
   extractLostReportErrorMessage,
   getErrorStatus,
+  isFutureCalendarDate,
   isPositiveSafeId,
   isValidCalendarDate,
   isValidLostReport,
@@ -188,6 +189,9 @@ export function useNewLostReport() {
   const lossDateError = computed(() => {
     if (!isValidCalendarDate(draft.value.lossDate)) {
       return 'Informe uma data válida no formato YYYY-MM-DD.'
+    }
+    if (isFutureCalendarDate(draft.value.lossDate)) {
+      return 'A data da perda não pode ser futura.'
     }
     return null
   })

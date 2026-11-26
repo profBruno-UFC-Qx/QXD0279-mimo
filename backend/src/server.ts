@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './data-source.js';
 import { errorHandler } from './middlewares/error-handler.js';
 import { apiRouter } from './routes/index.js';
+import { runDispositionEligibilityJob } from './services/job.service.js';
 
 const app = express();
 const port = 3000;
@@ -36,7 +37,8 @@ app.use(errorHandler);
 
 // Inicialização do servidor e conexão com o banco de dados
 AppDataSource.initialize()
-  .then(() => {
+  .then(async () => {
+    await runDispositionEligibilityJob();
     const server = app.listen(port, () => {
       console.log(`Servidor rodando em http://localhost:${port}`);
       console.log(`Documentação Swagger em http://localhost:${port}/docs`);
