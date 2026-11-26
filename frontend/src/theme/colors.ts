@@ -15,19 +15,19 @@ export const palette = {
 }
 
 export const darkPalette = {
-  primary: '#5299D3',
-  onPrimary: '#FFFFFF',
+  primary: '#C4CDD6',
+  onPrimary: '#17191C',
   onSurface: '#E8EEF2',
-  secondary: '#3E9B91',
+  secondary: '#929BA4',
   accent: '#E5A93B',
   success: '#43A047',
   warning: '#FB8C00',
   error: '#E57373',
-  info: '#42A5F5',
-  background: '#121820',
-  surface: '#1E2530',
-  surfaceMuted: '#27303F',
-  outline: '#3F4C5E',
+  info: '#9AA8B5',
+  background: '#101214',
+  surface: '#191C20',
+  surfaceMuted: '#25292E',
+  outline: '#4A5058',
 }
 
 export type StatusColorToken = keyof typeof palette | string
